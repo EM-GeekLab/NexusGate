@@ -60,7 +60,7 @@ docker compose up -d
 - 公共云服务：OpenAI、DeepSeek、阿里千问
 - 企业私有模型：大模型一体机
 
-![创建上游配置](./assets/img/upstream-config.webp)
+![创建上游配置](./assets/img/upstream-config.png)
 
 NexusGate 支持 20 多个经过测试的模型服务和部署框架，同时支持多个客户端应用，为您提供灵活性和选择。
 

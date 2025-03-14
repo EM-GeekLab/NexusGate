@@ -59,7 +59,7 @@ docker compose up -d
 
 Connect and manage multiple LLM providers, including enterprise model servers or public model service providers (DeepSeek, Aliyun Qianwen, etc.).
 
-![Create Upstream Configuration](./assets/img/upstream-config.webp)
+![Create Upstream Configuration](./assets/img/upstream-config.png)
 
 NexusGate supports over 20 tested upstream services and deployment frameworks, while supporting multiple downstream applications, giving you flexibility and choice.
 
@@ -67,17 +67,17 @@ NexusGate supports over 20 tested upstream services and deployment frameworks, w
 
 Monitor detailed information of all interactions, including request timestamps, status, input prompts, generated content, model information, token usage, latency metrics, and user feedback.
 
-![History with Conversation Details Sidebar](./assets/img/history-log-details.webp)
+![History with Conversation Details Sidebar](./assets/img/history-log-details.png)
 
 The system provides an admin view of all API key chat logs and history records for specific API keys, with a detailed sidebar view of request details and conversation context.
 
-![History Display](./assets/img/history-table.webp)
+![History Display](./assets/img/history-table.png)
 
 ### 3. Application Management
 
 Control and configure downstream applications through API key creation and management, user-friendly naming conventions, expiration settings, and visibility controls.
 
-![Create Application with API Key Settings](./assets/img/create-application.webp)
+![Create Application with API Key Settings](./assets/img/create-application.png)
 
 ## 👨‍💻 For Developers
 
@@ -160,7 +160,7 @@ We're constantly adding new features and capabilities to NexusGate. Here's what 
 
 We welcome developers of all skill levels to contribute! Whether it's fixing bugs, adding features, or improving documentation, your input is valuable.
 
-Please check out [CONTRIBUTING.md](CONTRIBUTING.md) to learn how to get started.
+>Please check out [CONTRIBUTING.md](CONTRIBUTING.md) to learn how to get started.
 
 **Contributors**
 

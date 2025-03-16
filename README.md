@@ -60,7 +60,7 @@ docker compose up -d
 - 公共云服务：OpenAI、DeepSeek、阿里千问
 - 企业私有模型：大模型一体机
 
-![创建上游配置](./assets/img/upstream-config.png)
+![创建上游配置](./assets/img/upstream-config.webp)
 
 NexusGate 支持 20 多个经过测试的模型服务和部署框架，同时支持多个客户端应用，为您提供灵活性和选择。
 
@@ -68,17 +68,17 @@ NexusGate 支持 20 多个经过测试的模型服务和部署框架，同时支
 
 监控所有交互的详细信息，包括请求时间戳、状态、输入提示、生成内容、模型信息、Token 使用情况、延迟指标和用户反馈。
 
-![带有对话详情侧边栏的历史记录](./assets/img/history-log-details.png)
+![带有对话详情侧边栏的历史记录](./assets/img/history-log-details.webp)
 
 系统提供所有 API 密钥聊天记录的管理员视图和特定 API 密钥的历史记录，并带有请求细节和对话上下文的详细侧边栏视图。
 
-![历史记录显示](./assets/img/history-table.png)
+![历史记录显示](./assets/img/history-table.webp)
 
 ### 3. 应用管理
 
 通过 API 密钥创建和管理、用户友好的命名约定、过期设置和可见性控制来控制和配置客户端应用。
 
-![创建带有 API 密钥设置的应用](./assets/img/create-application.png)
+![创建带有 API 密钥设置的应用](./assets/img/create-application.webp)
 
 ## 👨‍💻 面向开发者
 

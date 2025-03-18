@@ -6,8 +6,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE_NAME: geektechx/nexus-gate-server
-  FRONTEND_IMAGE_NAME: geektechx/nexus-gate-web
+  BACKEND_IMAGE_NAME: em-geeklab/nexus-gate-server
+  FRONTEND_IMAGE_NAME: em-geeklab/nexus-gate-web
 
 jobs:
   build-backend:

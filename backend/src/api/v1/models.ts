@@ -12,7 +12,7 @@ export const modelsQueryApi = new Elysia().get("/models", async ({ error }) => {
   return {
     object: "list",
     data: upstreams.map((upstream) => ({
-      id: upstream.id,
+      id: upstream.model,
       object: "model",
       created: upstream.createdAt.getTime(),
       owned_by: upstream.name,

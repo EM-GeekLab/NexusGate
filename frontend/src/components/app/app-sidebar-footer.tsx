@@ -19,7 +19,7 @@ export function AppSidebarFooter() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" className="text-muted-foreground size-8 p-0" asChild>
-                <a href="https://github.com/GeekTechX/NexusGate" target="_blank" rel="noreferrer">
+                <a href="https://github.com/EM-GeekLab/NexusGate" target="_blank" rel="noreferrer">
                   <GithubIcon />
                 </a>
               </Button>
@@ -50,7 +50,7 @@ function CommitSha() {
   const { data: githubSha = '' } = useQuery({
     queryKey: ['github-head'],
     queryFn: async () => {
-      const res = await fetch('https://api.github.com/repos/GeekTechX/NexusGate/commits/main')
+      const res = await fetch('https://api.github.com/repos/EM-GeekLab/NexusGate/commits/main')
       if (!res.ok) {
         throw new Error('Failed to fetch commit sha')
       }

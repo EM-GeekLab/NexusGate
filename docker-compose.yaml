@@ -14,7 +14,7 @@ services:
       retries: 5
 
   backend:
-    image: "ghcr.io/geektechx/nexus-gate-server:latest"
+    image: "ghcr.io/em-geeklab/nexus-gate-server:latest"
     environment:
       - "DATABASE_URL=postgres://nexusgate:change_me_in_production@database:5432/nexusgate"
       - "ADMIN_SUPER_SECRET=admin_key_change_in_production"
@@ -24,7 +24,7 @@ services:
         condition: service_healthy
 
   frontend:
-    image: "ghcr.io/geektechx/nexus-gate-web:latest"
+    image: "ghcr.io/em-geeklab/nexus-gate-web:latest"
     environment:
       - "BACKEND_URL=http://backend:3000"
     restart: on-failure

@@ -41,7 +41,7 @@ With NexusGate, you only need to modify one line of code to monitor, manage, and
 
 - **Production Monitoring**: Record all production interactions for monitoring, analysis, debugging, and optimization.
 
-- **Enterprise-Grade Management**: Manage applications integrated via NexusGate with one click, providing metering and auditing of LLM content.
+- **Enterprise-Grade Management**: Manage applications or business systems with one click, providing metering and auditing of LLM content.
 
 ## 🐳 Quick Start
 
@@ -57,7 +57,7 @@ docker compose up -d
 
 ### 1. Model Layer Management
 
-Connect and manage multiple LLM providers,such as:
+Connect and manage multiple LLM services,such as:
 - Public Cloud Services: OpenAI, DeepSeek, Alibaba Qwen
 - Enterprise Private Models: Large Model All-in-One Machine
 
@@ -69,7 +69,7 @@ NexusGate supports over 20 tested model services and deployment frameworks, whil
 
 <details>
  <summary><mark>Click to view example video:Configure a Model</mark></summary>
- <video controls src="https://private-user-images.githubusercontent.com/20714618/423244526-7c3aec03-c288-494d-a08c-aec5c92c509a.mp4?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDIyMDAyOTgsIm5iZiI6MTc0MjE5OTk5OCwicGF0aCI6Ii8yMDcxNDYxOC80MjMyNDQ1MjYtN2MzYWVjMDMtYzI4OC00OTRkLWEwOGMtYWVjNWM5MmM1MDlhLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTAzMTclMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwMzE3VDA4MjYzOFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTIzMjg0YTY1ODFkODI3Y2JhZDZmMGQ2ZDUzYWM4NTlmNTExZDA1OTgzOTk1ODlmNjMwYTRhZjhiNmM5NzEwMGEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.OZxdZhFUnK8cylHu2de_gLXQmiyNzDGJw42mWD7b4N4" title="Configure a Model"></video>
+ <video controls src="https://github.com/user-attachments/assets/7c3aec03-c288-494d-a08c-aec5c92c509a" title="Configure a Model"></video>
 </details>
 
 ### 2. Comprehensive Logging
@@ -103,7 +103,7 @@ Control and configure platform-integrated applications:
 <details>
  <summary><mark>Click to view example video:Create and Manage Application</mark></summary>
 
- <video controls src="https://private-user-images.githubusercontent.com/20714618/423244530-a8a2f0a9-f4c0-43b9-a604-29167c439386.mp4?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDIyMDA5MDcsIm5iZiI6MTc0MjIwMDYwNywicGF0aCI6Ii8yMDcxNDYxOC80MjMyNDQ1MzAtYThhMmYwYTktZjRjMC00M2I5LWE2MDQtMjkxNjdjNDM5Mzg2Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTAzMTclMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwMzE3VDA4MzY0N1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTc1OGVhOTJkYjc0YWFhZmRkNzFiMzAxMmRlMDg3ZjhjNzQ2YTk0MjA2ZGVmMjI2NWI3YjFmNjM3ZWZjZDU1ODYmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.L48lR7l7F4-o0BMlEb5DHp72X0kcu1-cwGCJf0U5mAY" title="Create and Manage API Keys"></video>
+ <video controls src="https://github.com/user-attachments/assets/a8a2f0a9-f4c0-43b9-a604-29167c439386" title="Create and Manage API Keys"></video>
  </details>
 
 ## 👨‍💻 For Developers
@@ -162,7 +162,7 @@ NexusGate provides a unified dashboard for managing all LLM applications in your
 
 ### 2.Application Management
 
-Control and configure platform-integrated applications,offering flexible expiration settings for enhanced security, rate limits and usage limits for cost control, and granular permissions for different models and features.
+Manage platform-integrated applications,offering flexible expiration settings for enhanced security, rate limits and usage limits for cost control, and granular permissions for different models and features.
 
 ## 🗺️ Roadmap
 
@@ -175,8 +175,8 @@ We're constantly adding new features and capabilities to NexusGate. Here's what 
 - [ ] 💡 Manual Reporting SDK: Develop SDKs for more granular tracking that can be embedded directly in developer code, enabling more detailed monitoring such as end-user analytics.
 - [ ] 👍 Feedback System: Build robust feedback mechanisms to collect and analyze user responses to AI-generated content.
 - [ ] 💬 Prompt Management: Create tools for prompt creation, optimization, and batch testing, helping developers craft more effective interactions with LLMs.
-- [ ] 🧠 Automated Evaluation: Leverage LLMs to automatically evaluate outputs and provide quality metrics without human intervention.
-- [ ] 📚 Dataset Creation and Fine-tuning: Implement dataset management and model fine-tuning pipelines, one-click import to [LLaMa Factory](https://github.com/hiyouga/LLaMA-Factory) for fine-tuning, and monitoring using [SwanLab](https://github.com/SwanHubX/SwanLab).
+  - [ ] 🧠 Automated Evaluation: Leverage LLMs to automatically evaluate outputs and provide quality metrics without human intervention.
+  - [ ] 📚 Dataset Creation and Fine-tuning: Implement dataset management and model fine-tuning pipelines, one-click import to [LLaMa Factory](https://github.com/hiyouga/LLaMA-Factory) for fine-tuning, and monitoring using [SwanLab](https://github.com/SwanHubX/SwanLab).
 - [ ] 🛠️ Tool Integration: Add capabilities to models without built-in tools (like web search) by implementing functionality at the gateway layer and exposing it through standard API interfaces.
 
 ## 📝 License
@@ -185,9 +185,9 @@ We're constantly adding new features and capabilities to NexusGate. Here's what 
 
 ## 🤝 Contributing
 
-We welcome developers of all skill levels to contribute! Whether it's fixing bugs, adding features, or improving documentation, your input is valuable.
+We welcome developers of all skill levels to contribute! Whether it's fixing bugs, adding features, or improving documentation, your contributions are valuable.
 
->Please check out [CONTRIBUTING.md](CONTRIBUTING.md) to learn how to get started.
+Please check out [CONTRIBUTING.md](CONTRIBUTING.md) to learn how to get started.
 
 **Contributors**
 

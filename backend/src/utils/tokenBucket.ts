@@ -27,9 +27,14 @@ async function refill(
     const tokensStr = await redisClient.get(`${key}:tokens`);
     const lastRefillStr = await redisClient.get(`${key}:lastRefill`);
 
+    if (!tokensStr || !lastRefillStr) {
+      await redisClient.set(`${key}:tokens`, options.capacity, { EX: EXPIRY_TIME });
+      await redisClient.set(`${key}:lastRefill`, now, { EX: EXPIRY_TIME });
+      return { tokens: options.capacity, lastRefill: now };
+    }
+
     const currentTokens = tokensStr ? Number.parseFloat(tokensStr) : options.capacity;
     const lastRefill = lastRefillStr ? Number.parseInt(lastRefillStr) : now;
-
     const elapsed = (now - lastRefill) / 1000;
     const tokensToAdd = Math.floor(elapsed * options.refillRate);
     const newTokens = Math.min(options.capacity, currentTokens + tokensToAdd);

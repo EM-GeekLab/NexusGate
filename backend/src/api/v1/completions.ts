@@ -378,7 +378,7 @@ export const completionsApi = new Elysia({
       rateLimit: {
         limit: 10,
         refill: 1,
-        identifier: "completions",
+        identifier: (body) => (body as {model: string}).model,
       },
     },
   );

@@ -5,12 +5,19 @@ export const adminCompletions = new Elysia()
   .get(
     "/completions",
     async ({ query }) => {
-      return await listCompletions(
+      const result = await listCompletions(
         query.offset ?? 0,
         query.limit ?? 100,
         query.apiKeyId,
         query.upstreamId,
       );
+      // 如果 model 字段存在且包含 '@'，则截断
+      result.data.forEach((completion) => {
+        if (completion.model && completion.model.includes("@")) {
+          completion.model = completion.model.split("@")[0];
+        }
+      });
+      return result;
     },
     {
       query: t.Object({
@@ -28,6 +35,10 @@ export const adminCompletions = new Elysia()
       const r = await findCompletion(id);
       if (r === null) {
         return error(404, "Completion not found");
+      }
+      // 如果 model 字段存在且包含 '@'，则截断
+      if (r.model && r.model.includes("@")) {
+        r.model = r.model.split("@")[0];
       }
       return r;
     },

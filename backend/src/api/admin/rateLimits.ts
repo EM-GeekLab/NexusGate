@@ -1,4 +1,9 @@
-import { getAllRateLimits, getRateLimitConfig, setRateLimitConfig, deleteRateLimitConfig } from "@/utils/rateLimitConfig";
+import {
+  getAllRateLimits,
+  getRateLimitConfig,
+  setRateLimitConfig,
+  deleteRateLimitConfig,
+} from "@/utils/rateLimitConfig";
 import Elysia, { t } from "elysia";
 
 export const adminRateLimits = new Elysia()
@@ -26,16 +31,16 @@ export const adminRateLimits = new Elysia()
     async ({ body, error, set }) => {
       const { identifier, ...config } = body;
       const existing = getRateLimitConfig(identifier);
-      
+
       if (existing && Object.keys(existing).length > 0) {
         return error(409, "Rate limit configuration already exists");
       }
-      
+
       const success = setRateLimitConfig(identifier, config);
       if (!success) {
         return error(500, "Failed to create rate limit configuration");
       }
-      
+
       set.status = 201;
       return { identifier, ...config };
     },
@@ -53,16 +58,16 @@ export const adminRateLimits = new Elysia()
     async ({ params, error, set }) => {
       const { identifier } = params;
       const existing = getRateLimitConfig(identifier);
-      
+
       if (!existing || Object.keys(existing).length === 0) {
         return error(404, "Rate limit configuration not found");
       }
-      
+
       const success = deleteRateLimitConfig(identifier);
       if (!success) {
         return error(500, "Failed to delete rate limit configuration");
       }
-      
+
       set.status = 204;
       return null;
     },

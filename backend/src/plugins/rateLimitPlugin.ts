@@ -1,7 +1,10 @@
 import { consume, type TokenBucketOptions } from "@/utils/tokenBucket";
+import { DEFAULT_RATE_LIMIT_CONFIG, getRateLimitConfig } from "../utils/rateLimitConfig";
+import { consola } from "consola";
 import { Elysia } from "elysia";
-import { DEFAULT_RATE_LIMIT, DEFAULT_REFILL_RATE } from "@/utils/config";
 import { apiKeyPlugin } from "./apiKeyPlugin";
+
+const logger = consola.withTag("rateLimitPlugin");
 
 export const rateLimitPlugin = new Elysia({
   name: "rateLimitPlugin",
@@ -9,13 +12,27 @@ export const rateLimitPlugin = new Elysia({
   .use(apiKeyPlugin)
   .macro({
     rateLimit: (options?: {
-      limit?: number;
-      refill?: number;
-      identifier?: string;
+      identifier?: (body?: unknown) => string;
+      customConfig?: {
+        limit?: number;
+        refill?: number;
+      };
     }) => ({
-      async beforeHandle({ error, set, bearer }) {
-        const limit = options?.limit ?? DEFAULT_RATE_LIMIT;
-        const refill = options?.refill ?? DEFAULT_REFILL_RATE;
+      async beforeHandle({ error, set, bearer, body}) {
+        let identifier = "default";
+        if (options?.identifier) {
+          try {
+            identifier = options.identifier(body);
+                      } catch (err) {
+            logger.error("Error getting identifier from body", err);
+          }
+        }
+        
+        const config = getRateLimitConfig(identifier) ?? DEFAULT_RATE_LIMIT_CONFIG;
+        
+        const limit = options?.customConfig?.limit ?? config.limit;
+        const refill = options?.customConfig?.refill ?? config.refill;
+        
         if (Number.isNaN(limit) || Number.isNaN(refill)) {
           return error(500, "Invalid rate limit configuration");
         }
@@ -23,18 +40,19 @@ export const rateLimitPlugin = new Elysia({
         const opt = {
           capacity: limit,
           refillRate: refill,
-          identifier: options?.identifier ?? "default",
+          identifier: identifier,
           apikey: bearer,
         } as TokenBucketOptions;
-
+        
         const newTokens = await consume(opt, 1);
-
         if (newTokens === false) {
           return error(429, "Rate limit exceeded");
         }
+
+        logger.debug(`Rate limit (${identifier}:${bearer}): ${newTokens}/${limit}`);
         
-        set.headers['X-RateLimit-Limit'] = limit;
-        set.headers['X-RateLimit-Remaining'] = newTokens;
+        set.headers['X-RateLimit-Limit'] = limit.toString();
+        set.headers['X-RateLimit-Remaining'] = newTokens.toString();
       },
     }),
   });

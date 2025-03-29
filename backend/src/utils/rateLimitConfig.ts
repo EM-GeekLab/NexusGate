@@ -19,9 +19,9 @@ const MODEL_CONFIGS: Record<string, RateLimitConfig> = {};
  * @returns Object with all rate limit configurations
  */
 export function getAllRateLimits(): Record<string, RateLimitConfig> {
-  return { 
-    'default': DEFAULT_RATE_LIMIT_CONFIG,
-    ...MODEL_CONFIGS 
+  return {
+    default: DEFAULT_RATE_LIMIT_CONFIG,
+    ...MODEL_CONFIGS,
   };
 }
 
@@ -30,9 +30,7 @@ export function getAllRateLimits(): Record<string, RateLimitConfig> {
  * @param identifier The resource identifier (model name, API endpoint, etc.)
  * @returns The appropriate rate limit configuration or null if not found
  */
-export function getRateLimitConfig(
-  identifier: string,
-): RateLimitConfig | null {
+export function getRateLimitConfig(identifier: string): RateLimitConfig | null {
   if (identifier in MODEL_CONFIGS && MODEL_CONFIGS[identifier]) {
     return MODEL_CONFIGS[identifier];
   }
@@ -45,10 +43,7 @@ export function getRateLimitConfig(
  * @param config The rate limit configuration
  * @returns Success status
  */
-export function setRateLimitConfig(
-  identifier: string,
-  config: RateLimitConfig
-): boolean {
+export function setRateLimitConfig(identifier: string, config: RateLimitConfig): boolean {
   try {
     MODEL_CONFIGS[identifier] = { ...config };
     logger.debug(`Rate limit configuration set for ${identifier}`);
@@ -69,7 +64,7 @@ export function deleteRateLimitConfig(identifier: string): boolean {
     logger.debug(`No rate limit config found to delete for ${identifier}`);
     return false;
   }
-  
+
   try {
     delete MODEL_CONFIGS[identifier];
     logger.debug(`Rate limit configuration deleted for ${identifier}`);

@@ -33,6 +33,8 @@ export type Completion = typeof schema.CompletionsTable.$inferSelect;
 export type CompletionInsert = typeof schema.CompletionsTable.$inferInsert;
 export type SrvLog = typeof schema.SrvLogsTable.$inferSelect;
 export type SrvLogInsert = typeof schema.SrvLogsTable.$inferInsert;
+export type Setting = typeof schema.SettingsTable.$inferSelect;
+export type SettingInsert = typeof schema.SettingsTable.$inferInsert;
 
 export type PartialList<T> = {
   data: T[];
@@ -419,5 +421,62 @@ export async function getLog(logId: number): Promise<{
       eq(schema.SrvLogsTable.relatedCompletionId, schema.CompletionsTable.id),
     )
     .where(eq(schema.SrvLogsTable.id, logId));
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * get all settings in database
+ * @returns list of settings
+ */
+export async function getAllSettings() {
+  logger.debug("getAllSettings");
+  const r = await db.select().from(schema.SettingsTable).orderBy(asc(schema.SettingsTable.key));
+  return r;
+}
+
+/**
+ * get specific setting by key
+ * @param key setting key
+ * @returns setting record, null if not found
+ */
+export async function getSetting(key: string): Promise<Setting | null> {
+  logger.debug("getSetting");
+  const r = await db
+    .select()
+    .from(schema.SettingsTable)
+    .where(eq(schema.SettingsTable.key, key))
+    .limit(1);
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * update setting in database
+ * @param c setting to insert or update
+ * @returns updated setting record, null if error
+ */
+export async function upsertSetting(c: SettingInsert): Promise<Setting | null> {
+  logger.debug("upsertSetting", c);
+  const r = await db
+    .insert(schema.SettingsTable)
+    .values(c)
+    .onConflictDoUpdate({
+      target: schema.SettingsTable.key,
+      set: c,
+    })
+    .returning();
+  return r.length === 1 ? r[0] : null; // should always not null
+}
+
+/**
+ * delete setting from database
+ * @param key setting key
+ * @returns deleted setting record, null if not found
+ */
+export async function deleteSetting(key: string): Promise<Setting | null> {
+  logger.debug("deleteSetting", key);
+  const r = await db
+    .delete(schema.SettingsTable)
+    .where(eq(schema.SettingsTable.key, key))
+    .returning();
   return r.length === 1 ? r[0] : null;
 }

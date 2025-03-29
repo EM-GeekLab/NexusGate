@@ -20,8 +20,9 @@
     "consola": "^3.4.0",
     "drizzle-orm": "^0.40.0",
     "elysia": "^1.2.25",
+    "ioredis": "^5.6.0",
     "openai": "^4.86.2",
-    "ioredis": "^5.6.0"
+    "typebox": "^0.0.1"
   },
   "scripts": {
     "dev": "COMMIT_SHA=$(git rev-parse HEAD) CONSOLA_LEVEL=9999 bun --watch --hot --no-clear-screen --inspect src/index.ts",

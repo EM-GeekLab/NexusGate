@@ -116,3 +116,14 @@ export const SrvLogsTable = pgTable("srv_logs", {
   acknowledged: boolean("acknowledged").notNull().default(false),
   ackAt: timestamp("ack_at"),
 });
+
+export const SettingsTable = pgTable("settings", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  key: varchar("key", {
+    length: 63,
+  })
+    .notNull()
+    .unique(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});

@@ -51,7 +51,10 @@ async function refill(
   }
 }
 
-export async function consume(options: TokenBucketOptions, tokens: number): Promise<number | false> {
+export async function consume(
+  options: TokenBucketOptions,
+  tokens: number,
+): Promise<number | false> {
   const key = getKey(options);
 
   try {

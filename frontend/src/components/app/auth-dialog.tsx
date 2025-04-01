@@ -13,16 +13,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { useTranslation } from 'react-i18next'
 
 export function AuthDialog() {
   const [secret, setSecret] = useLocalStorage('admin-secret', '')
+  const { t } = useTranslation()
 
   const { data: checkPassed = true } = useQuery({
     queryKey: ['check-secret', secret],
     queryFn: async () => {
       const { data, error } = await api.admin.index.get()
       if (error) {
-        toast.error('Invalid secret')
+        toast.error(t('Invalid secret'))
         return false
       }
       return data
@@ -36,8 +38,8 @@ export function AuthDialog() {
     <Dialog open={showDialog}>
       <DialogContent withClose={false}>
         <DialogHeader>
-          <DialogTitle>Authentication Required</DialogTitle>
-          <DialogDescription>Please input the admin secret below.</DialogDescription>
+          <DialogTitle>{t('Authentication Required')}</DialogTitle>
+          <DialogDescription>{t('Please input the admin secret below.')}</DialogDescription>
         </DialogHeader>
         <form
           className="grid gap-4"
@@ -48,7 +50,7 @@ export function AuthDialog() {
         >
           <Input type="password" />
           <DialogFooter>
-            <Button type="submit">Save</Button>
+            <Button type="submit">{t('Save')}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

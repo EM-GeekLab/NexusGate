@@ -14,6 +14,9 @@ import { DetailPanel } from './detail-panel'
 import { RequestDetailProvider, useRequestDetail } from './request-detail-provider'
 import { RequestsDataProvider, useRequestsData } from './requests-data-provider'
 
+import { useTranslation } from 'react-i18next'
+
+
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100]
 
 export function RequestsDataTable({ data, total }: { data: ChatRequest[]; total: number }) {
@@ -49,6 +52,8 @@ function DataTableContainer() {
 }
 
 function DataTable({ table }: { table: DTable<ChatRequest> }) {
+  const { t } = useTranslation()
+
   const { selectedRequestId, setSelectedRequestId } = useRequestDetail()
 
   return (
@@ -86,7 +91,7 @@ function DataTable({ table }: { table: DTable<ChatRequest> }) {
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
-                No data.
+                {t('No data.')}
               </TableCell>
             </TableRow>
           )}
@@ -109,6 +114,7 @@ function DataTableFooter({ className, ...props }: ComponentProps<'div'>) {
 }
 
 function PageInfo({ className, ...props }: ComponentProps<'div'>) {
+  const { t } = useTranslation()
   const { data, total } = useRequestsData()
 
   const { page, pageSize } = useSearch({ from: '/requests/' })
@@ -117,13 +123,20 @@ function PageInfo({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div className={cn('pl-2 text-sm @max-4xl:hidden', className)} {...props}>
       {data.length > 0 &&
-        `Showing ${from} to ${Math.min(from + pageSize - 1, total)} of ${formatNumber(total)} requests
-             from ${format(data[data.length - 1].createdAt, 'PP')} to ${format(data[0].createdAt, 'PP')}`}
+        t('Showing {{from}} to {{to}} of {{total}} requests from {{startDate}} to {{endDate}}', {
+          from,
+          to: Math.min(from + pageSize - 1, total),
+          total: formatNumber(total),
+          startDate: format(data[data.length - 1].createdAt, 'PP'),
+          endDate: format(data[0].createdAt, 'PP'),
+        })}
     </div>
   )
 }
 
 function Pagination({ className, ...props }: ComponentProps<'div'>) {
+  const { t } = useTranslation()
+  
   const { total } = useRequestsData()
 
   const { page, pageSize, ...rest } = useSearch({ from: '/requests/' })
@@ -133,7 +146,7 @@ function Pagination({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div className={cn('flex flex-1 flex-wrap items-center justify-end gap-x-8 gap-y-2', className)} {...props}>
       <div className="flex items-center gap-2">
-        <div className="text-sm">Rows</div>
+        <div className="text-sm">{t('Rows')}</div>
         <Select
           value={PAGE_SIZE_OPTIONS.includes(pageSize) ? String(pageSize) : undefined}
           onValueChange={(v) => navigate({ to: '/requests', search: { page, pageSize: Number(v), ...rest } })}
@@ -152,7 +165,7 @@ function Pagination({ className, ...props }: ComponentProps<'div'>) {
       </div>
       <div className="flex items-center gap-4">
         <div className="text-sm">
-          Page {page} of {pageCount}
+          {t('Page {page} of {pageCount}')}
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -167,7 +180,7 @@ function Pagination({ className, ...props }: ComponentProps<'div'>) {
             }
           >
             <ChevronsLeftIcon />
-            <span className="sr-only">First</span>
+            <span className="sr-only">{t('First')}</span>
           </Button>
           <Button
             variant="outline"
@@ -181,7 +194,7 @@ function Pagination({ className, ...props }: ComponentProps<'div'>) {
             }
           >
             <ChevronLeftIcon />
-            <span className="sr-only">Previous</span>
+            <span className="sr-only">{t('Previous')}</span>
           </Button>
           <Button
             variant="outline"
@@ -195,7 +208,7 @@ function Pagination({ className, ...props }: ComponentProps<'div'>) {
             }
           >
             <ChevronRightIcon />
-            <span className="sr-only">Next</span>
+            <span className="sr-only">{t('Next')}</span>
           </Button>
           <Button
             variant="outline"
@@ -209,7 +222,7 @@ function Pagination({ className, ...props }: ComponentProps<'div'>) {
             }
           >
             <ChevronsRightIcon />
-            <span className="sr-only">Last</span>
+            <span className="sr-only">{t('Last')}</span>
           </Button>
         </div>
       </div>

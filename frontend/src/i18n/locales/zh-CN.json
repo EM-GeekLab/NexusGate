@@ -1,3 +1,7 @@
 {
-  "applications": "应用程序"
+  "applications": "应用程序",
+  "error": "发生了错误",
+  "retry": "重试",
+  "View": "预览",
+  "Show revoked": "展示已撤销（待改）"
 }

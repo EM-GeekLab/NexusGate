@@ -28,10 +28,15 @@ import { useCopy } from '@/hooks/use-copy'
 
 import type { ApiKey } from './columns'
 
+import { useTranslation } from 'react-i18next'
+import { Trans } from 'react-i18next'
+
 export const RowActionButton = ({ data }: { data: ApiKey }) => {
+  const { t } = useTranslation()
+
   const { copy } = useCopy({
     showSuccessToast: true,
-    successToastMessage: 'API key copied to clipboard.',
+    successToastMessage: t('API key copied to clipboard.'),
   })
   const navigate = useNavigate()
 
@@ -70,7 +75,7 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
       await queryClient.invalidateQueries({ queryKey: ['apiKeys'] })
     },
     onSuccess: () => {
-      toast.success(`API key revoked.`)
+      toast.success(t('API key revoked.'))
     },
   })
 
@@ -79,18 +84,18 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="size-8 p-0">
-            <span className="sr-only">Open menu</span>
+            <span className="sr-only">{t('Open menu')}</span>
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem onClick={() => copy(data.key)}>
             <CopyIcon />
-            Copy API Key
+            {t('Copy API Key')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate({ to: '/requests', search: { apiKeyId: data.id } })}>
             <ArrowUpDownIcon />
-            View requests
+            {t('View requests')}
           </DropdownMenuItem>
           {!data.revoked && (
             <>
@@ -98,7 +103,7 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem>
                   <OctagonXIcon />
-                  Revoke API Key
+                  {t('Revoke API Key')}
                 </DropdownMenuItem>
               </AlertDialogTrigger>
             </>
@@ -107,16 +112,19 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
       </DropdownMenu>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogTitle>{t('Are you sure?')}</AlertDialogTitle>
           <AlertDialogDescription>
-            The API key of application <span className="text-foreground font-bold">{data.comment}</span> will be
-            revoked.
+          <Trans
+            i18nKey="The API key of application <bold>{{comment}}</bold> will be revoked."
+            values={{ comment: data.comment }}
+            components={{ bold: <span className="text-foreground font-bold" /> }}
+          />
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={() => mutate(data.key)}>
-            Continue
+            {t('Continue')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

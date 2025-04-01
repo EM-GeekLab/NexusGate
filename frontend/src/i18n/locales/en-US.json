@@ -1,3 +1,147 @@
 {
-  "applications": "Applications"
+  "applications": "Applications",
+  "error": "An error occurred",
+  "retry": "Retry",
+  "Retry":"Retry",
+  "Failed to fetch commit sha": "Failed to fetch commit sha",
+  "The backend version is different from the frontend version.": "The backend version is different from the frontend version.",
+  "Current version": "Current version",
+  "Frontend version": "Frontend version",
+  "Backend version": "Backend version",
+  "Latest version": "Latest version",
+
+  "NexusGate":"NexusGate",
+  "LLM Gateway":"LLM Gateway",
+
+  "Invalid secret": "Invalid secret",
+  "Authentication Required": "Authentication Required",
+  "Please input the admin secret below.": "Please input the admin secret below.",
+  "Save": "Save",
+
+  "You can copy the text below manually.":"You can copy the text below manually.",
+  "Failed to copy: {{error}}":"Failed to copy: {{error}}",
+  
+  "Unknown error":"Unknown error",
+
+  "New application": "New application",
+  "Create a new application": "Create a new application",
+  "Create a new application for LLM calls.": "Create a new application for LLM calls.",
+  "Your new application with the API key has been created. Please copy the API key below and store it in a safe place.": "Your new application with the API key has been created. Please copy the API key below and store it in a safe place.",
+  "Enter a name for this application.": "Enter a name for this application.",
+  "Expiration": "Expiration",
+  "Choose an expiration date for the API key of this application, or select no expiration date.": "Choose an expiration date for the API key of this application, or select no expiration date.",
+  "Cancel": "Cancel",
+  "7 days": "7 days",
+  "30 days": "30 days",
+  "90 days": "90 days",
+  "180 days": "180 days",
+  "365 days": "365 days",
+  "Custom": "Custom",
+  "No expiration": "No expiration",
+  "Close": "Close",
+  "No expiration date": "No expiration date",
+  "API key copied to clipboard.": "API key copied to clipboard.",
+  "Copied": "Copied!",
+  "Copy": "Copy",
+
+
+  "Never": "Never",
+  "Name": "Name",
+  "API key": "API key",
+  "Created at": "Created at",
+  "Expires at": "Expires at",
+
+  
+  "View": "View",
+  "Show revoked": "Show revoked",
+
+
+  "API key revoked.": "API key revoked.",
+  "Open menu": "Open menu",
+  "Copy API Key": "Copy API Key",
+  "View requests": "View requests",
+  "Revoke API Key": "Revoke API Key",
+  "Are you sure?": "Are you sure?",
+  "The API key of application <bold>{{comment}}</bold> will be revoked.":"The API key of application <bold>{{comment}}</bold> will be revoked.",
+  "Continue": "Continue",
+
+
+  
+  "Pretty": "Pretty",
+  "Raw":"Raw",
+  "Pending":"Pending",
+  "Completed":"Completed",
+  "Failed":"Failed",
+  "Close panel":"Close panel",
+
+  "Request messages":"Request messages",
+  "Respnse messages":"Respnse messages",
+  "Reasoning":"Reasoning",
+  "s":"s",
+  "ms":"ms",
+  "Request ID":"Request ID",
+  "Model":"Model",
+  "TTFT":"TTFT",
+  "Time to first token":"Time to first token",
+  "Total duration of the request":"Total duration of the request",
+  "Request tokens":"Request tokens",
+  "Response tokens":"Response tokens",
+  "Meta":"Meta",
+
+  "Raw data":"Raw data",
+  "Response messages":"Response messages",
+  "No token usage data":"No token usage data",
+  "1 token":"1 token",
+
+  "Time To First Token":"Time To First Token",
+  "Duration":"Duration",
+  "Request":"Request",
+  "Response":"Response",
+  "Req. tok.":"Req. tok.",
+  "Resp. tok.":"Resp. tok.",
+
+  "No data":"No data",
+  "First":"First",
+  "Previous":"Previous",
+  "Next":"Next",
+  "Last":"Last",
+  "Rows":"Rows",
+  "Showing {{from}} to {{to}} of {{total}} requests from {{startDate}} to {{endDate}}":"Showing {{from}} to {{to}} of {{total}} requests from {{startDate}} to {{endDate}}",
+  "Page {page} of {pageCount}":"Page {page} of {pageCount}",
+
+  "Clear filters":"Clear filters",
+  "New provider":"New provider",
+  "Add a new model provider":"Add a new model provider",
+  "Add a model provider for downstream application integration.":"Add a model provider for downstream application integration.",
+  "Provider name":"Provider name",
+  "Name to identify the provider.":"Name to identify the provider.",
+  "Model name":"Model name",
+  "Custom model name for downstream applications.":"Custom model name for downstream applications.",
+  "Provider model name":"Provider model name",
+  "Model name used by the provider.":"Model name used by the provider.",
+  "Base URL":"Base URL",
+  "API endpoint URL of the provider.":"API endpoint URL of the provider.",
+
+  "useRequestDetail must be used within a RequestDetailProvider":"useRequestDetail must be used within a RequestDetailProvider",
+  "useRequestData must be used within a RequestDataProvider":"useRequestData must be used within a RequestDataProvider",
+
+
+  "Provider model":"Provider model",
+
+  "Delete":"Delete",
+  "This provider {{name}} will be deleted.":"This provider {{name}} will be deleted.",
+  "Hello from home":"Hello from home",
+
+  "Overview":"Overview",
+
+  "An error occurred while fetching providers.": "An error occurred while fetching providers.",
+
+  "Providers":"Providers",
+
+  "An error occurred while fetching requests.":"An error occurred while fetching requests.",
+
+  "Requests":"Requests"
+
+
+
 }

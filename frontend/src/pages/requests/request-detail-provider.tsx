@@ -8,6 +8,8 @@ import { formatError } from '@/lib/error'
 import type { ChatRequest } from './columns'
 import { useRequestsData } from './requests-data-provider'
 
+import { useTranslation } from 'react-i18next'
+
 export const RequestDetailContext = createContext<{
   selectedRequestId: number | undefined
   setSelectedRequestId: Dispatch<SetStateAction<number | undefined>>
@@ -69,7 +71,9 @@ export const RequestDetailProvider = ({ children }: { children: ReactNode }) => 
 }
 
 export function useRequestDetail() {
+  const { t } = useTranslation()
+
   const context = useContext(RequestDetailContext)
-  if (!context) throw new Error('useRequestDetail must be used within a RequestDetailProvider')
+  if (!context) throw new Error(t('useRequestDetail must be used within a RequestDetailProvider'))
   return context
 }

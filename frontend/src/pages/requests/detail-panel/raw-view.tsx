@@ -3,17 +3,21 @@ import { omit } from '@/lib/utils'
 import { useRequestDetailContext } from './index'
 import { TokenUsage } from './token-usage'
 
+import { useTranslation } from 'react-i18next'
+
 export function MessagesRawView() {
+  const { t } = useTranslation()
+
   const data = useRequestDetailContext()
 
   return (
     <div className="flex flex-col gap-4 px-4">
       <MessagesCodePreview
-        title="Raw data"
+        title={t("Raw data")}
         messages={omit(data, ['prompt', 'completion', 'promptTokens', 'completionTokens'])}
       />
-      <MessagesCodePreview title="Request messages" messages={data.prompt.messages} tokens={data.promptTokens} />
-      <MessagesCodePreview title="Response messages" messages={data.completion} tokens={data.completionTokens} />
+      <MessagesCodePreview title={t("Request messages")} messages={data.prompt.messages} tokens={data.promptTokens} />
+      <MessagesCodePreview title={t("Response messages")} messages={data.completion} tokens={data.completionTokens} />
     </div>
   )
 }

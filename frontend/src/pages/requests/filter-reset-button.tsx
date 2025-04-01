@@ -3,7 +3,11 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 
 import { Button } from '@/components/ui/button'
 
+import { useTranslation } from 'react-i18next'
+
 export function FilterResetButton({ className, ...props }: ComponentProps<typeof Button>) {
+  const { t } = useTranslation()
+  
   const { apiKeyId, upstreamId, ...rest } = useSearch({ from: '/requests/' })
   const hasFilters = Boolean(apiKeyId || upstreamId)
   const navigate = useNavigate()
@@ -17,7 +21,7 @@ export function FilterResetButton({ className, ...props }: ComponentProps<typeof
         onClick={() => navigate({ to: '/requests', search: { ...rest } })}
         {...props}
       >
-        Clear filters
+        {t('Clear filters')}
       </Button>
     )
   )

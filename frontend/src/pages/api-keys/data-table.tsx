@@ -13,6 +13,8 @@ import {
 import { AddButton } from './add-button'
 import { columns, type ApiKey } from './columns'
 
+import { useTranslation } from 'react-i18next'
+
 export function ApiKeysDataTable({ data, includeRevoked }: { data: ApiKey[]; includeRevoked: boolean }) {
   return (
     <div className="py-4">
@@ -26,6 +28,7 @@ export function ApiKeysDataTable({ data, includeRevoked }: { data: ApiKey[]; inc
 }
 
 function ApiKeysViewOptions({ includeRevoked }: { includeRevoked: boolean }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   return (
@@ -33,7 +36,7 @@ function ApiKeysViewOptions({ includeRevoked }: { includeRevoked: boolean }) {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="ml-auto">
           <Settings2Icon />
-          View
+          {t('View')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -46,7 +49,7 @@ function ApiKeysViewOptions({ includeRevoked }: { includeRevoked: boolean }) {
             })
           }}
         >
-          Show revoked
+          {t('Show revoked')}
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>

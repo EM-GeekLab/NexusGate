@@ -14,10 +14,14 @@ import type { ChatRequest } from '../columns'
 import { useRequestDetailContext } from './index'
 import { TokenUsage } from './token-usage'
 
+import { useTranslation } from 'react-i18next'
+
 type RequestMessage = ChatRequest['prompt']['messages'][number]
 type ResponseMessage = ChatRequest['completion'][number]
 
 export function MessagesPrettyView() {
+  const { t } = useTranslation()
+
   const data = useRequestDetailContext()
 
   return (
@@ -27,7 +31,7 @@ export function MessagesPrettyView() {
         <MessagesPrettyContainer className="@6xl:border-r">
           <MessageTitle
             icon={<ForwardIcon />}
-            title="Request messages"
+            title={t('Request messages')}
             length={data.prompt.messages.length}
             tokens={data.promptTokens}
           />
@@ -38,7 +42,7 @@ export function MessagesPrettyView() {
           </div>
         </MessagesPrettyContainer>
         <MessagesPrettyContainer>
-          <MessageTitle icon={<ReplyIcon />} title="Respnse messages" tokens={data.completionTokens} />
+          <MessageTitle icon={<ReplyIcon />} title={t("Respnse messages")} tokens={data.completionTokens} />
           <div className="flex flex-col">
             {data.completion.map((message, index) => (
               <ResponseMessageContent key={index} message={message} />
@@ -129,6 +133,7 @@ function ResponseMessageContent({ message, className }: { message: ResponseMessa
 }
 
 function ReasoningContent({ content, className, ...props }: { content: string } & ComponentProps<typeof Collapsible>) {
+  const { t } = useTranslation()
   return (
     <Collapsible
       className={cn(
@@ -138,7 +143,7 @@ function ReasoningContent({ content, className, ...props }: { content: string } 
       {...props}
     >
       <CollapsibleTrigger className="group/collapsible bg-secondary/50 text-secondary-foreground hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-background data-[state=open]:hover:bg-accent flex w-full items-center justify-between px-4 py-2 text-sm transition-colors data-[state=open]:font-medium [&_svg]:size-4">
-        Reasoning
+        {t('Reasoning')}
         <ChevronRightIcon className="-mr-1 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
       </CollapsibleTrigger>
       <CollapsibleContent>
@@ -149,14 +154,16 @@ function ReasoningContent({ content, className, ...props }: { content: string } 
 }
 
 function DurationDisplay({ duration }: { duration?: number | null }) {
+  const { t } = useTranslation()
+  
   if (duration == null || duration === -1) return '-'
 
   return (
     <Tooltip>
       <TooltipTrigger className="tabular-nums" asChild>
-        <DescriptionItemButton>{(duration / 1000).toFixed(2)}s</DescriptionItemButton>
+        <DescriptionItemButton>{(duration / 1000).toFixed(2)}{t('s')}</DescriptionItemButton>
       </TooltipTrigger>
-      <TooltipContent side="right">{formatNumber(duration)}ms</TooltipContent>
+      <TooltipContent side="right">{formatNumber(duration)}{t('ms')}</TooltipContent>
     </Tooltip>
   )
 }
@@ -175,6 +182,8 @@ function CopiableText({ text }: { text: string }) {
 }
 
 function RequestMetaInfo() {
+  const { t } = useTranslation()
+
   const data = useRequestDetailContext()
 
   const descriptions: {
@@ -186,35 +195,35 @@ function RequestMetaInfo() {
   }[] = [
     {
       key: 'id',
-      name: 'Request ID',
+      name: t('Request ID'),
       className: 'tabular-nums',
     },
     {
       key: 'model',
-      name: 'Model',
+      name: t('Model'),
       value: <CopiableText text={data.model} />,
     },
     {
       key: 'ttft',
-      name: 'TTFT',
+      name: t('TTFT'),
       value: <DurationDisplay duration={data.ttft} />,
-      help: 'Time to first token',
+      help: t('Time to first token'),
     },
     {
       key: 'duration',
-      name: 'Duration',
+      name: t('Duration'),
       value: <DurationDisplay duration={data.duration} />,
-      help: 'Total duration of the request',
+      help: t('Total duration of the request'),
     },
     {
       key: 'promptTokens',
-      name: 'Request tokens',
+      name: t('Request tokens'),
       value: data.promptTokens === -1 ? '-' : formatNumber(data.promptTokens),
       className: 'tabular-nums',
     },
     {
       key: 'completionTokens',
-      name: 'Response tokens',
+      name: t('Response tokens'),
       value: data.completionTokens === -1 ? '-' : formatNumber(data.completionTokens),
       className: 'tabular-nums',
     },
@@ -223,7 +232,7 @@ function RequestMetaInfo() {
   return (
     <div className="@2xl:basis-[260px] @2xl:overflow-auto @2xl:border-r">
       <div className="px-4 pt-3 pb-2 @max-2xl:px-6">
-        <h3 className="text-sm font-medium">Meta</h3>
+        <h3 className="text-sm font-medium">{t('Meta')}</h3>
       </div>
       <div className="rounded-lg px-2 py-0.5 @max-2xl:mx-3 @max-2xl:mb-3 @max-2xl:border">
         <TooltipProvider>

@@ -7,12 +7,14 @@ import { AppErrorComponent } from '@/components/app/app-error'
 import { queryClient } from '@/components/app/query-provider'
 import { UpstreamsDataTable } from '@/pages/upstreams/data-table'
 
+import i18n from '@/i18n'
+
 const upstreamQueryOptions = () =>
   queryOptions({
     queryKey: ['upstreams'],
     queryFn: async () => {
       const { data, error } = await api.admin.upstream.get()
-      if (error) throw formatError(error, 'An error occurred while fetching providers.')
+      if (error) throw formatError(error, i18n.t('An error occurred while fetching providers.'))
       return data
     },
   })

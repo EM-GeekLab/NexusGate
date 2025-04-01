@@ -11,6 +11,8 @@ import { cn, formatNumber } from '@/lib/utils'
 import { IndicatorBadge, MiniIndicatorBadge } from '@/components/ui/indicator-badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
+import i18n from '@/i18n'
+
 export type ChatRequest = Omit<
   Exclude<Awaited<ReturnType<typeof api.admin.completions.get>>['data'], null>['data'][number],
   'prompt' | 'completion'
@@ -22,13 +24,13 @@ export type ChatRequest = Omit<
 export const columns: ColumnDef<ChatRequest>[] = [
   {
     accessorKey: 'createdAt',
-    header: () => <div className="pl-4">Created at</div>,
+    header: () => <div className="pl-4">{i18n.t('Created at')}</div>,
     cell: ({ row }) => {
       const status = row.original.status
       const indicator = match(status)
-        .with('pending', () => <MiniIndicatorBadge className="bg-neutral-500">Pending</MiniIndicatorBadge>)
-        .with('completed', () => <MiniIndicatorBadge className="bg-green-500">Completed</MiniIndicatorBadge>)
-        .with('failed', () => <MiniIndicatorBadge className="bg-destructive">Failed</MiniIndicatorBadge>)
+        .with('pending', () => <MiniIndicatorBadge className="bg-neutral-500">{i18n.t('Pending')}</MiniIndicatorBadge>)
+        .with('completed', () => <MiniIndicatorBadge className="bg-green-500">{i18n.t('Completed')}</MiniIndicatorBadge>)
+        .with('failed', () => <MiniIndicatorBadge className="bg-destructive">{i18n.t('Failed')}</MiniIndicatorBadge>)
         .exhaustive()
       return (
         <div className="flex items-center gap-2.5">
@@ -40,7 +42,7 @@ export const columns: ColumnDef<ChatRequest>[] = [
   },
   {
     accessorKey: 'model',
-    header: 'Model',
+    header: i18n.t('Model'),
     cell: ({ row }) => {
       return <IndicatorBadge className="text-foreground bg-background border">{row.original.model}</IndicatorBadge>
     },
@@ -50,12 +52,12 @@ export const columns: ColumnDef<ChatRequest>[] = [
     header: () => (
       <TooltipProvider>
         <div className="flex items-center justify-end gap-1 [&_svg]:size-3.5">
-          TTFT
+          {i18n.t('TTFT')}
           <Tooltip>
             <TooltipTrigger className="text-muted-foreground hover:text-accent-foreground transition-colors">
               <HelpCircleIcon />
             </TooltipTrigger>
-            <TooltipContent>Time To First Token</TooltipContent>
+            <TooltipContent>{i18n.t('Time To First Token')}</TooltipContent>
           </Tooltip>
         </div>
       </TooltipProvider>
@@ -64,12 +66,12 @@ export const columns: ColumnDef<ChatRequest>[] = [
   },
   {
     accessorKey: 'duration',
-    header: () => <div className="text-right">Duration</div>,
+    header: () => <div className="text-right">{i18n.t('Duration')}</div>,
     cell: ({ row }) => <DurationDisplay duration={row.original.duration} />,
   },
   {
     accessorKey: 'prompt',
-    header: 'Request',
+    header: i18n.t('Request'),
     cell: ({ row }) => {
       const messages = row.original.prompt.messages
       const messageString = getLastUserMessage(messages)
@@ -83,14 +85,14 @@ export const columns: ColumnDef<ChatRequest>[] = [
   },
   {
     accessorKey: 'promptTokens',
-    header: () => <div className="text-right">Req. tok.</div>,
+    header: () => <div className="text-right">{i18n.t('Req. tok.')}</div>,
     cell: ({ row }) => {
       return <TokensString tokens={row.original.promptTokens} />
     },
   },
   {
     accessorKey: 'completion',
-    header: 'Response',
+    header: i18n.t('Response'),
     cell: ({ row }) => {
       const messages = row.original.completion
       const { content } = extractReasoning(getAssistantMessage(messages))
@@ -103,7 +105,7 @@ export const columns: ColumnDef<ChatRequest>[] = [
   },
   {
     accessorKey: 'completionTokens',
-    header: () => <div className="text-right">Resp. tok.</div>,
+    header: () => <div className="text-right">{i18n.t('Resp. tok.')}</div>,
     cell: ({ row }) => {
       return <TokensString tokens={row.original.completionTokens} />
     },
@@ -142,7 +144,7 @@ function TokensString({ tokens }: { tokens: number }) {
 function DurationDisplay({ duration }: { duration: number | null }) {
   if (duration == null || duration === -1) return <div className="text-right">-</div>
 
-  return <div className="text-right tabular-nums">{(duration / 1000).toFixed(2)}s</div>
+  return <div className="text-right tabular-nums">{(duration / 1000).toFixed(2)}{i18n.t('s')}</div>
 }
 
 function getLastUserMessage(messages: ChatCompletionMessageParam[]): string {

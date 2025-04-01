@@ -8,8 +8,11 @@ import { Button } from '@/components/ui/button'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { useSidebar } from '@/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useTranslation } from 'react-i18next'
 
 export function AppSidebarFooter() {
+  const { t } = useTranslation()
+
   const { isMobile, state } = useSidebar()
 
   return (
@@ -24,7 +27,7 @@ export function AppSidebarFooter() {
                 </a>
               </Button>
             </TooltipTrigger>
-            <TooltipContent side={state === 'collapsed' || isMobile ? 'right' : 'top'}>GitHub</TooltipContent>
+            <TooltipContent side={state === 'collapsed' || isMobile ? 'right' : 'top'}>{t('GitHub')}</TooltipContent>
           </Tooltip>
           <CommitSha />
         </div>
@@ -35,12 +38,13 @@ export function AppSidebarFooter() {
 
 function CommitSha() {
   const sha: string | undefined = import.meta.env.VITE_COMMIT_SHA
+  const { t } = useTranslation()
 
   const { data: backendSha = '' } = useQuery({
     queryKey: ['version'],
     queryFn: async () => {
       const { data, error } = await api.admin.rev.get()
-      if (error) throw formatError(error, 'Failed to fetch commit sha')
+      if (error) throw formatError(error, t('Failed to fetch commit sha'))
       return data.version
     },
     enabled: !!sha,
@@ -52,7 +56,7 @@ function CommitSha() {
     queryFn: async () => {
       const res = await fetch('https://api.github.com/repos/EM-GeekLab/NexusGate/commits/main')
       if (!res.ok) {
-        throw new Error('Failed to fetch commit sha')
+        throw new Error(t('Failed to fetch commit sha'))
       }
       const data = (await res.json()) as { sha: string }
       return data.sha
@@ -81,22 +85,22 @@ function CommitSha() {
         className="w-auto max-w-[15rem] p-2 data-warning:border-amber-500"
       >
         {!isBackendShaEqual && (
-          <div className="mb-2 text-xs text-amber-500">The backend version is different from the frontend version.</div>
+          <div className="mb-2 text-xs text-amber-500">{t('The backend version is different from the frontend version.')}</div>
         )}
         <div className="grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-1 text-xs">
           <div className="contents">
-            <div className="text-muted-foreground">{isBackendShaEqual ? 'Current version' : 'Frontend version'}</div>
+            <div className="text-muted-foreground">{isBackendShaEqual ? t('Current version') : t('Frontend version')}</div>
             <div>{sha.substring(0, 7)}</div>
           </div>
           {!isBackendShaEqual && (
             <div className="contents">
-              <div className="text-muted-foreground">Backend version</div>
+              <div className="text-muted-foreground">{t('Backend version')}</div>
               <div>{backendSha.substring(0, 7)}</div>
             </div>
           )}
           {githubSha && (
             <div className="contents">
-              <div className="text-muted-foreground">Latest version</div>
+              <div className="text-muted-foreground">{t('Latest version')}</div>
               <div>{githubSha.substring(0, 7)}</div>
             </div>
           )}

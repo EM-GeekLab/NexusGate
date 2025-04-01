@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowUpDownIcon, MoreHorizontalIcon, Trash2Icon } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { api } from '@/lib/api'
@@ -28,6 +29,8 @@ import {
 import type { Upstream } from './columns'
 
 export function RowActionButton({ data }: { data: Upstream }) {
+  const { t } = useTranslation()
+
   const navigate = useNavigate()
 
   const queryClient = useQueryClient()
@@ -63,35 +66,39 @@ export function RowActionButton({ data }: { data: Upstream }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="size-8 p-0">
-            <span className="sr-only">Open menu</span>
+            <span className="sr-only">{t('Open menu')}</span>
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem onClick={() => navigate({ to: '/requests', search: { upstreamId: data.id } })}>
             <ArrowUpDownIcon />
-            View requests
+            {t('View requests')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <AlertDialogTrigger asChild>
             <DropdownMenuItem>
               <Trash2Icon />
-              Delete
+              {t('Delete')}
             </DropdownMenuItem>
           </AlertDialogTrigger>
         </DropdownMenuContent>
       </DropdownMenu>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogTitle>{t('Are you sure?')}</AlertDialogTitle>
           <AlertDialogDescription>
-            This provider <span className="text-foreground font-bold">{data.name}</span> will be deleted.
+            <Trans
+              i18nKey="This provider <bold>{{name}}</bold> will be deleted."
+              values={{ name: data.name }}
+              components={{ bold: <span className="text-foreground font-bold" /> }}
+            />
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={() => mutate(data.id)}>
-            Continue
+            {t('Continue')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -24,7 +24,7 @@ export type ChatRequest = Omit<
 export const columns: ColumnDef<ChatRequest>[] = [
   {
     accessorKey: 'createdAt',
-    header: () => <div className="pl-4">{i18n.t('Created at')}</div>,
+    header: () => <div className="pl-4">{i18n.t('Created.at')}</div>,
     cell: ({ row }) => {
       const status = row.original.status
       const indicator = match(status)
@@ -57,7 +57,7 @@ export const columns: ColumnDef<ChatRequest>[] = [
             <TooltipTrigger className="text-muted-foreground hover:text-accent-foreground transition-colors">
               <HelpCircleIcon />
             </TooltipTrigger>
-            <TooltipContent>{i18n.t('Time To First Token')}</TooltipContent>
+            <TooltipContent>{i18n.t('Time.To.First.Token')}</TooltipContent>
           </Tooltip>
         </div>
       </TooltipProvider>
@@ -85,7 +85,7 @@ export const columns: ColumnDef<ChatRequest>[] = [
   },
   {
     accessorKey: 'promptTokens',
-    header: () => <div className="text-right">{i18n.t('Req. tok.')}</div>,
+    header: () => <div className="text-right">{i18n.t('Req..tok.')}</div>,
     cell: ({ row }) => {
       return <TokensString tokens={row.original.promptTokens} />
     },
@@ -105,7 +105,7 @@ export const columns: ColumnDef<ChatRequest>[] = [
   },
   {
     accessorKey: 'completionTokens',
-    header: () => <div className="text-right">{i18n.t('Resp. tok.')}</div>,
+    header: () => <div className="text-right">{i18n.t('Resp..tok.')}</div>,
     cell: ({ row }) => {
       return <TokensString tokens={row.original.completionTokens} />
     },

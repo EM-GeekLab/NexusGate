@@ -31,7 +31,7 @@ export function MessagesPrettyView() {
         <MessagesPrettyContainer className="@6xl:border-r">
           <MessageTitle
             icon={<ForwardIcon />}
-            title={t('Request messages')}
+            title={t('Request.messages')}
             length={data.prompt.messages.length}
             tokens={data.promptTokens}
           />
@@ -42,7 +42,7 @@ export function MessagesPrettyView() {
           </div>
         </MessagesPrettyContainer>
         <MessagesPrettyContainer>
-          <MessageTitle icon={<ReplyIcon />} title={t("Respnse messages")} tokens={data.completionTokens} />
+          <MessageTitle icon={<ReplyIcon />} title={t('Respnse.messages')} tokens={data.completionTokens} />
           <div className="flex flex-col">
             {data.completion.map((message, index) => (
               <ResponseMessageContent key={index} message={message} />
@@ -195,7 +195,7 @@ function RequestMetaInfo() {
   }[] = [
     {
       key: 'id',
-      name: t('Request ID'),
+      name: t('Request.ID'),
       className: 'tabular-nums',
     },
     {
@@ -207,23 +207,23 @@ function RequestMetaInfo() {
       key: 'ttft',
       name: t('TTFT'),
       value: <DurationDisplay duration={data.ttft} />,
-      help: t('Time to first token'),
+      help: t('Time.to.first.token'),
     },
     {
       key: 'duration',
       name: t('Duration'),
       value: <DurationDisplay duration={data.duration} />,
-      help: t('Total duration of the request'),
+      help: t('Total.duration.of.the.request'),
     },
     {
       key: 'promptTokens',
-      name: t('Request tokens'),
+      name: t('Request.tokens'),
       value: data.promptTokens === -1 ? '-' : formatNumber(data.promptTokens),
       className: 'tabular-nums',
     },
     {
       key: 'completionTokens',
-      name: t('Response tokens'),
+      name: t('Response.tokens'),
       value: data.completionTokens === -1 ? '-' : formatNumber(data.completionTokens),
       className: 'tabular-nums',
     },

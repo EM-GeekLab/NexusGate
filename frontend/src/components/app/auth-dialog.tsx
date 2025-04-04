@@ -24,7 +24,7 @@ export function AuthDialog() {
     queryFn: async () => {
       const { data, error } = await api.admin.index.get()
       if (error) {
-        toast.error(t('Invalid secret'))
+        toast.error(t('Invalid.secret'))
         return false
       }
       return data
@@ -38,8 +38,8 @@ export function AuthDialog() {
     <Dialog open={showDialog}>
       <DialogContent withClose={false}>
         <DialogHeader>
-          <DialogTitle>{t('Authentication Required')}</DialogTitle>
-          <DialogDescription>{t('Please input the admin secret below.')}</DialogDescription>
+          <DialogTitle>{t('Authentication.Required')}</DialogTitle>
+          <DialogDescription>{t('Please.input.the.admin.secret.below.')}</DialogDescription>
         </DialogHeader>
         <form
           className="grid gap-4"

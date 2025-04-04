@@ -14,7 +14,7 @@ const upstreamQueryOptions = () =>
     queryKey: ['upstreams'],
     queryFn: async () => {
       const { data, error } = await api.admin.upstream.get()
-      if (error) throw formatError(error, i18n.t('An error occurred while fetching providers.'))
+      if (error) throw formatError(error, i18n.t('An.error.occurred.while.fetching.providers.'))
       return data
     },
   })

@@ -22,7 +22,7 @@ function RouteComponent() {
         <AppHeaderPart>
           <AppSidebarTrigger />
           <AppSidebarSeparator />
-          <AppHeaderTitle>{t('applications')}</AppHeaderTitle>
+          <AppHeaderTitle>{t('Applications')}</AppHeaderTitle>
         </AppHeaderPart>
       </AppHeader>
       <Outlet />

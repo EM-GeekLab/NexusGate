@@ -34,7 +34,7 @@ const requestsQueryOptions = ({ page, pageSize, apiKeyId, upstreamId }: Requests
           ...removeUndefinedFields({ apiKeyId, upstreamId }),
         },
       })
-      if (error) throw formatError(error, i18n.t('An error occurred while fetching requests.'))
+      if (error) throw formatError(error, i18n.t('An.error.occurred.while.fetching.requests.'))
       const { data, total } = rawData
       return { data: data as ChatRequest[], total }
     },

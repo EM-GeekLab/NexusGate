@@ -165,7 +165,7 @@ function Pagination({ className, ...props }: ComponentProps<'div'>) {
       </div>
       <div className="flex items-center gap-4">
         <div className="text-sm">
-          {t('Page {page} of {pageCount}')}
+          {t('Page.{{page}}.of.{{pageCount}}',{page,pageCount})}
         </div>
         <div className="flex items-center gap-2">
           <Button

@@ -21,7 +21,7 @@ export function FilterResetButton({ className, ...props }: ComponentProps<typeof
         onClick={() => navigate({ to: '/requests', search: { ...rest } })}
         {...props}
       >
-        {t('Clear filters')}
+        {t('Clear.filters')}
       </Button>
     )
   )

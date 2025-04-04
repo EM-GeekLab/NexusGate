@@ -74,7 +74,7 @@ export function DetailPanelCloseButton({ className, ...props }: ComponentProps<t
     >
       <ArrowLeftIcon className="lg:hidden" />
       <PanelRightIcon className="max-lg:hidden" />
-      <span className="sr-only">{t('Close panel')}</span>
+      <span className="sr-only">{t('Close.panel')}</span>
     </Button>
   )
 }

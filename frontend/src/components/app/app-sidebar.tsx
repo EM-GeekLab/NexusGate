@@ -64,7 +64,7 @@ export function AppSidebar() {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{t('NexusGate')}</span>
-                  <span className="truncate text-xs">{t('LLM Gateway')}</span>
+                  <span className="truncate text-xs">{t('LLM.Gateway')}</span>
                 </div>
               </Link>
             </SidebarMenuButton>

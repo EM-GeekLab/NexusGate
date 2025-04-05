@@ -36,7 +36,7 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
 
   const { copy } = useCopy({
     showSuccessToast: true,
-    successToastMessage: t('API key copied to clipboard.'),
+    successToastMessage: t('API.key.copied.to.clipboard.'),
   })
   const navigate = useNavigate()
 
@@ -75,7 +75,7 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
       await queryClient.invalidateQueries({ queryKey: ['apiKeys'] })
     },
     onSuccess: () => {
-      toast.success(t('API key revoked.'))
+      toast.success(t('API.key.revoked.'))
     },
   })
 
@@ -84,18 +84,18 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="size-8 p-0">
-            <span className="sr-only">{t('Open menu')}</span>
+            <span className="sr-only">{t('Open.menu')}</span>
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem onClick={() => copy(data.key)}>
             <CopyIcon />
-            {t('Copy API Key')}
+            {t('Copy.API.Key')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate({ to: '/requests', search: { apiKeyId: data.id } })}>
             <ArrowUpDownIcon />
-            {t('View requests')}
+            {t('View.requests')}
           </DropdownMenuItem>
           {!data.revoked && (
             <>
@@ -103,7 +103,7 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem>
                   <OctagonXIcon />
-                  {t('Revoke API Key')}
+                  {t('Revoke.API.Key')}
                 </DropdownMenuItem>
               </AlertDialogTrigger>
             </>
@@ -112,10 +112,10 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
       </DropdownMenu>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t('Are you sure?')}</AlertDialogTitle>
+          <AlertDialogTitle>{t('Are.you.sure?')}</AlertDialogTitle>
           <AlertDialogDescription>
           <Trans
-            i18nKey="The API key of application <bold>{{comment}}</bold> will be revoked."
+            i18nKey="The.API.key.of.application.<bold>{{comment}}</bold>.will.be.revoked."
             values={{ comment: data.comment }}
             components={{ bold: <span className="text-foreground font-bold" /> }}
           />

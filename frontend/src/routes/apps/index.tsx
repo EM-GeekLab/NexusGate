@@ -15,7 +15,7 @@ const apiKeysQueryOptions = ({ includeRevoked = false }: { includeRevoked?: bool
     queryKey: ['apiKeys', { includeRevoked }],
     queryFn: async () => {
       const { data, error } = await api.admin.apiKey.get({ query: { includeRevoked } })
-      if (error) throw formatError(error,i18n.t('An error occurred while fetching applications.'))
+      if (error) throw formatError(error,i18n.t('An.error.occurred.while.fetching.applications.'))
       return data
     },
   })

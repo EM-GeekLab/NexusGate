@@ -24,10 +24,10 @@ export function useCopy(opts: UseCopyOptions = {}): UseCopyReturn {
     async (text: string) => {
       if (!navigator?.clipboard) {
         if (showErrorToast)
-          toast.error(t('Clipboard not supported.'), {
+          toast.error(t('Clipboard.not.supported.'), {
             description: (
               <div>
-                <p>{t('You can copy the text below manually.')}</p>
+                <p>{t('You.can.copy.the.text.below.manually.')}</p>
                 <div className="bg-background mt-1 rounded border px-1.5 py-0.5 select-all">{text}</div>
               </div>
             ),
@@ -46,7 +46,7 @@ export function useCopy(opts: UseCopyOptions = {}): UseCopyReturn {
         .catch((err) => {
           if (showErrorToast) {
             toast.error(
-              t('Failed to copy: {{error}}', { error: err }),
+              t('Failed.to.copy:.{{error}}', { error: err }),
             )
           }
           return false

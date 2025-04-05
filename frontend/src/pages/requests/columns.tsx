@@ -144,7 +144,7 @@ function TokensString({ tokens }: { tokens: number }) {
 function DurationDisplay({ duration }: { duration: number | null }) {
   if (duration == null || duration === -1) return <div className="text-right">-</div>
 
-  return <div className="text-right tabular-nums">{(duration / 1000).toFixed(2)}{i18n.t('s')}</div>
+  return <div className="text-right tabular-nums">{(duration / 1000).toFixed(2)}{i18n.t('S')}</div>
 }
 
 function getLastUserMessage(messages: ChatCompletionMessageParam[]): string {

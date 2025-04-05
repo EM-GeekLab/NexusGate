@@ -44,7 +44,7 @@ export function AddButton({ ...props }: ComponentProps<typeof Button>) {
       <DialogTrigger asChild>
         <Button {...props}>
           <PlusIcon />
-          {t('New application')}
+          {t('New.application')}
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -60,17 +60,17 @@ function AddDialogContent() {
   return !createdKey ? (
     <>
       <DialogHeader>
-        <DialogTitle>{t('Create a new application')}</DialogTitle>
-        <DialogDescription>{t('Create a new application for LLM calls.')}</DialogDescription>
+        <DialogTitle>{t('Create.a.new.application')}</DialogTitle>
+        <DialogDescription>{t('Create.a.new.application.for.LLM.calls.')}</DialogDescription>
       </DialogHeader>
       <AddKeyForm onSubmitSuccessful={(key) => setCreatedKey(key)} />
     </>
   ) : (
     <>
       <DialogHeader>
-        <DialogTitle>{t('Application created')}</DialogTitle>
+        <DialogTitle>{t('Application.created')}</DialogTitle>
         <DialogDescription>
-        {t('Your new application with the API key has been created. Please copy the API key below and store it in a safe place.')}
+        {t('Your.new.application.with.the.API.key.has.been.created..Please.copy.the.API.key.below.and.store.it.in.a.safe.place.')}
         </DialogDescription>
         <KeyCreatedContent apiKey={createdKey} />
       </DialogHeader>
@@ -110,7 +110,7 @@ function AddKeyForm({ onSubmitSuccessful }: { onSubmitSuccessful: (key: string) 
               <FormControl>
                 <Input {...field} />
               </FormControl>
-              <FormDescription>{t('Enter a name for this application.')}</FormDescription>
+              <FormDescription>{t('Enter.a.name.for.this.application.')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -125,7 +125,7 @@ function AddKeyForm({ onSubmitSuccessful }: { onSubmitSuccessful: (key: string) 
                 <ExpireDatePicker value={field.value} onValueChange={field.onChange} />
               </FormControl>
               <FormDescription>
-                {t('Choose an expiration date for the API key of this application, or select no expiration date.')}
+                {t('Choose.an.expiration.date.for.the.API.key.of.this.application,.or.select.no.expiration.date.')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -174,13 +174,13 @@ function ExpireDatePicker({ value, onValueChange }: { value?: Date; onValueChang
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="7">{t('7 days')}</SelectItem>
-          <SelectItem value="30">{t('30 days')}</SelectItem>
-          <SelectItem value="90">{t('90 days')}</SelectItem>
-          <SelectItem value="180">{t('180 days')}</SelectItem>
-          <SelectItem value="365">{t('365 days')}</SelectItem>
+          <SelectItem value="7">{t('7.days')}</SelectItem>
+          <SelectItem value="30">{t('30.days')}</SelectItem>
+          <SelectItem value="90">{t('90.days')}</SelectItem>
+          <SelectItem value="180">{t('180.days')}</SelectItem>
+          <SelectItem value="365">{t('365.days')}</SelectItem>
           <SelectItem value="custom">{t('Custom')}</SelectItem>
-          <SelectItem value="no">{t('No expiration')}</SelectItem>
+          <SelectItem value="no">{t('No.expiration')}</SelectItem>
         </SelectContent>
       </Select>
       <Popover>
@@ -194,7 +194,7 @@ function ExpireDatePicker({ value, onValueChange }: { value?: Date; onValueChang
             )}
           >
             <CalendarIcon />
-            {value ? format(value, 'yyyy-MM-dd') : <span>{t('No expiration date')}</span>}
+            {value ? format(value, 'yyyy-MM-dd') : <span>{t('No.expiration.date')}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0">
@@ -214,7 +214,7 @@ function ExpireDatePicker({ value, onValueChange }: { value?: Date; onValueChang
 function KeyCreatedContent({ apiKey }: { apiKey: string }) {
   const { t } = useTranslation()
 
-  const { copy, copied } = useCopy({ showSuccessToast: true, successToastMessage: t('API key copied to clipboard.' )})
+  const { copy, copied } = useCopy({ showSuccessToast: true, successToastMessage: t('API.key.copied.to.clipboard.' )})
  
   return (
     <div className="grid gap-4">

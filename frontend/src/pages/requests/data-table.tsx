@@ -91,7 +91,7 @@ function DataTable({ table }: { table: DTable<ChatRequest> }) {
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
-                {t('No data.')}
+                {t('No.data.')}
               </TableCell>
             </TableRow>
           )}
@@ -123,7 +123,7 @@ function PageInfo({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div className={cn('pl-2 text-sm @max-4xl:hidden', className)} {...props}>
       {data.length > 0 &&
-        t('Showing {{from}} to {{to}} of {{total}} requests from {{startDate}} to {{endDate}}', {
+        t('Showing.{{from}}.to.{{to}}.of.{{total}}.requests.from.{{startDate}}.to.{{endDate}}', {
           from,
           to: Math.min(from + pageSize - 1, total),
           total: formatNumber(total),

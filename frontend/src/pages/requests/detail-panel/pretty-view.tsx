@@ -161,7 +161,7 @@ function DurationDisplay({ duration }: { duration?: number | null }) {
   return (
     <Tooltip>
       <TooltipTrigger className="tabular-nums" asChild>
-        <DescriptionItemButton>{(duration / 1000).toFixed(2)}{t('s')}</DescriptionItemButton>
+        <DescriptionItemButton>{(duration / 1000).toFixed(2)}{t('S')}</DescriptionItemButton>
       </TooltipTrigger>
       <TooltipContent side="right">{formatNumber(duration)}{t('ms')}</TooltipContent>
     </Tooltip>

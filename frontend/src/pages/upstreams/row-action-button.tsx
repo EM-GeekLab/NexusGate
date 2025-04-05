@@ -66,14 +66,14 @@ export function RowActionButton({ data }: { data: Upstream }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="size-8 p-0">
-            <span className="sr-only">{t('Open menu')}</span>
+            <span className="sr-only">{t('Open.menu')}</span>
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem onClick={() => navigate({ to: '/requests', search: { upstreamId: data.id } })}>
             <ArrowUpDownIcon />
-            {t('View requests')}
+            {t('View.requests')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <AlertDialogTrigger asChild>
@@ -86,10 +86,10 @@ export function RowActionButton({ data }: { data: Upstream }) {
       </DropdownMenu>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t('Are you sure?')}</AlertDialogTitle>
+          <AlertDialogTitle>{t('Are.you.sure?')}</AlertDialogTitle>
           <AlertDialogDescription>
             <Trans
-              i18nKey="This provider <bold>{{name}}</bold> will be deleted."
+              i18nKey="This.provider.{{name}}.will.be.deleted."
               values={{ name: data.name }}
               components={{ bold: <span className="text-foreground font-bold" /> }}
             />

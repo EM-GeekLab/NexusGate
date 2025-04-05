@@ -49,7 +49,7 @@ function ApiKeysViewOptions({ includeRevoked }: { includeRevoked: boolean }) {
             })
           }}
         >
-          {t('Show revoked')}
+          {t('Show.revoked')}
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>

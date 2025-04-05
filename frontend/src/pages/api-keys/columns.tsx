@@ -16,7 +16,7 @@ export const columns: ColumnDef<ApiKey>[] = [
   },
   {
     accessorKey: 'key',
-    header: i18n.t('API key'),
+    header: i18n.t('API.key'),
     cell: ({ row }) => <ApiKeyCopyButton apiKey={row.original.key} revoked={row.original.revoked} />,
   },
   {
@@ -31,14 +31,14 @@ export const columns: ColumnDef<ApiKey>[] = [
   },
   {
     accessorKey: 'createdAt',
-    header: i18n.t('Created at'),
+    header: i18n.t('Created.at'),
     cell: ({ row }) => {
       return <div>{format(row.original.createdAt, 'yyyy-MM-dd')}</div>
     },
   },
   {
     accessorKey: 'expiresAt',
-    header: i18n.t('Expires at'),
+    header: i18n.t('Expires.at'),
     cell: ({ row }) => {
       if (!row.original.expiresAt) {
         return <div>{i18n.t('Never')}</div>

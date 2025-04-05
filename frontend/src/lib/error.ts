@@ -2,7 +2,7 @@ import i18n from '@/i18n'
 
 export function formatError(
   error: Error | string | { value: string } | { value: { message: string } } | unknown,
-  fallback = i18n.t('Unknown error'),
+  fallback = i18n.t('Unknown.error'),
 ): Error {
   console.log(error)
   if (error instanceof Error) return error
@@ -17,7 +17,7 @@ export function formatError(
 
 export function newApiError(
   error: { value: string } | { value: { message?: string } },
-  fallback = i18n.t('Unknown error'),
+  fallback = i18n.t('Unknown.error'),
 ): Error {
   if (typeof error.value === 'string') return new Error(error.value)
   return new Error(error.value.message || fallback)

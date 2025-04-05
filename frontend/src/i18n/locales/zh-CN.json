@@ -67,7 +67,7 @@
   "Model": "模型",
   "TTFT": "首Token返回时间",
   "Time.to.first.token": "首Token返回时间",
-  "Total.duration.of.the.request": "请求的总持续时间",
+  "Total.duration.of.the.request": "请求总持续时间",
   "Request.tokens": "请求tokens数量",
   "Response.tokens": "响应tokens数量",
   "Meta": "元数据",

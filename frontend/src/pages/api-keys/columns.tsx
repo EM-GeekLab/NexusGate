@@ -12,11 +12,11 @@ export type ApiKey = Exclude<Awaited<ReturnType<typeof api.admin.apiKey.get>>['d
 export const columns: ColumnDef<ApiKey>[] = [
   {
     accessorKey: 'comment',
-    header: i18n.t('Name'),
+    header: i18n.t('Src_pages_api-keys_columns_Name'),
   },
   {
     accessorKey: 'key',
-    header: i18n.t('API.key'),
+    header: i18n.t('Src_pages_api-keys_columns_APIKey'),
     cell: ({ row }) => <ApiKeyCopyButton apiKey={row.original.key} revoked={row.original.revoked} />,
   },
   {
@@ -24,24 +24,24 @@ export const columns: ColumnDef<ApiKey>[] = [
     header: 'Last seen',
     cell: ({ row }) => {
       if (!row.original.lastSeen) {
-        return <div>{i18n.t('Never')}</div>
+        return <div>{i18n.t('Src_pages_api-keys_columns_Never')}</div>
       }
       return <div>{format(row.original.lastSeen, 'yyyy-MM-dd HH:mm')}</div>
     },
   },
   {
     accessorKey: 'createdAt',
-    header: i18n.t('Created.at'),
+    header: i18n.t('Src_pages_api-keys_columns_CreatedAt'),
     cell: ({ row }) => {
       return <div>{format(row.original.createdAt, 'yyyy-MM-dd')}</div>
     },
   },
   {
     accessorKey: 'expiresAt',
-    header: i18n.t('Expires.at'),
+    header: i18n.t('Src_pages_api-keys_columns_ExpiresAt'),
     cell: ({ row }) => {
       if (!row.original.expiresAt) {
-        return <div>{i18n.t('Never')}</div>
+        return <div>{i18n.t('Src_pages_api-keys_columns_Never')}</div>
       }
       return <div>{format(row.original.expiresAt, 'yyyy-MM-dd')}</div>
     },

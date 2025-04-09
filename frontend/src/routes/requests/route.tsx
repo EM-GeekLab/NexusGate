@@ -24,7 +24,7 @@ function RouteComponent() {
         <AppHeaderPart>
           <AppSidebarTrigger />
           <AppSidebarSeparator />
-          <AppHeaderTitle>{t('Requests')}</AppHeaderTitle>
+          <AppHeaderTitle>{t('Src_routes_requests_route_Requests')}</AppHeaderTitle>
           <RequestsRefreshButton />
           <FilterResetButton />
         </AppHeaderPart>

@@ -12,23 +12,23 @@ export type Upstream = Exclude<Awaited<ReturnType<typeof api.admin.upstream.get>
 export const columns: ColumnDef<Upstream>[] = [
   {
     accessorKey: 'name',
-    header: i18n.t('Provider.name'),
+    header: i18n.t('Src_pages_upstreams_columns_ProviderName'),
   },
   {
     accessorKey: 'model',
-    header: i18n.t('Model'),
+    header: i18n.t('Src_pages_upstreams_columns_Model'),
   },
   {
     accessorKey: 'upstreamModel',
-    header: i18n.t('Provider.model'),
+    header: i18n.t('Src_pages_upstreams_columns_ProviderModel'),
   },
   {
     accessorKey: 'url',
-    header: i18n.t('Base.URL'),
+    header: i18n.t('Src_pages_upstreams_columns_BaseURL'),
   },
   {
     accessorKey: 'apiKey',
-    header: i18n.t('API.key'),
+    header: i18n.t('Src_pages_upstreams_columns_APIKey'),
     cell: ({ row }) => {
       const apiKey = row.original.apiKey
       return apiKey ? <ApiKeyCopyButton apiKey={apiKey} /> : null

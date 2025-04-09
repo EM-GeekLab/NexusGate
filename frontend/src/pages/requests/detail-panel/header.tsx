@@ -32,11 +32,11 @@ export function DetailPanelHeader() {
         <TabsList className="h-8 p-0.5">
           <TabsTrigger value="pretty">
             <Rows2Icon />
-            {t('Pretty')}
+            {t('Src_pages_requests_detail-panel_header_Pretty')}
           </TabsTrigger>
           <TabsTrigger value="raw">
             <BracesIcon />
-            {t('Raw')}
+            {t('Src_pages_requests_detail-panel_header_Raw')}
           </TabsTrigger>
         </TabsList>
       </div>
@@ -49,13 +49,13 @@ function StatusIndicator({ status }: { status: ChatRequest['status'] }) {
   
   return match(status)
     .with('pending', () => (
-      <IndicatorBadge className="bg-neutral-500/15 text-neutral-800 dark:text-neutral-200">{t('Pending')}</IndicatorBadge>
+      <IndicatorBadge className="bg-neutral-500/15 text-neutral-800 dark:text-neutral-200">{t('Src_pages_requests_detail-panel_header_Pending')}</IndicatorBadge>
     ))
     .with('completed', () => (
-      <IndicatorBadge className="bg-green-500/15 text-green-800 dark:text-green-200">{t('Completed')}</IndicatorBadge>
+      <IndicatorBadge className="bg-green-500/15 text-green-800 dark:text-green-200">{t('Src_pages_requests_detail-panel_header_Completed')}</IndicatorBadge>
     ))
     .with('failed', () => (
-      <IndicatorBadge className="bg-red-500/15 text-red-800 dark:text-red-200">{t('Failed')}</IndicatorBadge>
+      <IndicatorBadge className="bg-red-500/15 text-red-800 dark:text-red-200">{t('Src_pages_requests_detail-panel_header_Failed')}</IndicatorBadge>
     ))
     .exhaustive()
 }
@@ -74,7 +74,7 @@ export function DetailPanelCloseButton({ className, ...props }: ComponentProps<t
     >
       <ArrowLeftIcon className="lg:hidden" />
       <PanelRightIcon className="max-lg:hidden" />
-      <span className="sr-only">{t('Close.panel')}</span>
+      <span className="sr-only">{t('Src_pages_requests_detail-panel_header_ClosePanel')}</span>
     </Button>
   )
 }

@@ -22,7 +22,7 @@ function RouteComponent() {
         <AppHeaderPart>
           <AppSidebarTrigger />
           <AppSidebarSeparator />
-          <AppHeaderTitle>{t('Overview')}</AppHeaderTitle>
+          <AppHeaderTitle>{t('Src_routes_dashboard_route_Overview')}</AppHeaderTitle>
         </AppHeaderPart>
       </AppHeader>
       <Outlet />

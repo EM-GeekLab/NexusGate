@@ -49,11 +49,11 @@ export function DetailPanel() {
                 <div className="mt-4 flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => setSelectedRequestId(undefined)}>
                     <XIcon />
-                    {t('Close')}
+                    {t('Src_pages_requests_detail-panel_index_Close')}
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => refetch()}>
                     <RotateCcwIcon />
-                    {t('Retry')}
+                    {t('Src_pages_requests_detail-panel_index_Retry')}
                   </Button>
                 </div>
               </>

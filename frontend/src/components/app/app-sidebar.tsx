@@ -32,12 +32,12 @@ const navItems = [
   },
   {
     icon: <LayoutGridIcon />,
-    title: i18n.t('Applications'),
+    title: i18n.t('Src_components_app_app-sidebar_Applications'),
     href: '/apps',
   },
   {
     icon: <PackageIcon />,
-    title: i18n.t('Providers'),
+    title: i18n.t('Src_components_app_app-sidebar_Providers'),
     href: '/providers',
   },
 ]
@@ -63,8 +63,8 @@ export function AppSidebar() {
                   <WaypointsIcon className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{t('NexusGate')}</span>
-                  <span className="truncate text-xs">{t('LLM.Gateway')}</span>
+                  <span className="truncate font-semibold">{t('Src_components_app_app-sidebar_NexusGate')}</span>
+                  <span className="truncate text-xs">{t('Src_components_app_app-sidebar_LLMGateway')}</span>
                 </div>
               </Link>
             </SidebarMenuButton>

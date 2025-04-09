@@ -17,10 +17,10 @@ export function AppErrorComponent({ error }: ErrorComponentProps) {
   return (
     <div className="flex flex-col items-center px-4 py-10">
       <div className="bg-background flex flex-col items-center gap-4 rounded-lg border px-6 py-4 sm:min-w-[280px]">
-        <h3 className="text-muted-foreground font-medium">{t('error')}</h3>
+        <h3 className="text-muted-foreground font-medium">{t('Src_components_app_app-error_Error')}</h3>
         <p className="text-sm">{error.message}</p>
         <Button variant="outline" onClick={() => router.invalidate()}>
-          {t('Retry')}
+          {t('Src_components_app_app-error_Retry')}
         </Button>
       </div>
     </div>

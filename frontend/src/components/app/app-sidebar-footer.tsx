@@ -32,7 +32,7 @@ export function AppSidebarFooter() {
                 </a>
               </Button>
             </TooltipTrigger>
-            <TooltipContent side={state === 'collapsed' || isMobile ? 'right' : 'top'}>{t('GitHub')}</TooltipContent>
+            <TooltipContent side={state === 'collapsed' || isMobile ? 'right' : 'top'}>{t('Src_components_app_app-sidebar-footer_GitHub')}</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -67,7 +67,7 @@ function CommitSha() {
     queryKey: ['version'],
     queryFn: async () => {
       const { data, error } = await api.admin.rev.get()
-      if (error) throw formatError(error, t('Failed.to.fetch.commit.sha'))
+      if (error) throw formatError(error, t('Src_components_app_app-sidebar-footer_FetchError'))
       return data.version
     },
     enabled: !!sha,
@@ -79,7 +79,7 @@ function CommitSha() {
     queryFn: async () => {
       const res = await fetch('https://api.github.com/repos/EM-GeekLab/NexusGate/commits/main')
       if (!res.ok) {
-        throw new Error(t('Failed.to.fetch.commit.sha'))
+        throw new Error(t('Src_components_app_app-sidebar-footer_FetchError'))
       }
       const data = (await res.json()) as { sha: string }
       return data.sha
@@ -109,25 +109,25 @@ function CommitSha() {
       >
         {!isBackendShaEqual && (
           <div className="mb-2 text-xs text-amber-500">
-            {t('The.backend.version.is.different.from.the.frontend.version.')}
+            {t('Src_components_app_app-sidebar-footer_VersionMismatch')}
           </div>
         )}
         <div className="grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-1 text-xs">
           <div className="contents">
             <div className="text-muted-foreground">
-              {isBackendShaEqual ? t('Current.version') : t('Frontend.version')}
+              {isBackendShaEqual ? t('Src_components_app_app-sidebar-footer_CurrentVersion') : t('Src_components_app_app-sidebar-footer_Frontendversion')}
             </div>
             <div>{sha.substring(0, 7)}</div>
           </div>
           {!isBackendShaEqual && (
             <div className="contents">
-              <div className="text-muted-foreground">{t('Backend.version')}</div>
+              <div className="text-muted-foreground">{t('Src_components_app_app-sidebar-footer_BackendVersion')}</div>
               <div>{backendSha.substring(0, 7)}</div>
             </div>
           )}
           {githubSha && (
             <div className="contents">
-              <div className="text-muted-foreground">{t('Latest.version')}</div>
+              <div className="text-muted-foreground">{t('Src_components_app_app-sidebar-footer_LatestVersion')}</div>
               <div>{githubSha.substring(0, 7)}</div>
             </div>
           )}

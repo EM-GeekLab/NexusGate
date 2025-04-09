@@ -9,8 +9,8 @@ export function TokenUsage({ tokens }: { tokens?: number }) {
   
   const usage = match(tokens)
     .with(undefined, () => null)
-    .with(-1, () => t('No.token.usage.data'))
-    .with(1, () => t('1.token'))
+    .with(-1, () => t('Src_pages_requests_detail-panel_token-usage_NoTokenData'))
+    .with(1, () => t('Src_pages_requests_detail-panel_token-usage_OneToken'))
     .otherwise((tokens) => `${formatNumber(tokens)} tokens`)
 
   return usage && <div className="text-muted-foreground text-xs">{usage}</div>

@@ -22,7 +22,7 @@ function RouteComponent() {
         <AppHeaderPart>
           <AppSidebarTrigger />
           <AppSidebarSeparator />
-          <AppHeaderTitle>{t('Providers')}</AppHeaderTitle>
+          <AppHeaderTitle>{t('Src_routes_providers_route_Providers')}</AppHeaderTitle>
         </AppHeaderPart>
       </AppHeader>
       <Outlet />

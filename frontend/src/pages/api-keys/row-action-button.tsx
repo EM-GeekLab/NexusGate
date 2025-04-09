@@ -36,7 +36,7 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
 
   const { copy } = useCopy({
     showSuccessToast: true,
-    successToastMessage: t('API.key.copied.to.clipboard.'),
+    successToastMessage: t('Src_pages_api-keys_row-action-button_APIKeyCopied'),
   })
   const navigate = useNavigate()
 
@@ -75,7 +75,7 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
       await queryClient.invalidateQueries({ queryKey: ['apiKeys'] })
     },
     onSuccess: () => {
-      toast.success(t('API.key.revoked.'))
+      toast.success(t('Src_pages_api-keys_row-action-button_APIKeyRevoked'))
     },
   })
 
@@ -84,18 +84,18 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="size-8 p-0">
-            <span className="sr-only">{t('Open.menu')}</span>
+            <span className="sr-only">{t('Src_pages_api-keys_row-action-button_OpenMenu')}</span>
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem onClick={() => copy(data.key)}>
             <CopyIcon />
-            {t('Copy.API.Key')}
+            {t('Src_pages_api-keys_row-action-button_CopyAPIKey')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate({ to: '/requests', search: { apiKeyId: data.id } })}>
             <ArrowUpDownIcon />
-            {t('View.requests')}
+            {t('Src_pages_api-keys_row-action-button_ViewRequests')}
           </DropdownMenuItem>
           {!data.revoked && (
             <>
@@ -103,7 +103,7 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem>
                   <OctagonXIcon />
-                  {t('Revoke.API.Key')}
+                  {t('Src_pages_api-keys_row-action-button_RevokeAPIKey')}
                 </DropdownMenuItem>
               </AlertDialogTrigger>
             </>
@@ -112,19 +112,19 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
       </DropdownMenu>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t('Are.you.sure?')}</AlertDialogTitle>
+          <AlertDialogTitle>{t('Src_pages_api-keys_row-action-button_AreYouSure?')}</AlertDialogTitle>
           <AlertDialogDescription>
           <Trans
-            i18nKey="The.API.key.of.application.<bold>{{comment}}</bold>.will.be.revoked."
+            i18nKey="Src_pages_api-keys_row-action-button_APIKeyOfApplicationWillBeRevoked"
             values={{ comment: data.comment }}
             components={{ bold: <span className="text-foreground font-bold" /> }}
           />
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
+          <AlertDialogCancel>{t('Src_pages_api-keys_row-action-button_Cancel')}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={() => mutate(data.key)}>
-            {t('Continue')}
+            {t('Src_pages_api-keys_row-action-button_Continue')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -67,7 +67,7 @@ function CommitSha() {
     queryKey: ['version'],
     queryFn: async () => {
       const { data, error } = await api.admin.rev.get()
-      if (error) throw formatError(error, t('components.app.app-sidebar-footer.FetchError'))
+      if (error) throw formatError(error, t('components.app.app-sidebar-footer.FetchSHAError'))
       return data.version
     },
     enabled: !!sha,
@@ -79,7 +79,7 @@ function CommitSha() {
     queryFn: async () => {
       const res = await fetch('https://api.github.com/repos/EM-GeekLab/NexusGate/commits/main')
       if (!res.ok) {
-        throw new Error(t('components.app.app-sidebar-footer.FetchError'))
+        throw new Error(t('components.app.app-sidebar-footer.FetchSHAError'))
       }
       const data = (await res.json()) as { sha: string }
       return data.sha

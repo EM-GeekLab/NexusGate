@@ -31,7 +31,7 @@ export function MessagesPrettyView() {
         <MessagesPrettyContainer className="@6xl:border-r">
           <MessageTitle
             icon={<ForwardIcon />}
-            title={t('Src_pages_requests_detail-panel_pretty-view_RequestMessages')}
+            title={t('pages.requests.detail-panel.pretty-view.RequestMessages')}
             length={data.prompt.messages.length}
             tokens={data.promptTokens}
           />
@@ -42,7 +42,7 @@ export function MessagesPrettyView() {
           </div>
         </MessagesPrettyContainer>
         <MessagesPrettyContainer>
-          <MessageTitle icon={<ReplyIcon />} title={t('Src_pages_requests_detail-panel_pretty-view_ResponseMessages')} tokens={data.completionTokens} />
+          <MessageTitle icon={<ReplyIcon />} title={t('pages.requests.detail-panel.pretty-view.ResponseMessages')} tokens={data.completionTokens} />
           <div className="flex flex-col">
             {data.completion.map((message, index) => (
               <ResponseMessageContent key={index} message={message} />
@@ -143,7 +143,7 @@ function ReasoningContent({ content, className, ...props }: { content: string } 
       {...props}
     >
       <CollapsibleTrigger className="group/collapsible bg-secondary/50 text-secondary-foreground hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-background data-[state=open]:hover:bg-accent flex w-full items-center justify-between px-4 py-2 text-sm transition-colors data-[state=open]:font-medium [&_svg]:size-4">
-        {t('Src_pages_requests_detail-panel_pretty-view_Reasoning')}
+        {t('pages.requests.detail-panel.pretty-view.Reasoning')}
         <ChevronRightIcon className="-mr-1 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
       </CollapsibleTrigger>
       <CollapsibleContent>
@@ -161,9 +161,9 @@ function DurationDisplay({ duration }: { duration?: number | null }) {
   return (
     <Tooltip>
       <TooltipTrigger className="tabular-nums" asChild>
-        <DescriptionItemButton>{(duration / 1000).toFixed(2)}{t('Src_pages_requests_detail-panel_pretty-view_Seconds')}</DescriptionItemButton>
+        <DescriptionItemButton>{(duration / 1000).toFixed(2)}{t('pages.requests.detail-panel.pretty-view.Seconds')}</DescriptionItemButton>
       </TooltipTrigger>
-      <TooltipContent side="right">{formatNumber(duration)}{t('Src_pages_requests_detail-panel_pretty-view_Milliseconds')}</TooltipContent>
+      <TooltipContent side="right">{formatNumber(duration)}{t('pages.requests.detail-panel.pretty-view.Milliseconds')}</TooltipContent>
     </Tooltip>
   )
 }
@@ -195,35 +195,35 @@ function RequestMetaInfo() {
   }[] = [
     {
       key: 'id',
-      name: t('Src_pages_requests_detail-panel_pretty-view_RequestID'),
+      name: t('pages.requests.detail-panel.pretty-view.RequestID'),
       className: 'tabular-nums',
     },
     {
       key: 'model',
-      name: t('Src_pages_requests_detail-panel_pretty-view_Model'),
+      name: t('pages.requests.detail-panel.pretty-view.Model'),
       value: <CopiableText text={data.model} />,
     },
     {
       key: 'ttft',
-      name: t('Src_pages_requests_detail-panel_pretty-view_TTFT'),
+      name: t('pages.requests.detail-panel.pretty-view.TTFT'),
       value: <DurationDisplay duration={data.ttft} />,
-      help: t('Src_pages_requests_detail-panel_pretty-view_TimeToFirstToken'),
+      help: t('pages.requests.detail-panel.pretty-view.TimeToFirstToken'),
     },
     {
       key: 'duration',
-      name: t('Src_pages_requests_detail-panel_pretty-view_Duration'),
+      name: t('pages.requests.detail-panel.pretty-view.Duration'),
       value: <DurationDisplay duration={data.duration} />,
-      help: t('Src_pages_requests_detail-panel_pretty-view_DurationDesc'),
+      help: t('pages.requests.detail-panel.pretty-view.DurationDesc'),
     },
     {
       key: 'promptTokens',
-      name: t('Src_pages_requests_detail-panel_pretty-view_RequestTokens'),
+      name: t('pages.requests.detail-panel.pretty-view.RequestTokens'),
       value: data.promptTokens === -1 ? '-' : formatNumber(data.promptTokens),
       className: 'tabular-nums',
     },
     {
       key: 'completionTokens',
-      name: t('Src_pages_requests_detail-panel_pretty-view_ResponseTokens'),
+      name: t('pages.requests.detail-panel.pretty-view.ResponseTokens'),
       value: data.completionTokens === -1 ? '-' : formatNumber(data.completionTokens),
       className: 'tabular-nums',
     },
@@ -232,7 +232,7 @@ function RequestMetaInfo() {
   return (
     <div className="@2xl:basis-[260px] @2xl:overflow-auto @2xl:border-r">
       <div className="px-4 pt-3 pb-2 @max-2xl:px-6">
-        <h3 className="text-sm font-medium">{t('Src_pages_requests_detail-panel_pretty-view_Meta')}</h3>
+        <h3 className="text-sm font-medium">{t('pages.requests.detail-panel.pretty-view.Meta')}</h3>
       </div>
       <div className="rounded-lg px-2 py-0.5 @max-2xl:mx-3 @max-2xl:mb-3 @max-2xl:border">
         <TooltipProvider>

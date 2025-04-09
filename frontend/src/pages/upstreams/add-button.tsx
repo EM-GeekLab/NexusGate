@@ -44,13 +44,13 @@ export function AddButton({ ...props }: ComponentProps<typeof Button>) {
       <DialogTrigger asChild>
         <Button {...props}>
           <PlusIcon />
-          {t('Src_pages_upstreams_add-button_NewProvider')}
+          {t('pages.upstreams.add-button.NewProvider')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('Src_pages_upstreams_add-button_AddProvider')}</DialogTitle>
-          <DialogDescription>{t('Src_pages_upstreams_add-button_AddProviderDesc')}</DialogDescription>
+          <DialogTitle>{t('pages.upstreams.add-button.AddProvider')}</DialogTitle>
+          <DialogDescription>{t('pages.upstreams.add-button.AddProviderDesc')}</DialogDescription>
         </DialogHeader>
         <AddUpstreamForm onSubmitSuccessful={() => setOpen(false)} />
       </DialogContent>
@@ -86,11 +86,11 @@ function AddUpstreamForm({ onSubmitSuccessful }: { onSubmitSuccessful: () => voi
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('Src_pages_upstreams_add-button_ProviderName')}</FormLabel>
+              <FormLabel>{t('pages.upstreams.add-button.ProviderName')}</FormLabel>
               <FormControl>
                 <Input placeholder="DeepSeek" {...field} />
               </FormControl>
-              <FormDescription>{t('Src_pages_upstreams_add-button_ProviderNameDesc')}</FormDescription>
+              <FormDescription>{t('pages.upstreams.add-button.ProviderNameDesc')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -100,11 +100,11 @@ function AddUpstreamForm({ onSubmitSuccessful }: { onSubmitSuccessful: () => voi
           name="model"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('Src_pages_upstreams_add-button_ModelName')}</FormLabel>
+              <FormLabel>{t('pages.upstreams.add-button.ModelName')}</FormLabel>
               <FormControl>
                 <Input placeholder="deepseek-r1" {...field} />
               </FormControl>
-              <FormDescription>{t('Src_pages_upstreams_add-button_ModelNameDesc')}</FormDescription>
+              <FormDescription>{t('pages.upstreams.add-button.ModelNameDesc')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -114,11 +114,11 @@ function AddUpstreamForm({ onSubmitSuccessful }: { onSubmitSuccessful: () => voi
           name="upstreamModel"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('Src_pages_upstreams_add-button_ProviderModelName')}</FormLabel>
+              <FormLabel>{t('pages.upstreams.add-button.ProviderModelName')}</FormLabel>
               <FormControl>
                 <Input placeholder="deepseek-reasoner" {...field} />
               </FormControl>
-              <FormDescription>{t('Src_pages_upstreams_add-button_ProviderModelNameDesc')}</FormDescription>
+              <FormDescription>{t('pages.upstreams.add-button.ProviderModelNameDesc')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -128,11 +128,11 @@ function AddUpstreamForm({ onSubmitSuccessful }: { onSubmitSuccessful: () => voi
           name="url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('Src_pages_upstreams_add-button_BaseURL')}</FormLabel>
+              <FormLabel>{t('pages.upstreams.add-button.BaseURL')}</FormLabel>
               <FormControl>
                 <Input placeholder="https://api.deepseek.com" {...field} />
               </FormControl>
-              <FormDescription>{t('Src_pages_upstreams_add-button_BaseURLDesc')}</FormDescription>
+              <FormDescription>{t('pages.upstreams.add-button.BaseURLDesc')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -142,7 +142,7 @@ function AddUpstreamForm({ onSubmitSuccessful }: { onSubmitSuccessful: () => voi
           name="apiKey"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('Src_pages_upstreams_add-button_APIKey')}</FormLabel>
+              <FormLabel>{t('pages.upstreams.add-button.APIKey')}</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -154,12 +154,12 @@ function AddUpstreamForm({ onSubmitSuccessful }: { onSubmitSuccessful: () => voi
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline">
-              {t('Src_pages_upstreams_add-button_Cancel')}
+              {t('pages.upstreams.add-button.Cancel')}
             </Button>
           </DialogClose>
           <Button type="submit">
             {isPending && <Spinner />}
-            {t('Src_pages_upstreams_add-button_Save')}
+            {t('pages.upstreams.add-button.Save')}
           </Button>
         </DialogFooter>
       </form>

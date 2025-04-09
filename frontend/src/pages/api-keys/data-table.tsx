@@ -36,7 +36,7 @@ function ApiKeysViewOptions({ includeRevoked }: { includeRevoked: boolean }) {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="ml-auto">
           <Settings2Icon />
-          {t('Src_pages_api-keys_data-table_View')}
+          {t('pages.api-keys.data-table.View')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -49,7 +49,7 @@ function ApiKeysViewOptions({ includeRevoked }: { includeRevoked: boolean }) {
             })
           }}
         >
-          {t('Src_pages_api-keys_data-table_ShowRevoked')}
+          {t('pages.api-keys.data-table.ShowRevoked')}
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>

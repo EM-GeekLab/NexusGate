@@ -24,13 +24,13 @@ export type ChatRequest = Omit<
 export const columns: ColumnDef<ChatRequest>[] = [
   {
     accessorKey: 'createdAt',
-    header: () => <div className="pl-4">{i18n.t('Src_pages_requests_columns_CreatedAt')}</div>,
+    header: () => <div className="pl-4">{i18n.t('pages.requests.columns.CreatedAt')}</div>,
     cell: ({ row }) => {
       const status = row.original.status
       const indicator = match(status)
-        .with('pending', () => <MiniIndicatorBadge className="bg-neutral-500">{i18n.t('Src_pages_requests_columns_Pending')}</MiniIndicatorBadge>)
-        .with('completed', () => <MiniIndicatorBadge className="bg-green-500">{i18n.t('Src_pages_requests_columns_Completed')}</MiniIndicatorBadge>)
-        .with('failed', () => <MiniIndicatorBadge className="bg-destructive">{i18n.t('Src_pages_requests_columns_Failed')}</MiniIndicatorBadge>)
+        .with('pending', () => <MiniIndicatorBadge className="bg-neutral-500">{i18n.t('pages.requests.columns.Pending')}</MiniIndicatorBadge>)
+        .with('completed', () => <MiniIndicatorBadge className="bg-green-500">{i18n.t('pages.requests.columns.Completed')}</MiniIndicatorBadge>)
+        .with('failed', () => <MiniIndicatorBadge className="bg-destructive">{i18n.t('pages.requests.columns.Failed')}</MiniIndicatorBadge>)
         .exhaustive()
       return (
         <div className="flex items-center gap-2.5">
@@ -42,7 +42,7 @@ export const columns: ColumnDef<ChatRequest>[] = [
   },
   {
     accessorKey: 'model',
-    header: i18n.t('Src_pages_requests_columns_Model'),
+    header: i18n.t('pages.requests.columns.Model'),
     cell: ({ row }) => {
       return <IndicatorBadge className="text-foreground bg-background border">{row.original.model}</IndicatorBadge>
     },
@@ -52,12 +52,12 @@ export const columns: ColumnDef<ChatRequest>[] = [
     header: () => (
       <TooltipProvider>
         <div className="flex items-center justify-end gap-1 [&_svg]:size-3.5">
-          {i18n.t('Src_pages_requests_columns_TTFT')}
+          {i18n.t('pages.requests.columns.TTFT')}
           <Tooltip>
             <TooltipTrigger className="text-muted-foreground hover:text-accent-foreground transition-colors">
               <HelpCircleIcon />
             </TooltipTrigger>
-            <TooltipContent>{i18n.t('Src_pages_requests_columns_TimeToFirstToken')}</TooltipContent>
+            <TooltipContent>{i18n.t('pages.requests.columns.TimeToFirstToken')}</TooltipContent>
           </Tooltip>
         </div>
       </TooltipProvider>
@@ -66,12 +66,12 @@ export const columns: ColumnDef<ChatRequest>[] = [
   },
   {
     accessorKey: 'duration',
-    header: () => <div className="text-right">{i18n.t('Src_pages_requests_columns_Duration')}</div>,
+    header: () => <div className="text-right">{i18n.t('pages.requests.columns.Duration')}</div>,
     cell: ({ row }) => <DurationDisplay duration={row.original.duration} />,
   },
   {
     accessorKey: 'prompt',
-    header: i18n.t('Src_pages_requests_columns_Request'),
+    header: i18n.t('pages.requests.columns.Request'),
     cell: ({ row }) => {
       const messages = row.original.prompt.messages
       const messageString = getLastUserMessage(messages)
@@ -85,14 +85,14 @@ export const columns: ColumnDef<ChatRequest>[] = [
   },
   {
     accessorKey: 'promptTokens',
-    header: () => <div className="text-right">{i18n.t('Src_pages_requests_columns_ReqTok')}</div>,
+    header: () => <div className="text-right">{i18n.t('pages.requests.columns.ReqTok')}</div>,
     cell: ({ row }) => {
       return <TokensString tokens={row.original.promptTokens} />
     },
   },
   {
     accessorKey: 'completion',
-    header: i18n.t('Src_pages_requests_columns_Response'),
+    header: i18n.t('pages.requests.columns.Response'),
     cell: ({ row }) => {
       const messages = row.original.completion
       const { content } = extractReasoning(getAssistantMessage(messages))
@@ -105,7 +105,7 @@ export const columns: ColumnDef<ChatRequest>[] = [
   },
   {
     accessorKey: 'completionTokens',
-    header: () => <div className="text-right">{i18n.t('Src_pages_requests_columns_RespTok')}</div>,
+    header: () => <div className="text-right">{i18n.t('pages.requests.columns.RespTok')}</div>,
     cell: ({ row }) => {
       return <TokensString tokens={row.original.completionTokens} />
     },
@@ -144,7 +144,7 @@ function TokensString({ tokens }: { tokens: number }) {
 function DurationDisplay({ duration }: { duration: number | null }) {
   if (duration == null || duration === -1) return <div className="text-right">-</div>
 
-  return <div className="text-right tabular-nums">{(duration / 1000).toFixed(2)}{i18n.t('Src_pages_requests_columns_Seconds')}</div>
+  return <div className="text-right tabular-nums">{(duration / 1000).toFixed(2)}{i18n.t('pages.requests.columns.Seconds')}</div>
 }
 
 function getLastUserMessage(messages: ChatCompletionMessageParam[]): string {

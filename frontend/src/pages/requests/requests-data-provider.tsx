@@ -25,6 +25,6 @@ export function useRequestsData() {
   const { t } = useTranslation()
   
   const ctx = useContext(RequestsDataContext)
-  if (!ctx) throw new Error(t('Src_pages_requests_requests-data-provider_UseRequestDataError'))
+  if (!ctx) throw new Error(t('pages.requests.requests-data-provider.UseRequestDataError'))
   return ctx
 }

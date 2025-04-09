@@ -74,6 +74,6 @@ export function useRequestDetail() {
   const { t } = useTranslation()
 
   const context = useContext(RequestDetailContext)
-  if (!context) throw new Error(t('Src_pages_requests_request-detail-provider_UseRequestDetailError'))
+  if (!context) throw new Error(t('pages.requests.request-detail-provider.UseRequestDetailError'))
   return context
 }

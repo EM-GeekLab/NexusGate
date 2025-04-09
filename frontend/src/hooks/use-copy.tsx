@@ -24,10 +24,10 @@ export function useCopy(opts: UseCopyOptions = {}): UseCopyReturn {
     async (text: string) => {
       if (!navigator?.clipboard) {
         if (showErrorToast)
-          toast.error(t('Src_hooks_use-copy_ClipboardError'), {
+          toast.error(t('hooks.use-copy.ClipboardError'), {
             description: (
               <div>
-                <p>{t('Src_hooks_use-copy_ManualCopy')}</p>
+                <p>{t('hooks.use-copy.ManualCopy')}</p>
                 <div className="bg-background mt-1 rounded border px-1.5 py-0.5 select-all">{text}</div>
               </div>
             ),
@@ -46,7 +46,7 @@ export function useCopy(opts: UseCopyOptions = {}): UseCopyReturn {
         .catch((err) => {
           if (showErrorToast) {
             toast.error(
-              t('Src_hooks_use-copy_FailedToCopy', { error: err }),
+              t('hooks.use-copy.FailedToCopy', { error: err }),
             )
           }
           return false

@@ -14,7 +14,7 @@ const upstreamQueryOptions = () =>
     queryKey: ['upstreams'],
     queryFn: async () => {
       const { data, error } = await api.admin.upstream.get()
-      if (error) throw formatError(error, i18n.t('Src_routes_providers_index_FetchError'))
+      if (error) throw formatError(error, i18n.t('routes.providers.index.FetchError'))
       return data
     },
   })

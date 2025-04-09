@@ -66,39 +66,39 @@ export function RowActionButton({ data }: { data: Upstream }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="size-8 p-0">
-            <span className="sr-only">{t('Src_pages_upstreams_row-action-button_OpenMenu')}</span>
+            <span className="sr-only">{t('pages.upstreams.row-action-button.OpenMenu')}</span>
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem onClick={() => navigate({ to: '/requests', search: { upstreamId: data.id } })}>
             <ArrowUpDownIcon />
-            {t('Src_pages_upstreams_row-action-button_ViewRequests')}
+            {t('pages.upstreams.row-action-button.ViewRequests')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <AlertDialogTrigger asChild>
             <DropdownMenuItem>
               <Trash2Icon />
-              {t('Src_pages_upstreams_row-action-button_Delete')}
+              {t('pages.upstreams.row-action-button.Delete')}
             </DropdownMenuItem>
           </AlertDialogTrigger>
         </DropdownMenuContent>
       </DropdownMenu>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t('Src_pages_upstreams_row-action-button_AreYouSure?')}</AlertDialogTitle>
+          <AlertDialogTitle>{t('pages.upstreams.row-action-button.AreYouSure?')}</AlertDialogTitle>
           <AlertDialogDescription>
             <Trans
-              i18nKey="Src_pages_upstreams_row-action-button_ProviderWillBeDeleted"
+              i18nKey="pages.upstreams.row-action-button.ProviderWillBeDeleted"
               values={{ name: data.name }}
               components={{ bold: <span className="text-foreground font-bold" /> }}
             />
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{t('Src_pages_upstreams_row-action-button_Cancel')}</AlertDialogCancel>
+          <AlertDialogCancel>{t('pages.upstreams.row-action-button.Cancel')}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={() => mutate(data.id)}>
-            {t('Src_pages_upstreams_row-action-button_Continue')}
+            {t('pages.upstreams.row-action-button.Continue')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

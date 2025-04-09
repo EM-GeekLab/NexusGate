@@ -44,7 +44,7 @@ export function AddButton({ ...props }: ComponentProps<typeof Button>) {
       <DialogTrigger asChild>
         <Button {...props}>
           <PlusIcon />
-          {t('Src_pages_api-keys_add-button_New_application')}
+          {t('pages.api-keys.add-button.NewApp')}
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -60,17 +60,17 @@ function AddDialogContent() {
   return !createdKey ? (
     <>
       <DialogHeader>
-        <DialogTitle>{t('Src_pages_api-keys_add-button_CreateApp')}</DialogTitle>
-        <DialogDescription>{t('Src_pages_api-keys_add-button_CreateAppDesc')}</DialogDescription>
+        <DialogTitle>{t('pages.api-keys.add-button.CreateApp')}</DialogTitle>
+        <DialogDescription>{t('pages.api-keys.add-button.CreateAppDesc')}</DialogDescription>
       </DialogHeader>
       <AddKeyForm onSubmitSuccessful={(key) => setCreatedKey(key)} />
     </>
   ) : (
     <>
       <DialogHeader>
-        <DialogTitle>{t('Src_pages_api-keys_add-button_AppCreated')}</DialogTitle>
+        <DialogTitle>{t('pages.api-keys.add-button.AppCreated')}</DialogTitle>
         <DialogDescription>
-        {t('Src_pages_api-keys_add-button_AppCreatedDesc')}
+        {t('pages.api-keys.add-button.AppCreatedDesc')}
         </DialogDescription>
         <KeyCreatedContent apiKey={createdKey} />
       </DialogHeader>
@@ -106,11 +106,11 @@ function AddKeyForm({ onSubmitSuccessful }: { onSubmitSuccessful: (key: string) 
           name="comment"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('Src_pages_api-keys_add-button_Name')}</FormLabel>
+              <FormLabel>{t('pages.api-keys.add-button.Name')}</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
-              <FormDescription>{t('Src_pages_api-keys_add-button_NamePlaceholder')}</FormDescription>
+              <FormDescription>{t('pages.api-keys.add-button.NamePlaceholder')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -120,12 +120,12 @@ function AddKeyForm({ onSubmitSuccessful }: { onSubmitSuccessful: (key: string) 
           name="expiresAt"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('Src_pages_api-keys_add-button_Expiration')}</FormLabel>
+              <FormLabel>{t('pages.api-keys.add-button.Expiration')}</FormLabel>
               <FormControl>
                 <ExpireDatePicker value={field.value} onValueChange={field.onChange} />
               </FormControl>
               <FormDescription>
-                {t('Src_pages_api-keys_add-button_SetExpirationDate')}
+                {t('pages.api-keys.add-button.SetExpirationDate')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -135,12 +135,12 @@ function AddKeyForm({ onSubmitSuccessful }: { onSubmitSuccessful: (key: string) 
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline">
-              {t('Src_pages_api-keys_add-button_Cancel')}
+              {t('pages.api-keys.add-button.Cancel')}
             </Button>
           </DialogClose>
           <Button type="submit">
             {isPending && <Spinner />}
-            {t('Src_pages_api-keys_add-button_Save')}
+            {t('pages.api-keys.add-button.Save')}
           </Button>
         </DialogFooter>
       </form>
@@ -174,13 +174,13 @@ function ExpireDatePicker({ value, onValueChange }: { value?: Date; onValueChang
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="7">{t('Src_pages_api-keys_add-button_7Days')}</SelectItem>
-          <SelectItem value="30">{t('Src_pages_api-keys_add-button_30Days')}</SelectItem>
-          <SelectItem value="90">{t('Src_pages_api-keys_add-button_90Days')}</SelectItem>
-          <SelectItem value="180">{t('Src_pages_api-keys_add-button_180Days')}</SelectItem>
-          <SelectItem value="365">{t('Src_pages_api-keys_add-button_365Days')}</SelectItem>
-          <SelectItem value="custom">{t('Src_pages_api-keys_add-button_Custom')}</SelectItem>
-          <SelectItem value="no">{t('Src_pages_api-keys_add-button_NoExpiration')}</SelectItem>
+          <SelectItem value="7">{t('pages.api-keys.add-button.7Days')}</SelectItem>
+          <SelectItem value="30">{t('pages.api-keys.add-button.30Days')}</SelectItem>
+          <SelectItem value="90">{t('pages.api-keys.add-button.90Days')}</SelectItem>
+          <SelectItem value="180">{t('pages.api-keys.add-button.180Days')}</SelectItem>
+          <SelectItem value="365">{t('pages.api-keys.add-button.365Days')}</SelectItem>
+          <SelectItem value="custom">{t('pages.api-keys.add-button.Custom')}</SelectItem>
+          <SelectItem value="no">{t('pages.api-keys.add-button.NoExpiration')}</SelectItem>
         </SelectContent>
       </Select>
       <Popover>
@@ -194,7 +194,7 @@ function ExpireDatePicker({ value, onValueChange }: { value?: Date; onValueChang
             )}
           >
             <CalendarIcon />
-            {value ? format(value, 'yyyy-MM-dd') : <span>{t('Src_pages_api-keys_add-button_NoExpirationDate')}</span>}
+            {value ? format(value, 'yyyy-MM-dd') : <span>{t('pages.api-keys.add-button.NoExpirationDate')}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0">
@@ -214,7 +214,7 @@ function ExpireDatePicker({ value, onValueChange }: { value?: Date; onValueChang
 function KeyCreatedContent({ apiKey }: { apiKey: string }) {
   const { t } = useTranslation()
 
-  const { copy, copied } = useCopy({ showSuccessToast: true, successToastMessage: t('Src_pages_api-keys_add-button_APIKeyCopied' )})
+  const { copy, copied } = useCopy({ showSuccessToast: true, successToastMessage: t('pages.api-keys.add-button.APIKeyCopied' )})
  
   return (
     <div className="grid gap-4">
@@ -222,11 +222,11 @@ function KeyCreatedContent({ apiKey }: { apiKey: string }) {
       <DialogFooter>
         <DialogClose asChild>
           <Button type="button" variant="outline">
-            {t('Src_pages_api-keys_add-button_Close')}
+            {t('pages.api-keys.add-button.Close')}
           </Button>
         </DialogClose>
         <Button type="button" onClick={() => copy(apiKey)}>
-          {copied ? t('Copied!') : t('Src_pages_api-keys_add-button_Copy')}
+          {copied ? t('pages.api-keys.add-button.Copied') : t('pages.api-keys.add-button.Copy')}
         </Button>
       </DialogFooter>
     </div>

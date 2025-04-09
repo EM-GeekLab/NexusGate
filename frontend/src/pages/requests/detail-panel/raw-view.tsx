@@ -13,11 +13,11 @@ export function MessagesRawView() {
   return (
     <div className="flex flex-col gap-4 px-4">
       <MessagesCodePreview
-        title={t('Src_pages_requests_detail-panel_raw-view_RawData')}
+        title={t('pages.requests.detail-panel.raw-view.RawData')}
         messages={omit(data, ['prompt', 'completion', 'promptTokens', 'completionTokens'])}
       />
-      <MessagesCodePreview title={t('Src_pages_requests_detail-panel_raw-view_RequestMessages')} messages={data.prompt.messages} tokens={data.promptTokens} />
-      <MessagesCodePreview title={t('Src_pages_requests_detail-panel_raw-view_ResponseMessages')} messages={data.completion} tokens={data.completionTokens} />
+      <MessagesCodePreview title={t('pages.requests.detail-panel.raw-view.RequestMessages')} messages={data.prompt.messages} tokens={data.promptTokens} />
+      <MessagesCodePreview title={t('pages.requests.detail-panel.raw-view.ResponseMessages')} messages={data.completion} tokens={data.completionTokens} />
     </div>
   )
 }

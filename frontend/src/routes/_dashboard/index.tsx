@@ -12,5 +12,5 @@ export const Route = createFileRoute('/_dashboard/')({
 
 function RouteComponent() {
   const { t } = useTranslation()
-  return <div>{t('Src_routes_dashboard_index_Welcome')}</div>
+  return <div>{t('routes.dashboard.index.Welcome')}</div>
 }

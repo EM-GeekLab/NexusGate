@@ -24,7 +24,7 @@ export const columns: ColumnDef<ApiKey>[] = [
     header: i18n.t('pages.api-keys.columns.Lastseen'),
     cell: ({ row }) => {
       if (!row.original.lastSeen) {
-        return <div>{i18n.t('pages.api-keys.columns.Never')}</div>
+        return <div>{i18n.t('pages.api-keys.columns.NeverUse')}</div>
       }
       return <div>{format(row.original.lastSeen, 'yyyy-MM-dd HH:mm')}</div>
     },
@@ -41,7 +41,7 @@ export const columns: ColumnDef<ApiKey>[] = [
     header: i18n.t('pages.api-keys.columns.ExpiresAt'),
     cell: ({ row }) => {
       if (!row.original.expiresAt) {
-        return <div>{i18n.t('pages.api-keys.columns.Never')}</div>
+        return <div>{i18n.t('pages.api-keys.columns.NoExpirationDate')}</div>
       }
       return <div>{format(row.original.expiresAt, 'yyyy-MM-dd')}</div>
     },

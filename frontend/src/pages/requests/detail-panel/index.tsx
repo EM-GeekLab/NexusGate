@@ -11,6 +11,8 @@ import { DetailPanelCloseButton, DetailPanelHeader } from './header'
 import { MessagesPrettyView } from './pretty-view'
 import { MessagesRawView } from './raw-view'
 
+import { useTranslation } from 'react-i18next'
+
 const DetailContext = createContext<ChatRequest | null>(null)
 export const useRequestDetailContext = () => {
   const ctx = useContext(DetailContext)
@@ -19,6 +21,8 @@ export const useRequestDetailContext = () => {
 }
 
 export function DetailPanel() {
+  const { t } = useTranslation()
+
   const {
     isSelectedRequest,
     selectedRequest: data,
@@ -45,11 +49,11 @@ export function DetailPanel() {
                 <div className="mt-4 flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => setSelectedRequestId(undefined)}>
                     <XIcon />
-                    Close
+                    {t('pages.requests.detail-panel.index.Close')}
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => refetch()}>
                     <RotateCcwIcon />
-                    Retry
+                    {t('pages.requests.detail-panel.index.Retry')}
                   </Button>
                 </div>
               </>

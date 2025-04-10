@@ -2,6 +2,8 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 
 import { AppErrorComponent } from '@/components/app/app-error'
 
+import { useTranslation } from 'react-i18next'
+
 export const Route = createFileRoute('/_dashboard/')({
   component: RouteComponent,
   errorComponent: AppErrorComponent,
@@ -9,5 +11,6 @@ export const Route = createFileRoute('/_dashboard/')({
 })
 
 function RouteComponent() {
-  return <div>Hello from home</div>
+  const { t } = useTranslation()
+  return <div>{t('routes.dashboard.index.Welcome')}</div>
 }

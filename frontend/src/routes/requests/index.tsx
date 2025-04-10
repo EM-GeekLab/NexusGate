@@ -11,6 +11,8 @@ import { queryClient } from '@/components/app/query-provider'
 import type { ChatRequest } from '@/pages/requests/columns'
 import { RequestsDataTable } from '@/pages/requests/data-table'
 
+import i18n from '@/i18n'
+
 const requestsSearchSchema = z.object({
   page: z.number().catch(1),
   pageSize: z.number().catch(20),
@@ -32,7 +34,7 @@ const requestsQueryOptions = ({ page, pageSize, apiKeyId, upstreamId }: Requests
           ...removeUndefinedFields({ apiKeyId, upstreamId }),
         },
       })
-      if (error) throw formatError(error, 'An error occurred while fetching requests.')
+      if (error) throw formatError(error, i18n.t('routes.requests.index.FetchError'))
       const { data, total } = rawData
       return { data: data as ChatRequest[], total }
     },

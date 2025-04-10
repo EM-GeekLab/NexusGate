@@ -13,7 +13,11 @@ import type { ChatRequest } from '../columns'
 import { useRequestDetail } from '../request-detail-provider'
 import { useRequestDetailContext } from './index'
 
+import { useTranslation } from 'react-i18next'
+
 export function DetailPanelHeader() {
+  const { t } = useTranslation()
+  
   const data = useRequestDetailContext()
 
   return (
@@ -28,11 +32,11 @@ export function DetailPanelHeader() {
         <TabsList className="h-8 p-0.5">
           <TabsTrigger value="pretty">
             <Rows2Icon />
-            Pretty
+            {t('pages.requests.detail-panel.header.Pretty')}
           </TabsTrigger>
           <TabsTrigger value="raw">
             <BracesIcon />
-            Raw
+            {t('pages.requests.detail-panel.header.Raw')}
           </TabsTrigger>
         </TabsList>
       </div>
@@ -41,20 +45,24 @@ export function DetailPanelHeader() {
 }
 
 function StatusIndicator({ status }: { status: ChatRequest['status'] }) {
+  const { t } = useTranslation()
+  
   return match(status)
     .with('pending', () => (
-      <IndicatorBadge className="bg-neutral-500/15 text-neutral-800 dark:text-neutral-200">Pending</IndicatorBadge>
+      <IndicatorBadge className="bg-neutral-500/15 text-neutral-800 dark:text-neutral-200">{t('pages.requests.detail-panel.header.Pending')}</IndicatorBadge>
     ))
     .with('completed', () => (
-      <IndicatorBadge className="bg-green-500/15 text-green-800 dark:text-green-200">Completed</IndicatorBadge>
+      <IndicatorBadge className="bg-green-500/15 text-green-800 dark:text-green-200">{t('pages.requests.detail-panel.header.Completed')}</IndicatorBadge>
     ))
     .with('failed', () => (
-      <IndicatorBadge className="bg-red-500/15 text-red-800 dark:text-red-200">Failed</IndicatorBadge>
+      <IndicatorBadge className="bg-red-500/15 text-red-800 dark:text-red-200">{t('pages.requests.detail-panel.header.Failed')}</IndicatorBadge>
     ))
     .exhaustive()
 }
 
 export function DetailPanelCloseButton({ className, ...props }: ComponentProps<typeof Button>) {
+  const { t } = useTranslation()
+  
   const { setSelectedRequestId } = useRequestDetail()
 
   return (
@@ -66,7 +74,7 @@ export function DetailPanelCloseButton({ className, ...props }: ComponentProps<t
     >
       <ArrowLeftIcon className="lg:hidden" />
       <PanelRightIcon className="max-lg:hidden" />
-      <span className="sr-only">Close panel</span>
+      <span className="sr-only">{t('pages.requests.detail-panel.header.ClosePanel')}</span>
     </Button>
   )
 }

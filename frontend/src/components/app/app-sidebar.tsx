@@ -16,6 +16,9 @@ import {
 
 import { AppSidebarFooter } from './app-sidebar-footer'
 
+import i18n from '@/i18n'
+import { useTranslation } from 'react-i18next'
+
 const navItems = [
   // {
   //   icon: <ChartPieIcon />,
@@ -24,22 +27,24 @@ const navItems = [
   // },
   {
     icon: <ArrowUpDownIcon />,
-    title: 'Requests',
+    title: i18n.t('components.app.app-sidebar.Requests'),
     href: '/requests',
   },
   {
     icon: <LayoutGridIcon />,
-    title: 'Applications',
+    title: i18n.t('components.app.app-sidebar.Applications'),
     href: '/apps',
   },
   {
     icon: <PackageIcon />,
-    title: 'Providers',
+    title: i18n.t('components.app.app-sidebar.Providers'),
     href: '/providers',
   },
 ]
 
 export function AppSidebar() {
+  const { t } = useTranslation()
+  
   const { setOpenMobile } = useSidebar()
   const matchRoute = useMatchRoute()
 
@@ -58,8 +63,8 @@ export function AppSidebar() {
                   <WaypointsIcon className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">NexusGate</span>
-                  <span className="truncate text-xs">LLM Gateway</span>
+                  <span className="truncate font-semibold">{t('components.app.app-sidebar.NexusGate')}</span>
+                  <span className="truncate text-xs">{t('components.app.app-sidebar.LLMGateway')}</span>
                 </div>
               </Link>
             </SidebarMenuButton>

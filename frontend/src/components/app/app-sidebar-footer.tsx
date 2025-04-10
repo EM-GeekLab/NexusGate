@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { TriangleAlertIcon } from 'lucide-react'
+import { LanguagesIcon, TriangleAlertIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { api } from '@/lib/api'
 import { formatError } from '@/lib/error'
@@ -10,6 +11,13 @@ import { useSidebar } from '@/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export function AppSidebarFooter() {
+  const { t } = useTranslation()
+  const { i18n } = useTranslation()
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng)
+    localStorage.setItem('language', lng) // 持久化选择
+  }
+
   const { isMobile, state } = useSidebar()
 
   return (
@@ -24,8 +32,26 @@ export function AppSidebarFooter() {
                 </a>
               </Button>
             </TooltipTrigger>
-            <TooltipContent side={state === 'collapsed' || isMobile ? 'right' : 'top'}>GitHub</TooltipContent>
+            <TooltipContent side={state === 'collapsed' || isMobile ? 'right' : 'top'}>{t('components.app.app-sidebar-footer.GitHub')}</TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className="text-muted-foreground size-8 p-0"
+                onClick={() => {
+                  changeLanguage(i18n.language === 'en-US' ? 'zh-CN' : 'en-US')
+                  location.reload()
+                }}
+              >
+                <LanguagesIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side={state === 'collapsed' || isMobile ? 'right' : 'top'}>
+              {i18n.language === 'en-US' ? '切换到中文' : 'Switch to English'}
+            </TooltipContent>
+          </Tooltip>
+
           <CommitSha />
         </div>
       </div>
@@ -35,12 +61,13 @@ export function AppSidebarFooter() {
 
 function CommitSha() {
   const sha: string | undefined = import.meta.env.VITE_COMMIT_SHA
+  const { t } = useTranslation()
 
   const { data: backendSha = '' } = useQuery({
     queryKey: ['version'],
     queryFn: async () => {
       const { data, error } = await api.admin.rev.get()
-      if (error) throw formatError(error, 'Failed to fetch commit sha')
+      if (error) throw formatError(error, t('components.app.app-sidebar-footer.FetchSHAError'))
       return data.version
     },
     enabled: !!sha,
@@ -52,7 +79,7 @@ function CommitSha() {
     queryFn: async () => {
       const res = await fetch('https://api.github.com/repos/EM-GeekLab/NexusGate/commits/main')
       if (!res.ok) {
-        throw new Error('Failed to fetch commit sha')
+        throw new Error(t('components.app.app-sidebar-footer.FetchSHAError'))
       }
       const data = (await res.json()) as { sha: string }
       return data.sha
@@ -81,22 +108,26 @@ function CommitSha() {
         className="w-auto max-w-[15rem] p-2 data-warning:border-amber-500"
       >
         {!isBackendShaEqual && (
-          <div className="mb-2 text-xs text-amber-500">The backend version is different from the frontend version.</div>
+          <div className="mb-2 text-xs text-amber-500">
+            {t('components.app.app-sidebar-footer.VersionMismatch')}
+          </div>
         )}
         <div className="grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-1 text-xs">
           <div className="contents">
-            <div className="text-muted-foreground">{isBackendShaEqual ? 'Current version' : 'Frontend version'}</div>
+            <div className="text-muted-foreground">
+              {isBackendShaEqual ? t('components.app.app-sidebar-footer.CurrentVersion') : t('components.app.app-sidebar-footer.FrontendVersion')}
+            </div>
             <div>{sha.substring(0, 7)}</div>
           </div>
           {!isBackendShaEqual && (
             <div className="contents">
-              <div className="text-muted-foreground">Backend version</div>
+              <div className="text-muted-foreground">{t('components.app.app-sidebar-footer.BackendVersion')}</div>
               <div>{backendSha.substring(0, 7)}</div>
             </div>
           )}
           {githubSha && (
             <div className="contents">
-              <div className="text-muted-foreground">Latest version</div>
+              <div className="text-muted-foreground">{t('components.app.app-sidebar-footer.LatestVersion')}</div>
               <div>{githubSha.substring(0, 7)}</div>
             </div>
           )}

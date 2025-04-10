@@ -28,6 +28,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Spinner } from '@/components/ui/spinner'
 import { useCopy } from '@/hooks/use-copy'
 
+import { useTranslation } from 'react-i18next'
+
 const addKeySchema = z.object({
   comment: z.string().min(1, { message: 'Comment is required' }),
   expiresAt: z.date().optional(),
@@ -36,12 +38,13 @@ const addKeySchema = z.object({
 type AddKeySchema = z.infer<typeof addKeySchema>
 
 export function AddButton({ ...props }: ComponentProps<typeof Button>) {
+  const { t } = useTranslation()
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button {...props}>
           <PlusIcon />
-          New application
+          {t('pages.api-keys.add-button.NewApp')}
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -53,22 +56,21 @@ export function AddButton({ ...props }: ComponentProps<typeof Button>) {
 
 function AddDialogContent() {
   const [createdKey, setCreatedKey] = useState<string>('')
-
+  const { t } = useTranslation()
   return !createdKey ? (
     <>
       <DialogHeader>
-        <DialogTitle>Create a new application</DialogTitle>
-        <DialogDescription>Create a new application for LLM calls.</DialogDescription>
+        <DialogTitle>{t('pages.api-keys.add-button.CreateApp')}</DialogTitle>
+        <DialogDescription>{t('pages.api-keys.add-button.CreateAppDesc')}</DialogDescription>
       </DialogHeader>
       <AddKeyForm onSubmitSuccessful={(key) => setCreatedKey(key)} />
     </>
   ) : (
     <>
       <DialogHeader>
-        <DialogTitle>Application created</DialogTitle>
+        <DialogTitle>{t('pages.api-keys.add-button.AppCreated')}</DialogTitle>
         <DialogDescription>
-          Your new application with the API key has been created. Please copy the API key below and store it in a safe
-          place.
+        {t('pages.api-keys.add-button.AppCreatedDesc')}
         </DialogDescription>
         <KeyCreatedContent apiKey={createdKey} />
       </DialogHeader>
@@ -77,6 +79,7 @@ function AddDialogContent() {
 }
 
 function AddKeyForm({ onSubmitSuccessful }: { onSubmitSuccessful: (key: string) => void }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: async (values: AddKeySchema) => {
@@ -103,11 +106,11 @@ function AddKeyForm({ onSubmitSuccessful }: { onSubmitSuccessful: (key: string) 
           name="comment"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>{t('pages.api-keys.add-button.Name')}</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
-              <FormDescription>Enter a name for this application.</FormDescription>
+              <FormDescription>{t('pages.api-keys.add-button.NamePlaceholder')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -117,12 +120,12 @@ function AddKeyForm({ onSubmitSuccessful }: { onSubmitSuccessful: (key: string) 
           name="expiresAt"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Expiration</FormLabel>
+              <FormLabel>{t('pages.api-keys.add-button.Expiration')}</FormLabel>
               <FormControl>
                 <ExpireDatePicker value={field.value} onValueChange={field.onChange} />
               </FormControl>
               <FormDescription>
-                Choose an expiration date for the API key of this application, or select no expiration date.
+                {t('pages.api-keys.add-button.SetExpirationDate')}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -132,12 +135,12 @@ function AddKeyForm({ onSubmitSuccessful }: { onSubmitSuccessful: (key: string) 
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline">
-              Cancel
+              {t('pages.api-keys.add-button.Cancel')}
             </Button>
           </DialogClose>
           <Button type="submit">
             {isPending && <Spinner />}
-            Save
+            {t('pages.api-keys.add-button.Save')}
           </Button>
         </DialogFooter>
       </form>
@@ -148,6 +151,8 @@ function AddKeyForm({ onSubmitSuccessful }: { onSubmitSuccessful: (key: string) 
 function ExpireDatePicker({ value, onValueChange }: { value?: Date; onValueChange: (value?: Date) => void }) {
   type SelectValue = '7' | '30' | '90' | '180' | '365' | 'custom' | 'no'
   const [selectValue, setSelectValue] = useState<SelectValue>('no')
+
+  const { t } = useTranslation()
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row">
@@ -169,13 +174,13 @@ function ExpireDatePicker({ value, onValueChange }: { value?: Date; onValueChang
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="7">7 days</SelectItem>
-          <SelectItem value="30">30 days</SelectItem>
-          <SelectItem value="90">90 days</SelectItem>
-          <SelectItem value="180">180 days</SelectItem>
-          <SelectItem value="365">365 days</SelectItem>
-          <SelectItem value="custom">Custom</SelectItem>
-          <SelectItem value="no">No expiration</SelectItem>
+          <SelectItem value="7">{t('pages.api-keys.add-button.7Days')}</SelectItem>
+          <SelectItem value="30">{t('pages.api-keys.add-button.30Days')}</SelectItem>
+          <SelectItem value="90">{t('pages.api-keys.add-button.90Days')}</SelectItem>
+          <SelectItem value="180">{t('pages.api-keys.add-button.180Days')}</SelectItem>
+          <SelectItem value="365">{t('pages.api-keys.add-button.365Days')}</SelectItem>
+          <SelectItem value="custom">{t('pages.api-keys.add-button.Custom')}</SelectItem>
+          <SelectItem value="no">{t('pages.api-keys.add-button.NoExpiration')}</SelectItem>
         </SelectContent>
       </Select>
       <Popover>
@@ -189,7 +194,7 @@ function ExpireDatePicker({ value, onValueChange }: { value?: Date; onValueChang
             )}
           >
             <CalendarIcon />
-            {value ? format(value, 'yyyy-MM-dd') : <span>No expiration date</span>}
+            {value ? format(value, 'yyyy-MM-dd') : <span>{t('pages.api-keys.add-button.NoExpirationDate')}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0">
@@ -207,19 +212,21 @@ function ExpireDatePicker({ value, onValueChange }: { value?: Date; onValueChang
 }
 
 function KeyCreatedContent({ apiKey }: { apiKey: string }) {
-  const { copy, copied } = useCopy({ showSuccessToast: true, successToastMessage: 'API key copied to clipboard.' })
+  const { t } = useTranslation()
 
+  const { copy, copied } = useCopy({ showSuccessToast: true, successToastMessage: t('pages.api-keys.add-button.APIKeyCopied' )})
+ 
   return (
     <div className="grid gap-4">
       <Input value={apiKey} readOnly />
       <DialogFooter>
         <DialogClose asChild>
           <Button type="button" variant="outline">
-            Close
+            {t('pages.api-keys.add-button.Close')}
           </Button>
         </DialogClose>
         <Button type="button" onClick={() => copy(apiKey)}>
-          {copied ? 'Copied!' : 'Copy'}
+          {copied ? t('pages.api-keys.add-button.Copied') : t('pages.api-keys.add-button.Copy')}
         </Button>
       </DialogFooter>
     </div>

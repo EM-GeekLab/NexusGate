@@ -5,28 +5,30 @@ import { ApiKeyCopyButton } from '@/pages/api-keys/api-key-copy-button'
 
 import { RowActionButton } from './row-action-button'
 
+import i18n from '@/i18n'
+
 export type Upstream = Exclude<Awaited<ReturnType<typeof api.admin.upstream.get>>['data'], null>[number]
 
 export const columns: ColumnDef<Upstream>[] = [
   {
     accessorKey: 'name',
-    header: 'Provider name',
+    header: i18n.t('pages.upstreams.columns.ProviderName'),
   },
   {
     accessorKey: 'model',
-    header: 'Model',
+    header: i18n.t('pages.upstreams.columns.Model'),
   },
   {
     accessorKey: 'upstreamModel',
-    header: 'Provider model',
+    header: i18n.t('pages.upstreams.columns.ProviderModel'),
   },
   {
     accessorKey: 'url',
-    header: 'Base URL',
+    header: i18n.t('pages.upstreams.columns.BaseURL'),
   },
   {
     accessorKey: 'apiKey',
-    header: 'API key',
+    header: i18n.t('pages.upstreams.columns.APIKey'),
     cell: ({ row }) => {
       const apiKey = row.original.apiKey
       return apiKey ? <ApiKeyCopyButton apiKey={apiKey} /> : null

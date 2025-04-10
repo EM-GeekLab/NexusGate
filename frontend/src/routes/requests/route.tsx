@@ -10,18 +10,21 @@ import {
 import { FilterResetButton } from '@/pages/requests/filter-reset-button'
 import { RequestsRefreshButton } from '@/pages/requests/refresh-button'
 
+import { useTranslation } from 'react-i18next'
+
 export const Route = createFileRoute('/requests')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
+  const { t } = useTranslation()
   return (
     <>
       <AppHeader className="border-b">
         <AppHeaderPart>
           <AppSidebarTrigger />
           <AppSidebarSeparator />
-          <AppHeaderTitle>Requests</AppHeaderTitle>
+          <AppHeaderTitle>{t('routes.requests.route.Requests')}</AppHeaderTitle>
           <RequestsRefreshButton />
           <FilterResetButton />
         </AppHeaderPart>

@@ -2,11 +2,15 @@ import { match } from 'ts-pattern'
 
 import { formatNumber } from '@/lib/utils'
 
+import { useTranslation } from 'react-i18next'
+
 export function TokenUsage({ tokens }: { tokens?: number }) {
+  const { t } = useTranslation()
+  
   const usage = match(tokens)
     .with(undefined, () => null)
-    .with(-1, () => 'No token usage data')
-    .with(1, () => '1 token')
+    .with(-1, () => t('pages.requests.detail-panel.token-usage.NoTokenData'))
+    .with(1, () => t('pages.requests.detail-panel.token-usage.OneToken'))
     .otherwise((tokens) => `${formatNumber(tokens)} tokens`)
 
   return usage && <div className="text-muted-foreground text-xs">{usage}</div>

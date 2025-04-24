@@ -11,3 +11,5 @@ export const DEFAULT_REFILL_RATE = process.env.DEFAULT_REFILL_RATE
   : 1;
 export const PRODUCTION = process.env.NODE_ENV === "production";
 export const COMMIT_SHA = process.env.COMMIT_SHA || "unknown";
+export const INIT_CONFIG_PATH = process.env.INIT_CONFIG_PATH || "./init.json";
+export const ENABLE_INIT_CONFIG = process.env.ENABLE_INIT_CONFIG === "true";

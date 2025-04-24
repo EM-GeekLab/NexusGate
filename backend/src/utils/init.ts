@@ -14,6 +14,7 @@ interface InitConfig {
 }
 
 export async function initConfig(): Promise<void> {
+  logger.debug("Initializing configuration...");
   if (!ENABLE_INIT_CONFIG) {
     return;
   }
@@ -23,10 +24,9 @@ export async function initConfig(): Promise<void> {
   }
   const config = await loadInitConfig();
   if (!config) {
-    await upsertSetting({ key: "INIT_CONFIG_FLAG", value: true });
     return;
   }
-  
+
   if (config.upstreams && config.upstreams.length > 0) {
     for (const upstream of config.upstreams) {
     try {
@@ -68,6 +68,7 @@ async function loadInitConfig(): Promise<InitConfig | null> {
       return JSON.parse(configData);
     } catch (error) {
       logger.error(`Failed to load configuration from file ${configPath}:`, error);
+      return null;
     }
   }
   

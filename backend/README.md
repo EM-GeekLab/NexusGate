@@ -42,6 +42,46 @@ Alternatively, you can bundle `index.js` with `bun` into single executable (`lin
 NODE_ENV=production bun build src/index.ts --target bun-linux-x64-musl --outfile out/backend --compile
 ```
 
+## Initialization Configuration
+
+NexusGate supports automatic initialization of upstreams through configuration files. This is especially useful for Docker deployments where you want to pre-configure the system.
+
+### Enabling Initialization
+
+Set the following environment variables:
+
+```shell
+# Enable the initialization feature (true/false)
+ENABLE_INIT_CONFIG=true
+
+# Optional: Path to initialization config file (default: ./init.json)
+INIT_CONFIG_PATH=/path/to/your/init.json
+```
+
+### Configuration File Format
+
+Create a JSON file with the following structure:
+
+```json
+{
+  "upstreams": [
+    {
+      "name": "deepseek",
+      "url": "https://api.deepseek.com",
+      "model": "r1",
+      "upstreamModel": "deepseek-reasoner",
+      "apiKey": "sk-your-deepseek-key",
+      "weight": 1,
+      "comment": "DeepSeek R1 API"
+    }
+  ]
+}
+```
+
+The system will only initialize once. After the first run, the configuration will be ignored unless you clear the initialization flag(INIT_CONFIG_FLAG) from the database.
+
+To start a instance of backend:
+
 ## Contributing
 
 NexusGate is built on Elysia.js, which depends on Bun. Ensure you have the latest bun installation.

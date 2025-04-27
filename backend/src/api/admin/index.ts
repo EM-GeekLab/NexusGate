@@ -6,6 +6,7 @@ import { adminCompletions } from "./completions";
 import { adminUsage } from "./usage";
 import { COMMIT_SHA } from "@/utils/config";
 import { adminRateLimits } from "./rateLimits";
+import { adminMetrics } from "./metrics";
 
 export const routes = new Elysia({
   detail: {
@@ -21,6 +22,7 @@ export const routes = new Elysia({
         .use(adminCompletions)
         .use(adminUsage)
         .use(adminRateLimits)
+        .use(adminMetrics)
         .get("/", () => true, {
           detail: { description: "Check whether the admin secret is valid." },
         })

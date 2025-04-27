@@ -6,6 +6,9 @@ import { routes } from "@/api";
 import { loggerPlugin } from "@/plugins/loggerPlugin";
 import { ALLOWED_ORIGINS, PORT, PRODUCTION } from "@/utils/config";
 import { consola } from "consola";
+import { collectDefaultMetrics } from "prom-client";
+
+collectDefaultMetrics();
 
 const app = new Elysia()
   .use(loggerPlugin)

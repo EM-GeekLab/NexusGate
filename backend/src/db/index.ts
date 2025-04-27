@@ -239,8 +239,40 @@ export async function sumCompletionTokenUsage(apiKeyId?: number) {
   logger.debug("sumCompletionTokenUsage", apiKeyId);
   const r = await db
     .select({
-      total_prompt_tokens: sum(schema.CompletionsTable.promptTokens),
       total_completion_tokens: sum(schema.CompletionsTable.completionTokens),
+    })
+    .from(schema.CompletionsTable)
+    .where(apiKeyId !== undefined ? eq(schema.CompletionsTable.apiKeyId, apiKeyId) : undefined);
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * count total prompt tokens and completion tokens used by the api key
+ * @param apiKeyId key id, referencing to id colume in api keys table
+ * @returns total prompt tokens and completion tokens used by the api key
+ */
+export async function sumPromptTokenUsage(apiKeyId?: number) {
+  logger.debug("sumCompletionTokenUsage", apiKeyId);
+  const r = await db
+    .select({
+      total_prompt_tokens: sum(schema.CompletionsTable.promptTokens),
+    })
+    .from(schema.CompletionsTable)
+    .where(apiKeyId !== undefined ? eq(schema.CompletionsTable.apiKeyId, apiKeyId) : undefined);
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * count total prompt tokens and completion tokens used by the api key
+ * @param apiKeyId key id, referencing to id colume in api keys table
+ * @returns total prompt tokens and completion tokens used by the api key
+ */
+export async function sumTotalTokenUsage(apiKeyId?: number) {
+  logger.debug("sumCompletionTokenUsage", apiKeyId);
+  const r = await db
+    .select({
+      total_completion_tokens: sum(schema.CompletionsTable.completionTokens),
+      total_prompt_tokens: sum(schema.CompletionsTable.promptTokens),
     })
     .from(schema.CompletionsTable)
     .where(apiKeyId !== undefined ? eq(schema.CompletionsTable.apiKeyId, apiKeyId) : undefined);
@@ -296,6 +328,43 @@ export async function listCompletions(
     from: offset,
   };
 }
+
+/**
+ * list completions created on a specific date
+ * @param date Date object representing the day to retrieve completions for
+ * @param apiKeyId optional, filter by api key id
+ * @param upstreamId optional, filter by upstream id
+ * @returns list of completions for the specified day
+ */
+export async function getCompletionsByDate(
+  date: Date,
+  apiKeyId?: number,
+  upstreamId?: number,
+): Promise<Completion[]> {
+  logger.debug("getCompletionsByDate", date, apiKeyId, upstreamId);
+  
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  const r = await db
+    .select()
+    .from(schema.CompletionsTable)
+    .where(
+      and(
+        not(schema.CompletionsTable.deleted),
+        sql`${schema.CompletionsTable.createdAt} >= ${startOfDay.toISOString()}`,
+        sql`${schema.CompletionsTable.createdAt} <= ${endOfDay.toISOString()}`,
+        apiKeyId !== undefined ? eq(schema.CompletionsTable.apiKeyId, apiKeyId) : undefined,
+        upstreamId !== undefined ? eq(schema.CompletionsTable.upstreamId, upstreamId) : undefined,
+      ),
+    )
+    .orderBy(desc(schema.CompletionsTable.id));
+  
+  return r;
+}
+
 /**
  * delete completion from database
  * @param id completion id

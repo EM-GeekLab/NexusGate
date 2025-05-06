@@ -1,21 +1,13 @@
-import { getCompletionsByDate, listApiKeys, listCompletions, sumCompletionTokenUsage, sumPromptTokenUsage } from '@/db';
+import { listApiKeys, listCompletions, sumCompletionTokenUsage, sumPromptTokenUsage } from '@/db';
 import * as client from 'prom-client';
 import { register } from 'prom-client';
 
 const METRIC_PREFIX = 'nexusgate_';
 
-const COST_METRIC = `${METRIC_PREFIX}cost`;
 const PROMPT_TOKENS_METRIC = `${METRIC_PREFIX}prompt_tokens`;
 const COMPLETION_TOKENS_METRIC = `${METRIC_PREFIX}completion_tokens`;
 const REQUESTS_METRIC = `${METRIC_PREFIX}requests`;
-const USERS_METRIC = `${METRIC_PREFIX}users`;
-
-export const costGauge = new client.Gauge({
-  name: COST_METRIC,
-  help: 'Total cost of API requests',
-  labelNames: ['key'],
-  registers: [register],
-});
+const TTFT_METRIC = `${METRIC_PREFIX}ttft`;
 
 const promptTokensCounter = new client.Counter({
   name: PROMPT_TOKENS_METRIC,
@@ -53,25 +45,16 @@ const completionTokensCounter = new client.Counter({
   }
 });
 
-const requestsCounter = new client.Counter({
+export const requestsCounter = new client.Counter({
   name: REQUESTS_METRIC,
   help: 'Total number of API requests',
-  labelNames: ['status', 'model'],
+  labelNames: ['status', 'model', 'key'],
   registers: [register],
-  collect: async () => {
-    requestsCounter.reset();
-    const completions = await getCompletionsByDate(new Date(Date.now()));
-    for (const completion of completions) {
-      const status = completion.status;
-      const model = completion.model;
-      requestsCounter.labels(status, model).inc();
-    }
-  }
 });
 
-export const usersGauge = new client.Gauge({
-  name: USERS_METRIC,
-  help: 'Number of active users',
-  labelNames: ['country'],
+export const ttftGauge = new client.Gauge({
+  name: TTFT_METRIC,
+  help: 'Time to first token in seconds',
+  labelNames: ['key'],
   registers: [register],
 });

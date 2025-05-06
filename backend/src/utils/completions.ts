@@ -6,6 +6,7 @@ import type {
   SrvLogsLevelEnumType,
 } from "@/db/schema";
 import consola from "consola";
+import { requestsCounter, ttftGauge } from "@/utils/metrics";
 
 export type Completion = {
   model: string;
@@ -20,7 +21,7 @@ export type Completion = {
 };
 
 /**
- * add a new completion to the database
+ * add a new completion to the database and update metrics
  * @param c the completion to add. tokens usage should be -1 if not provided by the upstream API
  * @param apiKey the key to use
  * @returns the new completion
@@ -46,6 +47,15 @@ export async function addCompletions(
     apiKeyId: keyId,
     ...c,
   });
+
+  // Update metrics
+  if (apiKey) {
+    requestsCounter.labels(c.status, c.model, apiKey).inc();
+    if (c.ttft > 0) {
+      ttftGauge.labels(apiKey).set(c.ttft);
+    }
+  }
+
   if (log !== undefined) {
     if (completion === null) {
       consola.error("Failed to insert completion");

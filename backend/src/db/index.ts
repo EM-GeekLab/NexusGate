@@ -330,42 +330,6 @@ export async function listCompletions(
 }
 
 /**
- * list completions created on a specific date
- * @param date Date object representing the day to retrieve completions for
- * @param apiKeyId optional, filter by api key id
- * @param upstreamId optional, filter by upstream id
- * @returns list of completions for the specified day
- */
-export async function getCompletionsByDate(
-  date: Date,
-  apiKeyId?: number,
-  upstreamId?: number,
-): Promise<Completion[]> {
-  logger.debug("getCompletionsByDate", date, apiKeyId, upstreamId);
-  
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
-  
-  const r = await db
-    .select()
-    .from(schema.CompletionsTable)
-    .where(
-      and(
-        not(schema.CompletionsTable.deleted),
-        sql`${schema.CompletionsTable.createdAt} >= ${startOfDay.toISOString()}`,
-        sql`${schema.CompletionsTable.createdAt} <= ${endOfDay.toISOString()}`,
-        apiKeyId !== undefined ? eq(schema.CompletionsTable.apiKeyId, apiKeyId) : undefined,
-        upstreamId !== undefined ? eq(schema.CompletionsTable.upstreamId, upstreamId) : undefined,
-      ),
-    )
-    .orderBy(desc(schema.CompletionsTable.id));
-  
-  return r;
-}
-
-/**
  * delete completion from database
  * @param id completion id
  * @returns deleted record of completion, null if not found

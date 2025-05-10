@@ -4,6 +4,7 @@ import { getSetting, upsertSetting, type UpstreamInsert } from "@/db";
 import { ENABLE_INIT_CONFIG, INIT_CONFIG_PATH } from "./config";
 
 const logger = consola.withTag("init");
+
 const INIT_CONFIG_JSON = process.env.INIT_CONFIG_JSON || "";
 
 interface InitConfig {

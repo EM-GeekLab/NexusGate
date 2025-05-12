@@ -1,10 +1,10 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 import { adminApiKey } from "./apiKey";
 import { adminUpstream } from "./upstream";
 import { adminCompletions } from "./completions";
 import { adminUsage } from "./usage";
-import { COMMIT_SHA } from "@/utils/config";
+import { COMMIT_SHA, GRAFANA_URLS } from "@/utils/config";
 import { adminRateLimits } from "./rateLimits";
 
 export const routes = new Elysia({
@@ -26,6 +26,7 @@ export const routes = new Elysia({
         })
         .get("/rev", () => ({
           version: COMMIT_SHA,
-        })),
+        }))
+        .get("/dashboards", () => GRAFANA_URLS),
     ),
   );

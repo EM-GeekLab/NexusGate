@@ -18,7 +18,7 @@ export async function initConfig(): Promise<void> {
     return;
   }
   const initFlag = await getSetting("INIT_CONFIG_FLAG");
-  if (initFlag && initFlag.value === true) {
+  if (initFlag?.value === true) {
     logger.info("Initialization configuration has already been applied");
     return;
   }
@@ -27,23 +27,21 @@ export async function initConfig(): Promise<void> {
     return;
   }
 
-  if (config.upstreams.length > 0) {
-    for (const upstream of config.upstreams) {
-      try {
-        const result = await db.insertUpstream({
-          ...upstream,
-        });
+  for (const upstream of config.upstreams) {
+    try {
+      const result = await db.insertUpstream({
+        ...upstream,
+      });
 
-        if (result) {
-          logger.success(`Created upstream: ${upstream.name} (${upstream.model})(${upstream.url})`);
-        } else {
-          logger.warn(
-            `Upstream already exists: ${upstream.name} (${upstream.model})(${upstream.url})`,
-          );
-        }
-      } catch (error) {
-        logger.error(`Failed to create upstream ${upstream.name}: ${(error as Error).message}`);
+      if (result) {
+        logger.success(`Created upstream: ${upstream.name} (${upstream.model})(${upstream.url})`);
+      } else {
+        logger.warn(
+          `Upstream already exists: ${upstream.name} (${upstream.model})(${upstream.url})`,
+        );
       }
+    } catch (error) {
+      logger.error(`Failed to create upstream ${upstream.name}: ${(error as Error).message}`);
     }
   }
 

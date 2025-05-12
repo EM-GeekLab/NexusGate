@@ -19,7 +19,7 @@ function env<TSchema extends z.ZodSchema, TValue = z.infer<TSchema>>(
   throw new Error(`Environment variable ${envName} is not valid: ${parsed.error}`);
 }
 
-function zObject(schema: z.ZodSchema) {
+function zObject<T extends z.ZodSchema>(schema: T) {
   return z
     .string()
     .optional()

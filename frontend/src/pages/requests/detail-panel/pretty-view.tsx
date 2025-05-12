@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { CheckIcon, ChevronRightIcon, CopyIcon, ForwardIcon, HelpCircleIcon, ReplyIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { match, P } from 'ts-pattern'
 
 import { extractReasoning } from '@/lib/content'
@@ -13,8 +14,6 @@ import { useCopy } from '@/hooks/use-copy'
 import type { ChatRequest } from '../columns'
 import { useRequestDetailContext } from './index'
 import { TokenUsage } from './token-usage'
-
-import { useTranslation } from 'react-i18next'
 
 type RequestMessage = ChatRequest['prompt']['messages'][number]
 type ResponseMessage = ChatRequest['completion'][number]
@@ -42,7 +41,11 @@ export function MessagesPrettyView() {
           </div>
         </MessagesPrettyContainer>
         <MessagesPrettyContainer>
-          <MessageTitle icon={<ReplyIcon />} title={t('pages.requests.detail-panel.pretty-view.ResponseMessages')} tokens={data.completionTokens} />
+          <MessageTitle
+            icon={<ReplyIcon />}
+            title={t('pages.requests.detail-panel.pretty-view.ResponseMessages')}
+            tokens={data.completionTokens}
+          />
           <div className="flex flex-col">
             {data.completion.map((message, index) => (
               <ResponseMessageContent key={index} message={message} />
@@ -155,15 +158,21 @@ function ReasoningContent({ content, className, ...props }: { content: string } 
 
 function DurationDisplay({ duration }: { duration?: number | null }) {
   const { t } = useTranslation()
-  
+
   if (duration == null || duration === -1) return '-'
 
   return (
     <Tooltip>
       <TooltipTrigger className="tabular-nums" asChild>
-        <DescriptionItemButton>{(duration / 1000).toFixed(2)}{t('pages.requests.detail-panel.pretty-view.Seconds')}</DescriptionItemButton>
+        <DescriptionItemButton>
+          {(duration / 1000).toFixed(2)}
+          {t('pages.requests.detail-panel.pretty-view.Seconds')}
+        </DescriptionItemButton>
       </TooltipTrigger>
-      <TooltipContent side="right">{formatNumber(duration)}{t('pages.requests.detail-panel.pretty-view.Milliseconds')}</TooltipContent>
+      <TooltipContent side="right">
+        {formatNumber(duration)}
+        {t('pages.requests.detail-panel.pretty-view.Milliseconds')}
+      </TooltipContent>
     </Tooltip>
   )
 }

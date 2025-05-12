@@ -1,9 +1,9 @@
+import { useTranslation } from 'react-i18next'
+
 import { omit } from '@/lib/utils'
 
 import { useRequestDetailContext } from './index'
 import { TokenUsage } from './token-usage'
-
-import { useTranslation } from 'react-i18next'
 
 export function MessagesRawView() {
   const { t } = useTranslation()
@@ -16,8 +16,16 @@ export function MessagesRawView() {
         title={t('pages.requests.detail-panel.raw-view.RawData')}
         messages={omit(data, ['prompt', 'completion', 'promptTokens', 'completionTokens'])}
       />
-      <MessagesCodePreview title={t('pages.requests.detail-panel.raw-view.RequestMessages')} messages={data.prompt.messages} tokens={data.promptTokens} />
-      <MessagesCodePreview title={t('pages.requests.detail-panel.raw-view.ResponseMessages')} messages={data.completion} tokens={data.completionTokens} />
+      <MessagesCodePreview
+        title={t('pages.requests.detail-panel.raw-view.RequestMessages')}
+        messages={data.prompt.messages}
+        tokens={data.promptTokens}
+      />
+      <MessagesCodePreview
+        title={t('pages.requests.detail-panel.raw-view.ResponseMessages')}
+        messages={data.completion}
+        tokens={data.completionTokens}
+      />
     </div>
   )
 }

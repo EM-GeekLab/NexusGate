@@ -1,8 +1,7 @@
 import { createContext, useContext, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { ChatRequest } from './columns'
-
-import { useTranslation } from 'react-i18next'
 
 const RequestsDataContext = createContext<{
   data: ChatRequest[]
@@ -23,7 +22,7 @@ export const RequestsDataProvider = ({
 
 export function useRequestsData() {
   const { t } = useTranslation()
-  
+
   const ctx = useContext(RequestsDataContext)
   if (!ctx) throw new Error(t('pages.requests.requests-data-provider.UseRequestDataError'))
   return ctx

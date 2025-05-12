@@ -32,7 +32,9 @@ export function AppSidebarFooter() {
                 </a>
               </Button>
             </TooltipTrigger>
-            <TooltipContent side={state === 'collapsed' || isMobile ? 'right' : 'top'}>{t('components.app.app-sidebar-footer.GitHub')}</TooltipContent>
+            <TooltipContent side={state === 'collapsed' || isMobile ? 'right' : 'top'}>
+              {t('components.app.app-sidebar-footer.GitHub')}
+            </TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -108,14 +110,14 @@ function CommitSha() {
         className="w-auto max-w-[15rem] p-2 data-warning:border-amber-500"
       >
         {!isBackendShaEqual && (
-          <div className="mb-2 text-xs text-amber-500">
-            {t('components.app.app-sidebar-footer.VersionMismatch')}
-          </div>
+          <div className="mb-2 text-xs text-amber-500">{t('components.app.app-sidebar-footer.VersionMismatch')}</div>
         )}
         <div className="grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-1 text-xs">
           <div className="contents">
             <div className="text-muted-foreground">
-              {isBackendShaEqual ? t('components.app.app-sidebar-footer.CurrentVersion') : t('components.app.app-sidebar-footer.FrontendVersion')}
+              {isBackendShaEqual
+                ? t('components.app.app-sidebar-footer.CurrentVersion')
+                : t('components.app.app-sidebar-footer.FrontendVersion')}
             </div>
             <div>{sha.substring(0, 7)}</div>
           </div>

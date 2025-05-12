@@ -1,8 +1,9 @@
 import type { ComponentProps } from 'react'
+import { CheckIcon, CopyIcon } from 'lucide-react'
+
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useCopy, type UseCopyOptions } from '@/hooks/use-copy'
-import { CheckIcon, CopyIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 export function CopyButton({
   value,

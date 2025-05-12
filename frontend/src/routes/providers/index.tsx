@@ -5,9 +5,8 @@ import { api } from '@/lib/api'
 import { formatError } from '@/lib/error'
 import { AppErrorComponent } from '@/components/app/app-error'
 import { queryClient } from '@/components/app/query-provider'
-import { UpstreamsDataTable } from '@/pages/upstreams/data-table'
-
 import i18n from '@/i18n'
+import { UpstreamsDataTable } from '@/pages/upstreams/data-table'
 
 const upstreamQueryOptions = () =>
   queryOptions({

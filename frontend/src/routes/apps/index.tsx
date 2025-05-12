@@ -7,15 +7,15 @@ import { api } from '@/lib/api'
 import { formatError } from '@/lib/error'
 import { AppErrorComponent } from '@/components/app/app-error'
 import { queryClient } from '@/components/app/query-provider'
+import i18n from '@/i18n'
 import { ApiKeysDataTable } from '@/pages/api-keys/data-table'
 
-import i18n from '@/i18n'
 const apiKeysQueryOptions = ({ includeRevoked = false }: { includeRevoked?: boolean }) =>
   queryOptions({
     queryKey: ['apiKeys', { includeRevoked }],
     queryFn: async () => {
       const { data, error } = await api.admin.apiKey.get({ query: { includeRevoked } })
-      if (error) throw formatError(error,i18n.t('routes.apps.index.FetchError'))
+      if (error) throw formatError(error, i18n.t('routes.apps.index.FetchError'))
       return data
     },
   })

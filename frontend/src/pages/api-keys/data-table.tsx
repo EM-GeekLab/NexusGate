@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Settings2Icon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
@@ -12,8 +13,6 @@ import {
 
 import { AddButton } from './add-button'
 import { columns, type ApiKey } from './columns'
-
-import { useTranslation } from 'react-i18next'
 
 export function ApiKeysDataTable({ data, includeRevoked }: { data: ApiKey[]; includeRevoked: boolean }) {
   return (

@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { PlusIcon } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -22,8 +23,6 @@ import {
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-
-import { useTranslation } from 'react-i18next'
 
 const addUpstreamSchema = z.object({
   name: z.string(),
@@ -60,7 +59,7 @@ export function AddButton({ ...props }: ComponentProps<typeof Button>) {
 
 function AddUpstreamForm({ onSubmitSuccessful }: { onSubmitSuccessful: () => void }) {
   const { t } = useTranslation()
-  
+
   const queryClient = useQueryClient()
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: async (values: AddUpstreamSchema) => {

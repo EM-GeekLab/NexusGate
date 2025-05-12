@@ -10,7 +10,6 @@ import { extractReasoning } from '@/lib/content'
 import { cn, formatNumber } from '@/lib/utils'
 import { IndicatorBadge, MiniIndicatorBadge } from '@/components/ui/indicator-badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-
 import i18n from '@/i18n'
 
 export type ChatRequest = Omit<
@@ -28,9 +27,15 @@ export const columns: ColumnDef<ChatRequest>[] = [
     cell: ({ row }) => {
       const status = row.original.status
       const indicator = match(status)
-        .with('pending', () => <MiniIndicatorBadge className="bg-neutral-500">{i18n.t('pages.requests.columns.Pending')}</MiniIndicatorBadge>)
-        .with('completed', () => <MiniIndicatorBadge className="bg-green-500">{i18n.t('pages.requests.columns.Completed')}</MiniIndicatorBadge>)
-        .with('failed', () => <MiniIndicatorBadge className="bg-destructive">{i18n.t('pages.requests.columns.Failed')}</MiniIndicatorBadge>)
+        .with('pending', () => (
+          <MiniIndicatorBadge className="bg-neutral-500">{i18n.t('pages.requests.columns.Pending')}</MiniIndicatorBadge>
+        ))
+        .with('completed', () => (
+          <MiniIndicatorBadge className="bg-green-500">{i18n.t('pages.requests.columns.Completed')}</MiniIndicatorBadge>
+        ))
+        .with('failed', () => (
+          <MiniIndicatorBadge className="bg-destructive">{i18n.t('pages.requests.columns.Failed')}</MiniIndicatorBadge>
+        ))
         .exhaustive()
       return (
         <div className="flex items-center gap-2.5">
@@ -144,7 +149,12 @@ function TokensString({ tokens }: { tokens: number }) {
 function DurationDisplay({ duration }: { duration: number | null }) {
   if (duration == null || duration === -1) return <div className="text-right">-</div>
 
-  return <div className="text-right tabular-nums">{(duration / 1000).toFixed(2)}{i18n.t('pages.requests.columns.Seconds')}</div>
+  return (
+    <div className="text-right tabular-nums">
+      {(duration / 1000).toFixed(2)}
+      {i18n.t('pages.requests.columns.Seconds')}
+    </div>
+  )
 }
 
 function getLastUserMessage(messages: ChatCompletionMessageParam[]): string {

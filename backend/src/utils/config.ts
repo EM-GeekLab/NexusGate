@@ -1,15 +1,75 @@
-export const PORT = process.env.PORT ?? "3000";
-export const ADMIN_SUPER_SECRET = process.env.ADMIN_SUPER_SECRET ?? "admin";
-export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ?? "*";
-export const DATABASE_URL = process.env.DATABASE_URL || "postgres://localhost:5432";
-export const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-export const DEFAULT_RATE_LIMIT = process.env.DEFAULT_RATE_LIMIT
-  ? Number.parseFloat(process.env.DEFAULT_RATE_LIMIT)
-  : 10;
-export const DEFAULT_REFILL_RATE = process.env.DEFAULT_REFILL_RATE
-  ? Number.parseFloat(process.env.DEFAULT_REFILL_RATE)
-  : 1;
-export const PRODUCTION = process.env.NODE_ENV === "production";
-export const COMMIT_SHA = process.env.COMMIT_SHA || "unknown";
-export const INIT_CONFIG_PATH = process.env.INIT_CONFIG_PATH || "./init.json";
-export const ENABLE_INIT_CONFIG = process.env.ENABLE_INIT_CONFIG === "true";
+import { z } from "zod";
+
+export const PRODUCTION = process.env.NODE_ENV?.toLowerCase() === "production";
+
+function env<TSchema extends z.ZodSchema, TValue = z.infer<TSchema>>(
+  name: string,
+  schema: TSchema,
+  defaultValue: string | undefined = undefined,
+): TValue {
+  const envName = name.replaceAll(/[^A-Za-z0-9_]/g, "_").toUpperCase();
+  const envValue = process.env[envName] ?? defaultValue;
+  const parsed = schema.safeParse(envValue);
+  if (parsed.success) {
+    if (!PRODUCTION) {
+      console.log(`Environment variable ${envName} = ${parsed.data}`);
+    }
+    return parsed.data;
+  }
+  throw new Error(`Environment variable ${envName} is not valid: ${parsed.error}`);
+}
+
+function zObject(schema: z.ZodSchema) {
+  return z
+    .string()
+    .optional()
+    .transform((v) => {
+      try {
+        if (v) {
+          return JSON.parse(v);
+        }
+      } catch (e) {
+        console.error("Failed to parse init config json", e);
+      }
+    })
+    .pipe(schema);
+}
+
+export const PORT = env("port", z.coerce.number().int().positive(), "3000");
+export const ADMIN_SUPER_SECRET = env("admin super secret", z.coerce.string(), "admin");
+export const ALLOWED_ORIGINS = env("allowed origins", z.coerce.string(), "*");
+export const DATABASE_URL = env(
+  "database url",
+  z.coerce.string().url(),
+  "postgres://localhost:5432",
+);
+export const REDIS_URL = env("redis url", z.coerce.string().url(), "redis://localhost:6379");
+export const DEFAULT_RATE_LIMIT = env(
+  "default rate limit",
+  z.coerce.number().int().positive(),
+  "10",
+);
+export const DEFAULT_REFILL_RATE = env(
+  "default refill rate",
+  z.coerce.number().int().positive(),
+  "1",
+);
+export const COMMIT_SHA = env("commit sha", z.coerce.string(), "unknown");
+export const INIT_CONFIG_PATH = env("init config path", z.coerce.string(), "./init.json");
+export const ENABLE_INIT_CONFIG = env("enable init config", z.coerce.boolean().optional(), "false");
+
+export const initConfigJsonSchema = z.object({
+  upstreams: z.array(
+    z.object({
+      name: z.string(),
+      url: z.string(),
+      model: z.string(),
+      upstreamModel: z.string().nullish(),
+      apiKey: z.string().nullish(),
+      weight: z.number().optional(),
+      comment: z.string().nullish(),
+    }),
+  ),
+});
+export type InitConfigJson = z.infer<typeof initConfigJsonSchema>;
+export const INIT_CONFIG_JSON = env("init config json", zObject(initConfigJsonSchema.optional()));

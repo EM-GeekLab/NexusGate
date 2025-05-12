@@ -1,15 +1,15 @@
 import consola from "consola";
 import * as db from "@/db";
-import { getSetting, upsertSetting, type UpstreamInsert } from "@/db";
-import { ENABLE_INIT_CONFIG, INIT_CONFIG_PATH } from "./config";
+import { getSetting, upsertSetting } from "@/db";
+import {
+  ENABLE_INIT_CONFIG,
+  INIT_CONFIG_JSON,
+  INIT_CONFIG_PATH,
+  initConfigJsonSchema,
+  type InitConfigJson,
+} from "./config";
 
 const logger = consola.withTag("init");
-
-const INIT_CONFIG_JSON = process.env.INIT_CONFIG_JSON || "";
-
-interface InitConfig {
-  upstreams?: Partial<UpstreamInsert>[];
-}
 
 export async function initConfig(): Promise<void> {
   logger.debug("Initializing configuration...");
@@ -27,21 +27,11 @@ export async function initConfig(): Promise<void> {
     return;
   }
 
-  if (config.upstreams && config.upstreams.length > 0) {
+  if (config.upstreams.length > 0) {
     for (const upstream of config.upstreams) {
       try {
-        if (!upstream.name || !upstream.url || !upstream.model) {
-          throw new Error(`Missing required fields for upstream: ${JSON.stringify(upstream)}`);
-        }
-
         const result = await db.insertUpstream({
-          name: upstream.name,
-          url: upstream.url,
-          model: upstream.model,
-          upstreamModel: upstream.upstreamModel,
-          apiKey: upstream.apiKey,
-          weight: upstream.weight,
-          comment: upstream.comment,
+          ...upstream,
         });
 
         if (result) {
@@ -60,31 +50,29 @@ export async function initConfig(): Promise<void> {
   await upsertSetting({ key: "INIT_CONFIG_FLAG", value: true });
 }
 
-async function loadInitConfig(): Promise<InitConfig | null> {
+async function loadInitConfig(): Promise<InitConfigJson | null> {
   // First try to load from env if set
   if (INIT_CONFIG_JSON) {
-    try {
-      logger.info("Attempting to load configuration from environment variable");
-      const config = JSON.parse(INIT_CONFIG_JSON);
-      logger.success("Successfully loaded configuration from environment variable");
-      return config;
-    } catch (error) {
-      logger.error("Failed to parse configuration from environment variable:", error);
-    }
+    return INIT_CONFIG_JSON;
   }
 
-  const configPath = INIT_CONFIG_PATH;
-  const configFile = Bun.file(configPath);
-
+  const configFile = Bun.file(INIT_CONFIG_PATH);
   if (await configFile.exists()) {
     try {
-      logger.info(`Loading initialization configuration from file: ${configPath}`);
+      logger.info(`Loading initialization configuration from file: ${INIT_CONFIG_PATH}`);
       const configData = await configFile.text();
       const config = JSON.parse(configData);
-      logger.success("Successfully loaded initialization configuration from file");
-      return config;
+      const parsed = await initConfigJsonSchema.safeParseAsync(config);
+      if (parsed.success) {
+        return parsed.data;
+      }
+      logger.error(`Invalid initialization configuration: ${parsed.error}`);
+      return null;
     } catch (error) {
-      logger.error(`Failed to load initialization configuration from file ${configPath}:`, error);
+      logger.error(
+        `Failed to load initialization configuration from file ${INIT_CONFIG_PATH}:`,
+        error,
+      );
       return null;
     }
   }

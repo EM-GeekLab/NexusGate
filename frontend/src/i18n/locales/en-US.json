@@ -8,6 +8,7 @@
     "components.app.app-sidebar-footer.FrontendVersion": "Frontend version",
     "components.app.app-sidebar-footer.BackendVersion": "Backend version",
     "components.app.app-sidebar-footer.LatestVersion": "Latest version",
+    "components.app.app-sidebar.Overview": "Overview",
     "components.app.app-sidebar.Requests": "Requests",
     "components.app.app-sidebar.Applications": "Applications",
     "components.app.app-sidebar.Providers": "Providers",

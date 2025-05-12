@@ -8,6 +8,7 @@
   "components.app.app-sidebar-footer.FrontendVersion": "前端版本",
   "components.app.app-sidebar-footer.BackendVersion": "后端版本",
   "components.app.app-sidebar-footer.LatestVersion": "最新版本",
+  "components.app.app-sidebar.Overview": "概览",
   "components.app.app-sidebar.Requests": "请求",
   "components.app.app-sidebar.Applications": "应用",
   "components.app.app-sidebar.Providers": "模型提供商",

@@ -1,5 +1,6 @@
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import { ArrowUpDownIcon, LayoutGridIcon, PackageIcon, WaypointsIcon } from 'lucide-react'
+import { ArrowUpDownIcon, ChartPieIcon, LayoutGridIcon, PackageIcon, WaypointsIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import {
   Sidebar,
@@ -13,18 +14,16 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import i18n from '@/i18n'
 
 import { AppSidebarFooter } from './app-sidebar-footer'
 
-import i18n from '@/i18n'
-import { useTranslation } from 'react-i18next'
-
 const navItems = [
-  // {
-  //   icon: <ChartPieIcon />,
-  //   title: 'Overview',
-  //   href: '/',
-  // },
+  {
+    icon: <ChartPieIcon />,
+    title: i18n.t('components.app.app-sidebar.Overview'),
+    href: '/',
+  },
   {
     icon: <ArrowUpDownIcon />,
     title: i18n.t('components.app.app-sidebar.Requests'),
@@ -44,7 +43,7 @@ const navItems = [
 
 export function AppSidebar() {
   const { t } = useTranslation()
-  
+
   const { setOpenMobile } = useSidebar()
   const matchRoute = useMatchRoute()
 

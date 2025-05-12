@@ -148,6 +148,5 @@
   "routes.providers.route.Providers": "Providers",
   "routes.requests.index.FetchError": "An error occurred while fetching requests",
   "routes.requests.route.Requests": "Requests",
-  "routes.dashboard.index.Welcome": "Hello from home",
   "routes.dashboard.route.Overview": "Overview"
 }

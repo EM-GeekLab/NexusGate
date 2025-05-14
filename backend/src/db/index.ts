@@ -239,7 +239,9 @@ export async function sumCompletionTokenUsage(apiKeyId?: number) {
   logger.debug("sumCompletionTokenUsage", apiKeyId);
   const r = await db
     .select({
-      total_completion_tokens: sum(schema.CompletionsTable.completionTokens),
+      total_completion_tokens: sum(
+        sql`CASE WHEN ${schema.CompletionsTable.completionTokens} != -1 THEN ${schema.CompletionsTable.completionTokens} ELSE 0 END`,
+      ),
     })
     .from(schema.CompletionsTable)
     .where(apiKeyId !== undefined ? eq(schema.CompletionsTable.apiKeyId, apiKeyId) : undefined);
@@ -252,10 +254,12 @@ export async function sumCompletionTokenUsage(apiKeyId?: number) {
  * @returns total prompt tokens and completion tokens used by the api key
  */
 export async function sumPromptTokenUsage(apiKeyId?: number) {
-  logger.debug("sumCompletionTokenUsage", apiKeyId);
+  logger.debug("sumPromptTokenUsage", apiKeyId);
   const r = await db
     .select({
-      total_prompt_tokens: sum(schema.CompletionsTable.promptTokens),
+      total_prompt_tokens: sum(
+        sql`CASE WHEN ${schema.CompletionsTable.promptTokens} != -1 THEN ${schema.CompletionsTable.promptTokens} ELSE 0 END`,
+      ),
     })
     .from(schema.CompletionsTable)
     .where(apiKeyId !== undefined ? eq(schema.CompletionsTable.apiKeyId, apiKeyId) : undefined);
@@ -271,8 +275,12 @@ export async function sumTotalTokenUsage(apiKeyId?: number) {
   logger.debug("sumCompletionTokenUsage", apiKeyId);
   const r = await db
     .select({
-      total_completion_tokens: sum(schema.CompletionsTable.completionTokens),
-      total_prompt_tokens: sum(schema.CompletionsTable.promptTokens),
+      total_completion_tokens: sum(
+        sql`CASE WHEN ${schema.CompletionsTable.completionTokens} != -1 THEN ${schema.CompletionsTable.completionTokens} ELSE 0 END`,
+      ),
+      total_prompt_tokens: sum(
+        sql`CASE WHEN ${schema.CompletionsTable.promptTokens} != -1 THEN ${schema.CompletionsTable.promptTokens} ELSE 0 END`,
+      ),
     })
     .from(schema.CompletionsTable)
     .where(apiKeyId !== undefined ? eq(schema.CompletionsTable.apiKeyId, apiKeyId) : undefined);

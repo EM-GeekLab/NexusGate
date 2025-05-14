@@ -50,7 +50,7 @@ export async function addCompletions(
 
   // Update metrics
   if (apiKey) {
-    requestsCounter.labels(c.status, c.model, apiKey).inc();
+    requestsCounter.labels(c.status, c.model, keyId.toString()).inc();
     if (c.ttft > 0) {
       ttftGauge.labels(apiKey).set(c.ttft);
     }

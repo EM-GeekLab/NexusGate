@@ -16,6 +16,7 @@ export const rateLimitPlugin = new Elysia({
       customConfig?: {
         limit?: number;
         refill?: number;
+        apiKeySpecific?: boolean;
       };
     }) => ({
       async beforeHandle({ error, set, bearer, body }) {
@@ -28,10 +29,11 @@ export const rateLimitPlugin = new Elysia({
           }
         }
 
-        const config = getRateLimitConfig(identifier) ?? DEFAULT_RATE_LIMIT_CONFIG;
+        const config = (await getRateLimitConfig(identifier)) ?? DEFAULT_RATE_LIMIT_CONFIG;
 
         const limit = options?.customConfig?.limit ?? config.limit;
         const refill = options?.customConfig?.refill ?? config.refill;
+        const apiKeySpecific = options?.customConfig?.apiKeySpecific ?? true;
 
         if (Number.isNaN(limit) || Number.isNaN(refill)) {
           return error(500, "Invalid rate limit configuration");
@@ -41,7 +43,8 @@ export const rateLimitPlugin = new Elysia({
           capacity: limit,
           refillRate: refill,
           identifier: identifier,
-          apikey: bearer,
+          apiKeySpecific: apiKeySpecific,
+          apiKey: bearer,
         } as TokenBucketOptions;
 
         const newTokens = await consume(opt, 1);
@@ -49,7 +52,9 @@ export const rateLimitPlugin = new Elysia({
           return error(429, "Rate limit exceeded");
         }
 
-        logger.debug(`Rate limit (${identifier}:${bearer}): ${newTokens}/${limit}`);
+        if (process.env.NODE_ENV === "development") {
+          logger.debug(`Rate limit (${identifier}:${bearer}): ${newTokens}/${limit}`);
+        }
 
         set.headers["X-RateLimit-Limit"] = limit.toString();
         set.headers["X-RateLimit-Remaining"] = newTokens.toString();

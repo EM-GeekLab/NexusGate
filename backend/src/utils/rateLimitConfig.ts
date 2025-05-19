@@ -1,4 +1,5 @@
 import { consola } from "consola";
+import { getSetting, setSetting, deleteSetting } from "@/utils/settings";
 
 const logger = consola.withTag("rateLimitConfig");
 
@@ -12,17 +13,35 @@ export const DEFAULT_RATE_LIMIT_CONFIG: RateLimitConfig = {
   refill: 1,
 };
 
-const MODEL_CONFIGS: Record<string, RateLimitConfig> = {};
+const RATE_LIMIT_PREFIX = "rate_limit_";
+
+/**
+ * Get storage key for a model identifier
+ * @param identifier The resource identifier
+ * @returns The key used in settings table
+ */
+function getSettingsKey(identifier: string): string {
+  return `${RATE_LIMIT_PREFIX}${identifier}`;
+}
 
 /**
  * Get all rate limit configurations
  * @returns Object with all rate limit configurations
  */
-export function getAllRateLimits(): Record<string, RateLimitConfig> {
-  return {
-    default: DEFAULT_RATE_LIMIT_CONFIG,
-    ...MODEL_CONFIGS,
-  };
+export async function getAllRateLimits(): Promise<Record<string, RateLimitConfig>> {
+  try {
+    const allSettings = await getSetting<Record<string, RateLimitConfig>>(
+      `${RATE_LIMIT_PREFIX}all`,
+      {},
+    );
+    return {
+      default: DEFAULT_RATE_LIMIT_CONFIG,
+      ...allSettings,
+    };
+  } catch (error) {
+    logger.error("Error getting all rate limits:", error);
+    return { default: DEFAULT_RATE_LIMIT_CONFIG };
+  }
 }
 
 /**
@@ -30,11 +49,15 @@ export function getAllRateLimits(): Record<string, RateLimitConfig> {
  * @param identifier The resource identifier (model name, API endpoint, etc.)
  * @returns The appropriate rate limit configuration or null if not found
  */
-export function getRateLimitConfig(identifier: string): RateLimitConfig | null {
-  if (identifier in MODEL_CONFIGS && MODEL_CONFIGS[identifier]) {
-    return MODEL_CONFIGS[identifier];
+export async function getRateLimitConfig(identifier: string): Promise<RateLimitConfig | null> {
+  try {
+    const key = getSettingsKey(identifier);
+    const config = await getSetting<RateLimitConfig | null>(key, null);
+    return config;
+  } catch (error) {
+    logger.error(`Error getting rate limit config for ${identifier}:`, error);
+    return null;
   }
-  return null;
 }
 
 /**
@@ -43,9 +66,19 @@ export function getRateLimitConfig(identifier: string): RateLimitConfig | null {
  * @param config The rate limit configuration
  * @returns Success status
  */
-export function setRateLimitConfig(identifier: string, config: RateLimitConfig): boolean {
+export async function setRateLimitConfig(
+  identifier: string,
+  config: RateLimitConfig,
+): Promise<boolean> {
   try {
-    MODEL_CONFIGS[identifier] = { ...config };
+    const key = getSettingsKey(identifier);
+    await setSetting(key, config);
+
+    // Also update the all rate limits cache
+    const allLimits = await getAllRateLimits();
+    allLimits[identifier] = config;
+    await setSetting(`${RATE_LIMIT_PREFIX}all`, allLimits);
+
     logger.debug(`Rate limit configuration set for ${identifier}`);
     return true;
   } catch (error) {
@@ -59,14 +92,23 @@ export function setRateLimitConfig(identifier: string, config: RateLimitConfig):
  * @param identifier The resource identifier
  * @returns Success status
  */
-export function deleteRateLimitConfig(identifier: string): boolean {
-  if (!(identifier in MODEL_CONFIGS)) {
-    logger.debug(`No rate limit config found to delete for ${identifier}`);
-    return false;
-  }
-
+export async function deleteRateLimitConfig(identifier: string): Promise<boolean> {
   try {
-    delete MODEL_CONFIGS[identifier];
+    const key = getSettingsKey(identifier);
+    const config = await getRateLimitConfig(identifier);
+
+    if (!config) {
+      logger.debug(`No rate limit config found to delete for ${identifier}`);
+      return false;
+    }
+
+    await deleteSetting(key);
+
+    // Update the all rate limits cache
+    const allLimits = await getAllRateLimits();
+    delete allLimits[identifier];
+    await setSetting(`${RATE_LIMIT_PREFIX}all`, allLimits);
+
     logger.debug(`Rate limit configuration deleted for ${identifier}`);
     return true;
   } catch (error) {
@@ -74,5 +116,3 @@ export function deleteRateLimitConfig(identifier: string): boolean {
     return false;
   }
 }
-
-// TODO: Migarate to a database-backed solution

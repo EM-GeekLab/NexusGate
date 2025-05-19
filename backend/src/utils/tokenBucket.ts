@@ -7,14 +7,18 @@ export type TokenBucketOptions = {
   capacity: number;
   refillRate: number;
   identifier: string;
-  apikey: string;
+  apiKeySpecific?: boolean;
+  apiKey: string;
 };
 
 const KEY_PREFIX = "token_bucket";
 const EXPIRY_TIME = 3600;
 
 function getKey(options: TokenBucketOptions): string {
-  return `${KEY_PREFIX}:${options.identifier}:${options.apikey}`;
+  if (options.apiKeySpecific) {
+    return `${KEY_PREFIX}:${options.identifier}:${options.apiKey}`;
+  }
+  return `${KEY_PREFIX}:${options.identifier}`;
 }
 
 async function refill(
@@ -72,25 +76,3 @@ export async function consume(
     return false;
   }
 }
-
-// export async function getTokens(options: TokenBucketOptions): Promise<number> {
-//   try {
-//     const { tokens } = await refill(options);
-//     return tokens;
-//   } catch (error) {
-//     logger.error(`Redis getTokens error: ${(error as Error).message}`);
-//     return options.capacity; // Return max tokens as fallback
-//   }
-// }
-
-// export async function setTokens(
-//   options: TokenBucketOptions,
-//   tokens: number,
-// ): Promise<void> {
-//   const key = getKey(options);
-//   try {
-//     await redisClient.set(`${key}:tokens`, tokens, { EX: EXPIRY_TIME });
-//   } catch (error) {
-//     logger.error(`Redis setTokens error: ${(error as Error).message}`);
-//   }
-// }

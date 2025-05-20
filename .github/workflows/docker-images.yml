@@ -1,7 +1,7 @@
-name: Build Docker Imaegs
+name: Build Docker Images
 on:
   release:
-    types: [published]
+    types: [created]
   workflow_dispatch:
   push:
     branches:
@@ -14,8 +14,10 @@ jobs:
   build-images:
     name: Build and push Docker images
     strategy:
+      fail-fast: false
       matrix:
         image: [backend, frontend]
+        arch: [amd64, arm64]
         include:
           - image: backend
             dockerfile: backend.Dockerfile
@@ -23,7 +25,13 @@ jobs:
           - image: frontend
             dockerfile: frontend.Dockerfile
             image_name: em-geeklab/nexus-gate-web
-    runs-on: "ubuntu-latest"
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
@@ -55,7 +63,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           build-args: COMMIT_SHA=${{ github.sha }}
       # # DISABLED: Attestation generation
       # - name: Generate artifact attestation

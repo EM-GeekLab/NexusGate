@@ -3,6 +3,7 @@ import * as db from "@/db";
 import { getSetting, upsertSetting } from "@/db";
 import {
   ENABLE_INIT_CONFIG,
+  FORCILY_ADD_API_KEYS,
   INIT_CONFIG_JSON,
   INIT_CONFIG_PATH,
   initConfigJsonSchema,
@@ -42,6 +43,23 @@ export async function initConfig(): Promise<void> {
       }
     } catch (error) {
       logger.error(`Failed to create upstream ${upstream.name}: ${(error as Error).message}`);
+    }
+  }
+
+  if (FORCILY_ADD_API_KEYS !== undefined && FORCILY_ADD_API_KEYS.length > 0) {
+    logger.info("Adding presetted API keys");
+    logger.warn("Setting API keys via FORCILY_ADD_API_KEYS is not recommended! Use with caution!");
+    for (const key of FORCILY_ADD_API_KEYS) {
+      try {
+        const result = await db.upsertApiKey({ key });
+        if (result) {
+          logger.success(`Created API key: ${key}`);
+        } else {
+          logger.warn(`Failed to insert API key: ${key}`);
+        }
+      } catch (error) {
+        logger.error(`Failed to create API key ${key}: ${(error as Error).message}`);
+      }
     }
   }
 

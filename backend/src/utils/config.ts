@@ -78,3 +78,10 @@ export const initConfigJsonSchema = z.object({
 });
 export type InitConfigJson = z.infer<typeof initConfigJsonSchema>;
 export const INIT_CONFIG_JSON = env("init config json", zObject(initConfigJsonSchema.optional()));
+
+export const forcilyAddApiKeysSchema = z.array(z.string().regex(/sk-[0-9a-f]{32}/));
+export type ForcilyAddApiKeys = z.infer<typeof forcilyAddApiKeysSchema>;
+export const FORCILY_ADD_API_KEYS = env(
+  "forcily add api keys",
+  zObject(forcilyAddApiKeysSchema.optional()),
+);

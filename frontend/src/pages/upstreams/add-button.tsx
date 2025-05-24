@@ -31,6 +31,11 @@ const addUpstreamSchema = z.object({
   upstreamModel: z.string().optional(),
   url: z.string(),
   apiKey: z.string().optional(),
+  rateLimit: z.object({
+    limit: z.number().int().positive(),
+    refill: z.number().int().positive(),
+    apiKeySpecific: z.boolean(),
+  }).optional(),
 })
 
 type AddUpstreamSchema = z.infer<typeof addUpstreamSchema>
@@ -69,7 +74,7 @@ function AddUpstreamForm({ onSubmitSuccessful }: { onSubmitSuccessful: () => voi
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['upstreams'] })
-      toast.success('Provider added.')
+      toast.success(t('pages.upstreams.add-button.ProviderAdded'))
       onSubmitSuccessful()
     },
   })
@@ -147,6 +152,64 @@ function AddUpstreamForm({ onSubmitSuccessful }: { onSubmitSuccessful: () => voi
                 <Input {...field} />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />        
+        <FormField
+          control={form.control}
+          name="rateLimit.limit"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('pages.upstreams.add-button.RateLimitLimit')}</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  placeholder="10" 
+                  {...field} 
+                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                />
+              </FormControl>
+              <FormDescription>{t('pages.upstreams.add-button.RateLimitLimitDesc')}</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="rateLimit.refill"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('pages.upstreams.add-button.RateLimitRefill')}</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  placeholder="1" 
+                  {...field} 
+                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                />
+              </FormControl>
+              <FormDescription>{t('pages.upstreams.add-button.RateLimitRefillDesc')}</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="rateLimit.apiKeySpecific"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">{t('pages.upstreams.add-button.RateLimitAPIKeySpecific')}</FormLabel>
+                <FormDescription>{t('pages.upstreams.add-button.RateLimitAPIKeySpecificDesc')}</FormDescription>
+              </div>
+              <FormControl>
+                <input
+                  type="checkbox"
+                  checked={field.value}
+                  onChange={field.onChange}
+                  className="h-4 w-4"
+                />
+              </FormControl>
             </FormItem>
           )}
         />

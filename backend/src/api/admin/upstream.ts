@@ -1,4 +1,5 @@
 import { deleteUpstream, insertUpstream, listUpstreams } from "@/db";
+import { setRateLimitConfig } from "@/utils/rateLimitConfig";
 import Elysia, { t } from "elysia";
 
 export const adminUpstream = new Elysia()
@@ -12,6 +13,13 @@ export const adminUpstream = new Elysia()
       if (r === null) {
         return error(500, "Failed to create upstream");
       }
+      if (body.rateLimit) {
+        const rRateLimit = await setRateLimitConfig(body.model, body.rateLimit);
+        return {
+          ...r,
+          rateLimit: rRateLimit,
+        };
+      }
       return r;
     },
     {
@@ -21,6 +29,13 @@ export const adminUpstream = new Elysia()
         name: t.String(),
         url: t.String(),
         apiKey: t.Optional(t.String()),
+        rateLimit: t.Optional(
+          t.Object({
+            limit: t.Integer(),
+            refill: t.Integer(),
+            apiKeySpecific: t.Boolean(),
+          }),
+        ),
       }),
     },
   )

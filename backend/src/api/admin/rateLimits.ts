@@ -44,13 +44,12 @@ export const adminRateLimits = new Elysia()
       set.status = 201;
       return { identifier, ...config };
     },
-    {
-      body: t.Object({
-        identifier: t.String({ minLength: 1 }),
-        limit: t.Number({ minimum: 1 }),
-        refill: t.Number({ minimum: 0.1 }),
-        idleTime: t.Optional(t.Number({ minimum: 0 })),
-      }),
+    {    body: t.Object({
+      identifier: t.String({ minLength: 1 }),
+      limit: t.Number({ minimum: 1 }),
+      refill: t.Number({ minimum: 0.1 }),
+      apiKeySpecific: t.Boolean({ default: false }),
+    }),
     },
   )
   .delete(

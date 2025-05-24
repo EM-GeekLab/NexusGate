@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
 
-import type { api } from '@/lib/api'
+import { api } from '@/lib/api'
 import { ApiKeyCopyButton } from '@/pages/api-keys/api-key-copy-button'
 
 import { RowActionButton } from './row-action-button'

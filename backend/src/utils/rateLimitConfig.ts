@@ -4,13 +4,17 @@ import { getSetting, setSetting, deleteSetting } from "@/utils/settings";
 const logger = consola.withTag("rateLimitConfig");
 
 export interface RateLimitConfig {
+  identifier?: string;
   limit: number;
   refill: number;
+  apiKeySpecific?: boolean;
 }
 
 export const DEFAULT_RATE_LIMIT_CONFIG: RateLimitConfig = {
+  identifier: "default",
   limit: 10,
   refill: 1,
+  apiKeySpecific: false,
 };
 
 const RATE_LIMIT_PREFIX = "rate_limit_";
@@ -72,11 +76,12 @@ export async function setRateLimitConfig(
 ): Promise<boolean> {
   try {
     const key = getSettingsKey(identifier);
-    await setSetting(key, config);
+    const configWithIdentifier = { ...config, identifier };
+    await setSetting(key, configWithIdentifier);
 
     // Also update the all rate limits cache
     const allLimits = await getAllRateLimits();
-    allLimits[identifier] = config;
+    allLimits[identifier] = configWithIdentifier;
     await setSetting(`${RATE_LIMIT_PREFIX}all`, allLimits);
 
     logger.debug(`Rate limit configuration set for ${identifier}`);

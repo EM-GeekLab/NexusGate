@@ -12,11 +12,11 @@ export const adminCompletions = new Elysia()
         query.upstreamId,
       );
       // 如果 model 字段存在且包含 '@'，则截断
-      result.data.forEach((completion) => {
-        if (completion.model && completion.model.includes("@")) {
+      for (const completion of result.data) {
+        if (completion.model?.includes("@")) {
           completion.model = completion.model.split("@")[0];
         }
-      });
+      }
       return result;
     },
     {

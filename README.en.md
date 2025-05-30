@@ -21,11 +21,11 @@ Monitor and manage your Agent applications with just one line of code
 
 ## 🚀 Introduction
 
-NexusGate is an open-source, lightweight Agent application monitoring and management tool. It provides a comprehensive platform for managing, tracking, debugging, analyzing, and optimizing Agents and intelligent applications within an enterprise.
+NexusGate is an open-source, lightweight **AI Agent and LLM application** monitoring and management tool that enables you to build a "management panel" and "task manager" for your enterprise's "intelligent infrastructure" with one click.
 
-Designed for AI developers and enterprise administrators, NexusGate features user-friendly REST APIs and an intuitive management interface. It offers functionalities such as **Agent runtime logging**, **Agent performance tracking**, **cost analysis**, **multi-model management**, **enterprise-wide multi-Agent application management**, and **monitoring for all-in-one machine performance and inference services**. On NexusGate, developers can optimize Agent configurations based on detailed historical records, while enterprise administrators can use a centralized monitoring dashboard to manage all Agents within the enterprise from a single point, thereby improving overall management and development efficiency.
+With the rapid development of Large Language Model (LLM) technology, intelligent Agents and AI applications built on LLMs are being widely deployed in enterprises. NexusGate provides a comprehensive platform for managing, tracking, debugging, analyzing, and optimizing these **LLM-based intelligent Agent applications**. Whether it's simple ChatBots, complex multi-step Agent workflows, or knowledge base applications integrated with RAG (Retrieval Augmented Generation), NexusGate offers a unified monitoring and management experience.
 
-With NexusGate, you can build a "management panel" and "task manager" for your enterprise's "intelligent infrastructure" with a single click. Integration is as simple as modifying a single line of code, enabling you to monitor, manage, and optimize your Agent applications.
+Designed for AI developers and enterprise administrators, NexusGate features an intuitive management interface and developer-friendly REST APIs, providing functionalities such as **LLM call logging**, **Agent runtime performance tracking**, **Token cost analysis**, **multi-platform model unified management**, **enterprise-grade AI application governance**, and **inference service monitoring**. On NexusGate, developers can optimize Agent configurations based on detailed LLM interaction history, while enterprise administrators can use a centralized monitoring dashboard to manage all LLM-based intelligent applications within the enterprise from a single point, improving overall management and development efficiency.
 
 ## ✨ Key Features
 

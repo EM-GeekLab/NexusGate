@@ -92,7 +92,7 @@ If you are using Windows, please download [quick-start.bat](https://github.com/E
 - Supports password length validation (minimum 8 characters)
 - Port range validation (1024-65535)
 
-💡 **Note**: The script will automatically create a `.env` file, please do not delete this file.
+❗ **Note**: The script will automatically create a `.env` file, please do not delete this file.
 
 **Method 2: Manual Configuration**
 

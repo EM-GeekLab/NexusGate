@@ -91,7 +91,8 @@ curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/q
 - 自动生成的密码为 16 位强密码
 - 支持密码长度验证（最少 8 位）
 - 端口范围验证（1024-65535）
-  💡 **注意**：脚本会自动创建 `.env` 文件，请勿删除该文件。
+
+❗ **注意**：脚本会自动创建 `.env` 文件，请勿删除该文件。
 
 **方式二：手动配置**
 

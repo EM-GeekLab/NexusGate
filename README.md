@@ -1,12 +1,16 @@
 <div align="center">
-<img src="./assets/img/banner-cn.png" />
-<h1>NexusGate</h1>
+
+![Banner](./assets/img/banner-cn.png)
+
+# NexusGate
+
 仅需一行代码，完成 Agent 应用的监控与管理
 
 [![GitHub license](https://img.shields.io/github/license/em-geeklab/nexusgate)](https://github.com/em-geeklab/nexusgate/blob/main/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/em-geeklab/nexusgate)](https://github.com/em-geeklab/nexusgate/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/em-geeklab/nexusgate)](https://github.com/em-geeklab/nexusgate/issues)
 [![Free Use](https://img.shields.io/badge/free-pricing?logo=free&color=%20%23155EEF&label=pricing&labelColor=%20%23528bff)](https://img.shields.io/badge/free-pricing?logo=free&color=%20%23155EEF&label=pricing&labelColor=%20%23528bff)
+
 </div>
 
 <div align="right">
@@ -24,11 +28,8 @@ NexusGate 是一个 Agent 应用监控和管理平台。它将帮助 Agent 应�
 ## ✨ 主要特点
 
 - **全面的 LLM 管理**：通过统一管理系统专注于您的 AI 应用，提高质量、降低成本、减少延迟并确保安全。兼容所有主流大型语言模型服务和推理框架。
-
 - **评估和迭代**：利用强大的工具和洞察分析、修改和迭代平台接入的LLM 应用。
-
 - **生产监控**：记录所有生产交互以进行监控、分析、调试、优化。
-
 - **企业级管理**：一键管理应用程序或业务系统，提供 LLM 内容的计量和审计。
 
 ## 🐳 快速启动
@@ -61,31 +62,34 @@ docker compose version
 
 ### 一键部署
 
-**方式一：一键脚本部署（推荐）**
+#### **方式一：一键脚本部署（推荐）**
 
 如果您使用的是 Linux 或 macOS，可以直接运行以下命令来快速部署 NexusGate：
+
 ```bash
 curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.sh | bash
 ```
 
 如果您使用的是 Windows，请下载 [quick-start.bat](https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.bat) 并在 CMD 中运行：
+
 ```
 .\quick-start.bat
 ```
 
 💡 **交互式配置**：一键脚本支持交互式配置，您可以：
+
 - **自定义密码**：输入您自己的数据库密码和管理员密钥
 - **自动生成**：直接回车使用安全的随机密码（推荐）
 - **端口配置**：自定义 Web 服务端口（默认 8080）
 - **输入验证**：脚本会验证密码强度和端口有效性
 
 🔒 **安全特性**：
+
 - 密码输入不会在终端显示
 - 自动生成的密码为 16 位强密码
 - 支持密码长度验证（最少 8 位）
 - 端口范围验证（1024-65535）
-💡 **注意**：脚本会自动创建 `.env` 文件，请勿删除该文件。
-
+  💡 **注意**：脚本会自动创建 `.env` 文件，请勿删除该文件。
 
 **方式二：手动配置**
 
@@ -93,10 +97,9 @@ curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/q
    ```bash
    wget https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/docker-compose.yaml
    ```
-
 2. **配置环境变量（重要）**
-   
    创建环境变量配置文件：
+
    ```bash
    cat > .env << 'EOF'
    # ======================
@@ -104,13 +107,13 @@ curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/q
    # ======================
    # PostgreSQL 数据库密码（必需修改）
    POSTGRES_PASSWORD=your_secure_database_password_here
-   
+
    # ======================
-   # 管理员配置  
+   # 管理员配置
    # ======================
    # 管理员密钥，用于访问管理界面（必需修改）
    ADMIN_SUPER_SECRET=your_admin_secret_key_here
-   
+
    # ======================
    # 服务配置
    # ======================
@@ -120,28 +123,29 @@ curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/q
    ```
 
    **重要参数说明：**
-   
    | 参数名 | 必需 | 说明 | 示例值 |
-   |--------|------|------|--------|
+   | -------------------- | ---- | -------------------------- | ----------------------- |
    | `POSTGRES_PASSWORD` | ✅ | 数据库密码，建议使用强密码 | `MySecurePass123!` |
    | `ADMIN_SUPER_SECRET` | ✅ | 管理员登录密钥 | `admin_key_2024_secure` |
    | `WEB_PORT` | ❌ | Web 服务端口 | `8080` |
 
    > ⚠️ **安全提示**：
+   >
    > - 请务必修改 `POSTGRES_PASSWORD` 和 `ADMIN_SUPER_SECRET`！
    > - 密码建议包含大小写字母、数字和特殊字符
    > - 长度至少 12 位以上
    > - 生产环境请使用更复杂的密码
 
 3. **启动服务**
+
    ```bash
    docker compose up -d
    ```
 
 4. **访问系统**
-   
+
    启动完成后，在浏览器中访问：`http://localhost:8080`（如果您修改了端口，请使用相应端口）。
-   
+
    使用您在 `.env` 文件中设置的 `ADMIN_SUPER_SECRET` 作为管理员密钥登录。登录后，请刷新页面以确保配置生效。
 
 ### 故障排除
@@ -149,12 +153,14 @@ curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/q
 **常见问题解决：**
 
 1. **端口冲突**
+
    ```bash
    # 修改 .env 文件中的端口
    WEB_PORT=9090  # 改为其他端口
    ```
 
 2. **权限问题（Linux/macOS）**
+
    ```bash
    # 确保当前用户在 docker 组中
    sudo usermod -aG docker $USER
@@ -162,50 +168,53 @@ curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/q
    ```
 
 3. **服务状态检查**
+
    ```bash
    # 查看所有服务状态
    docker compose ps
-   
+
    # 查看服务日志
    docker compose logs -f
-   
+
    # 重启服务
    docker compose restart
    ```
 
 4. **完全重置**
+
    ```bash
    # 停止并删除所有容器和数据
    docker compose down -v
-   
+
    # 重新启动
    docker compose up -d
    ```
 
 **获取帮助：**
+
 - 如果遇到问题，请查看 [GitHub Issues](https://github.com/EM-GeekLab/NexusGate/issues)
 - 或者在项目仓库提交新的 Issue
 
 ## 🔍 系统功能
 
 ### 1. 模型层管理
- 
+
 对接和管理不同大型语言模型（LLM）服务，例如：
+
 - 公共云服务：OpenAI、DeepSeek、阿里千问
 - 企业私有模型：大模型一体机
 
 NexusGate 支持 20 多个经过测试的模型服务和部署框架，同时支持多个可接入的客户端应用，为您提供灵活性和选择。
+
 ![创建模型层配置](./assets/img/upstream-config.webp)
-*图1-1 创建模型层配置*
+_图1-1 创建模型层配置_
 
-
->*您也可以通过查看下方的示例来详细了解*
+> _您也可以通过查看下方的示例来详细了解_
 
 <details>
 <summary><mark>点击展开示例视频：如何配置模型</mark></summary>
 <video controls src="https://github.com/user-attachments/assets/7c3aec03-c288-494d-a08c-aec5c92c509a"></video>
 </details>
-
 
 ### 2. 全面日志记录
 
@@ -219,26 +228,29 @@ NexusGate 支持 20 多个经过测试的模型服务和部署框架，同时支
 系统提供所有 API 密钥聊天记录的管理员视图和特定 API 密钥的历史记录，并带有请求细节和对话上下文的详细侧边栏视图。
 
 ![带有对话详情侧边栏的历史记录](./assets/img/history-log-details.webp)
-*图2-1 对话详情侧边栏*  
+_图2-1 对话详情侧边栏_
 
 ![历史记录显示](./assets/img/history-table.webp)
-*图2-2 历史记录显示*  
+_图2-2 历史记录显示_
 
 ### 3. 应用管理
+
 调控和配置平台接入应用：
+
 - API 密钥创建和管理
 - 用户友好的命名约定
 - 过期设置和可见性控制
 
 ![创建带有 API 密钥设置的应用](./assets/img/create-application.webp)
-*图3-1 API 密钥应用设置*
+_图3-1 API 密钥应用设置_
 
->*您也可以通过查看下方的示例来详细了解*
+> _您也可以通过查看下方的示例来详细了解_
 
 <details>
 <summary><mark>点击展开示例视频：如何创建和管理API密钥</mark></summary>
 
 <video controls src="https://github.com/user-attachments/assets/a8a2f0a9-f4c0-43b9-a604-29167c439386" title="API创建与管理示例"></video>
+
 </details>
 
 ## 👨‍💻 面向开发者
@@ -263,14 +275,14 @@ client = OpenAI(api_key="your-nexusgate-api-key", base_url="https://your-nexusga
 
 ```javascript
 // 修改前:
-import OpenAI from 'openai';
-const openai = new OpenAI({ apiKey: 'your-openai-api-key' });
+import OpenAI from "openai";
+const openai = new OpenAI({ apiKey: "your-openai-api-key" });
 
 // 修改后:
-import OpenAI from 'openai';
-const openai = new OpenAI({ 
-  apiKey: 'your-nexusgate-api-key',
-  baseURL: 'https://your-nexusgate-server/v1'
+import OpenAI from "openai";
+const openai = new OpenAI({
+  apiKey: "your-nexusgate-api-key",
+  baseURL: "https://your-nexusgate-server/v1",
 });
 ```
 
@@ -322,7 +334,7 @@ NexusGate 为管理组织所有 LLM 应用提供统一仪表板：
 
 我们欢迎各种技能水平的开发者贡献！无论是修复错误、添加功能还是改进文档，您的贡献都很有价值。
 
-请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解如何开始。  
+请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解如何开始。
 
 **Contributors**
 

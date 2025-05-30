@@ -1,13 +1,16 @@
 <div align="center">
-<img src="./assets/img/banner-en.png" />
 
-<h1>NexusGate</h1>
+![Banner](./assets/img/banner-en.png)
+
+# NexusGate
+
 Monitor and manage your Agent applications with just one line of code
 
 [![GitHub license](https://img.shields.io/github/license/em-geeklab/nexusgate)](https://github.com/em-geeklab/nexusgate/blob/main/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/em-geeklab/nexusgate)](https://github.com/em-geeklab/nexusgate/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/em-geeklab/nexusgate)](https://github.com/em-geeklab/nexusgate/issues)
 [![Free Use](https://img.shields.io/badge/free-pricing?logo=free&color=%20%23155EEF&label=pricing&labelColor=%20%23528bff)](https://img.shields.io/badge/free-pricing?logo=free&color=%20%23155EEF&label=pricing&labelColor=%20%23528bff)
+
 </div>
 
 <div align="right">
@@ -25,11 +28,8 @@ With NexusGate, you only need to modify one line of code to monitor, manage, and
 ## ✨ Key Features
 
 - **Comprehensive LLM Management**: Focus on your AI applications through a unified management system to improve quality, reduce costs, decrease latency, and ensure security. Compatible with all mainstream large language model services and inference frameworks.
-
 - **Evaluation and Iteration**: Leverage powerful tools and insights to analyze, modify, and iterate platform-integrated LLM applications.
-
 - **Production Monitoring**: Record all production interactions for monitoring, analysis, debugging, and optimization.
-
 - **Enterprise-Grade Management**: Manage applications or business systems with one click, providing metering and auditing of LLM content.
 
 ## 🐳 Quick Start
@@ -65,22 +65,26 @@ If the commands output version information normally, the installation is success
 **Method 1: One-Click Script Deployment (Recommended)**
 
 If you are using Linux or macOS, you can run the following command to quickly deploy NexusGate:
+
 ```bash
 curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.sh | bash
 ```
 
 If you are using Windows, please download [quick-start.bat](https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.bat) and run it in CMD:
+
 ```
 .\quick-start.bat
 ```
 
 💡 **Interactive Configuration**: The one-click script supports interactive configuration, you can:
+
 - **Custom Password**: Enter your own database password and admin key
 - **Auto-Generate**: Press Enter directly to use secure random passwords (recommended)
 - **Port Configuration**: Customize web service port (default 8080)
 - **Input Validation**: The script validates password strength and port validity
 
 🔒 **Security Features**:
+
 - Password input is hidden in terminal
 - Auto-generated passwords are 16-character strong passwords
 - Supports password length validation (minimum 8 characters)
@@ -91,13 +95,15 @@ If you are using Windows, please download [quick-start.bat](https://github.com/E
 **Method 2: Manual Configuration**
 
 1. **Download Configuration File**
+
    ```bash
    wget https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/docker-compose.yaml
    ```
 
 2. **Configure Environment Variables (Important)**
-   
+
    Create environment variable configuration file:
+
    ```bash
    cat > .env << 'EOF'
    # ======================
@@ -105,13 +111,13 @@ If you are using Windows, please download [quick-start.bat](https://github.com/E
    # ======================
    # PostgreSQL database password (must change)
    POSTGRES_PASSWORD=your_secure_database_password_here
-   
+
    # ======================
-   # Admin Configuration  
+   # Admin Configuration
    # ======================
    # Admin key for accessing admin interface (must change)
    ADMIN_SUPER_SECRET=your_admin_secret_key_here
-   
+
    # ======================
    # Service Configuration
    # ======================
@@ -121,28 +127,30 @@ If you are using Windows, please download [quick-start.bat](https://github.com/E
    ```
 
    **Important Parameter Description:**
-   
-   | Parameter | Required | Description | Example Value |
-   |-----------|----------|-------------|---------------|
-   | `POSTGRES_PASSWORD` | ✅ | Database password, recommend strong password | `MySecurePass123!` |
-   | `ADMIN_SUPER_SECRET` | ✅ | Admin login key | `admin_key_2024_secure` |
-   | `WEB_PORT` | ❌ | Web service port | `8080` |
+
+   | Parameter            | Required | Description                                  | Example Value           |
+   | -------------------- | -------- | -------------------------------------------- | ----------------------- |
+   | `POSTGRES_PASSWORD`  | ✅       | Database password, recommend strong password | `MySecurePass123!`      |
+   | `ADMIN_SUPER_SECRET` | ✅       | Admin login key                              | `admin_key_2024_secure` |
+   | `WEB_PORT`           | ❌       | Web service port                             | `8080`                  |
 
    > ⚠️ **Security Warning**:
+   >
    > - Please make sure to change `POSTGRES_PASSWORD` and `ADMIN_SUPER_SECRET`!
    > - Passwords should include uppercase and lowercase letters, numbers, and special characters
    > - Length should be at least 12 characters
    > - Use more complex passwords in production environment
 
 3. **Start Services**
+
    ```bash
    docker compose up -d
    ```
 
 4. **Access System**
-   
+
    After startup, access in browser: `http://localhost:8080` (if you changed the port, use the corresponding port).
-   
+
    Use the `ADMIN_SUPER_SECRET` set in your `.env` file as the admin key to login. After login, please refresh the page to ensure configuration takes effect.
 
 ### Troubleshooting
@@ -150,12 +158,14 @@ If you are using Windows, please download [quick-start.bat](https://github.com/E
 **Common Issue Solutions:**
 
 1. **Port Conflict**
+
    ```bash
    # Modify port in .env file
    WEB_PORT=9090  # Change to another port
    ```
 
 2. **Permission Issues (Linux/macOS)**
+
    ```bash
    # Ensure current user is in docker group
    sudo usermod -aG docker $USER
@@ -163,27 +173,30 @@ If you are using Windows, please download [quick-start.bat](https://github.com/E
    ```
 
 3. **Service Status Check**
+
    ```bash
    # View all service status
    docker compose ps
-   
+
    # View service logs
    docker compose logs -f
-   
+
    # Restart services
    docker compose restart
    ```
 
 4. **Complete Reset**
+
    ```bash
    # Stop and remove all containers and data
    docker compose down -v
-   
+
    # Restart
    docker compose up -d
    ```
 
 **Get Help:**
+
 - If you encounter problems, please check [GitHub Issues](https://github.com/EM-GeekLab/NexusGate/issues)
 - Or submit a new Issue in the project repository
 
@@ -192,14 +205,15 @@ If you are using Windows, please download [quick-start.bat](https://github.com/E
 ### 1. Model Layer Management
 
 Connect and manage multiple LLM services,such as:
+
 - Public Cloud Services: OpenAI, DeepSeek, Alibaba Qwen
 - Enterprise Private Models: Large Model All-in-One Machine
 
 NexusGate supports over 20 tested model services and deployment frameworks, while supporting multiple integrable client applications, giving you flexibility and choice.
 ![Create Model Layer Configuration](./assets/img/upstream-config.webp)
-*Figure 1.1: Creating Model Layer Configuration*
+_Figure 1.1: Creating Model Layer Configuration_
 
->*You can also view the example below for more details.*
+> _You can also view the example below for more details._
 
 <details>
  <summary><mark>Click to view example video:Configure a Model</mark></summary>
@@ -209,6 +223,7 @@ NexusGate supports over 20 tested model services and deployment frameworks, whil
 ### 2. Comprehensive Logging
 
 Monitor detailed information of all interactions, including:
+
 - Request timestamps and status.
 - Input prompts and generated content.
 - Model information and token usage.
@@ -217,27 +232,29 @@ Monitor detailed information of all interactions, including:
 The system provides an admin view of all API key chat logs and history records for specific API keys, with a detailed sidebar view of request details and conversation context.
 
 ![History with Conversation Details Sidebar](./assets/img/history-log-details.webp)
-*Figure 2.1: Conversation Details Sidebar*
+_Figure 2.1: Conversation Details Sidebar_
 
 ![History Display](./assets/img/history-table.webp)
-*Figure 2.2: Historical Display*
+_Figure 2.2: Historical Display_
 
 ### 3. Application Management
 
 Control and configure platform-integrated applications:
+
 - API key creation and management.
 - user-friendly naming conventions.
 - expiration settings and visibility controls.
 
 ![Create Application with API Key Settings](./assets/img/create-application.webp)
-*Figure 3.1: Application with API Key Settings*
+_Figure 3.1: Application with API Key Settings_
 
->*You can also view the example below for more details.*
+> _You can also view the example below for more details._
 
 <details>
  <summary><mark>Click to view example video:Create and Manage Application</mark></summary>
 
- <video controls src="https://github.com/user-attachments/assets/a8a2f0a9-f4c0-43b9-a604-29167c439386" title="Create and Manage API Keys"></video>
+<video controls src="https://github.com/user-attachments/assets/a8a2f0a9-f4c0-43b9-a604-29167c439386" title="Create and Manage API Keys"></video>
+
  </details>
 
 ## 👨‍💻 For Developers
@@ -262,14 +279,14 @@ client = OpenAI(api_key="your-nexusgate-api-key", base_url="https://your-nexusga
 
 ```javascript
 // Before:
-import OpenAI from 'openai';
-const openai = new OpenAI({ apiKey: 'your-openai-api-key' });
+import OpenAI from "openai";
+const openai = new OpenAI({ apiKey: "your-openai-api-key" });
 
 // After:
-import OpenAI from 'openai';
-const openai = new OpenAI({ 
-  apiKey: 'your-nexusgate-api-key',
-  baseURL: 'https://your-nexusgate-server/v1'
+import OpenAI from "openai";
+const openai = new OpenAI({
+  apiKey: "your-nexusgate-api-key",
+  baseURL: "https://your-nexusgate-server/v1",
 });
 ```
 

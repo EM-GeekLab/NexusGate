@@ -4,26 +4,15 @@
 <h1>NexusGate</h1>
 Monitor and manage your Agent applications with just one line of code
 
-[![GitHub license](https://img.shields.io/github/license/geektechx/nexusgate)](https://github.com/geektechx/nexusgate/blob/main/LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/geektechx/nexusgate)](https://github.com/geektechx/nexusgate/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/geektechx/nexusgate)](https://github.com/geektechx/nexusgate/issues)
+[![GitHub license](https://img.shields.io/github/license/em-geeklab/nexusgate)](https://github.com/em-geeklab/nexusgate/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/em-geeklab/nexusgate)](https://github.com/em-geeklab/nexusgate/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/em-geeklab/nexusgate)](https://github.com/em-geeklab/nexusgate/issues)
 [![Free Use](https://img.shields.io/badge/free-pricing?logo=free&color=%20%23155EEF&label=pricing&labelColor=%20%23528bff)](https://img.shields.io/badge/free-pricing?logo=free&color=%20%23155EEF&label=pricing&labelColor=%20%23528bff)
 </div>
 
 <div align="right">
   <a href="README.md">中文</a>
 </div>
-
-- [🚀 Introduction](#-introduction)
-- [🌟 Key Features](#-key-features)
-- [🚀 Quick Start](#-quick-start)
-- [🔍 System Features](#-system-features)
-- [👨‍💻 For Developers](#-for-developers)
-- [👨‍💼 For Administrators](#-for-administrators)
-- [🗺️ Roadmap](#%EF%B8%8F-roadmap)
-- [📝 License](#-license)
-- [🤝 Contributing](#-contributing)
-- [📚 Documentation](#-documentation)
 
 ---
 
@@ -45,13 +34,158 @@ With NexusGate, you only need to modify one line of code to monitor, manage, and
 
 ## 🐳 Quick Start
 
-NexusGate provides a Docker Compose configuration supporting both ARM and x86 architectures.
+### Prerequisites
+
+NexusGate uses Docker for deployment. Please ensure your system has Docker and Docker Compose installed.
+
+#### Install Docker
+
+If Docker is not installed on your system, please visit the [Docker official website](https://www.docker.com/) to download and install the version suitable for your operating system:
+
+- **Windows/macOS users**: Download and install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- **Linux users**: Refer to [Docker Engine installation guide](https://docs.docker.com/engine/install/) or use the get.docker.com script for installation.
 
 ```bash
-wget https://github.com/geektechx/NexusGate/raw/refs/heads/main/docker-compose.yaml
-nano docker-compose.yaml # Or use other text editors
-docker compose up -d
+curl -fsSL https://get.docker.com | sudo sh
 ```
+
+#### Verify Installation
+
+After installation, run the following commands in terminal or CMD to verify:
+
+```bash
+docker --version
+docker compose version
+```
+
+If the commands output version information normally, the installation is successful.
+
+### One-Click Deployment
+
+**Method 1: One-Click Script Deployment (Recommended)**
+
+If you are using Linux or macOS, you can run the following command to quickly deploy NexusGate:
+```bash
+curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.sh | bash
+```
+
+If you are using Windows, please download [quick-start.bat](https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.bat) and run it in CMD:
+```
+.\quick-start.bat
+```
+
+💡 **Interactive Configuration**: The one-click script supports interactive configuration, you can:
+- **Custom Password**: Enter your own database password and admin key
+- **Auto-Generate**: Press Enter directly to use secure random passwords (recommended)
+- **Port Configuration**: Customize web service port (default 8080)
+- **Input Validation**: The script validates password strength and port validity
+
+🔒 **Security Features**:
+- Password input is hidden in terminal
+- Auto-generated passwords are 16-character strong passwords
+- Supports password length validation (minimum 8 characters)
+- Port range validation (1024-65535)
+
+💡 **Note**: The script will automatically create a `.env` file, please do not delete this file.
+
+**Method 2: Manual Configuration**
+
+1. **Download Configuration File**
+   ```bash
+   wget https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/docker-compose.yaml
+   ```
+
+2. **Configure Environment Variables (Important)**
+   
+   Create environment variable configuration file:
+   ```bash
+   cat > .env << 'EOF'
+   # ======================
+   # Database Configuration
+   # ======================
+   # PostgreSQL database password (must change)
+   POSTGRES_PASSWORD=your_secure_database_password_here
+   
+   # ======================
+   # Admin Configuration  
+   # ======================
+   # Admin key for accessing admin interface (must change)
+   ADMIN_SUPER_SECRET=your_admin_secret_key_here
+   
+   # ======================
+   # Service Configuration
+   # ======================
+   # Web service external port (optional, default 8080)
+   WEB_PORT=8080
+   EOF
+   ```
+
+   **Important Parameter Description:**
+   
+   | Parameter | Required | Description | Example Value |
+   |-----------|----------|-------------|---------------|
+   | `POSTGRES_PASSWORD` | ✅ | Database password, recommend strong password | `MySecurePass123!` |
+   | `ADMIN_SUPER_SECRET` | ✅ | Admin login key | `admin_key_2024_secure` |
+   | `WEB_PORT` | ❌ | Web service port | `8080` |
+
+   > ⚠️ **Security Warning**:
+   > - Please make sure to change `POSTGRES_PASSWORD` and `ADMIN_SUPER_SECRET`!
+   > - Passwords should include uppercase and lowercase letters, numbers, and special characters
+   > - Length should be at least 12 characters
+   > - Use more complex passwords in production environment
+
+3. **Start Services**
+   ```bash
+   docker compose up -d
+   ```
+
+4. **Access System**
+   
+   After startup, access in browser: `http://localhost:8080` (if you changed the port, use the corresponding port).
+   
+   Use the `ADMIN_SUPER_SECRET` set in your `.env` file as the admin key to login. After login, please refresh the page to ensure configuration takes effect.
+
+### Troubleshooting
+
+**Common Issue Solutions:**
+
+1. **Port Conflict**
+   ```bash
+   # Modify port in .env file
+   WEB_PORT=9090  # Change to another port
+   ```
+
+2. **Permission Issues (Linux/macOS)**
+   ```bash
+   # Ensure current user is in docker group
+   sudo usermod -aG docker $USER
+   newgrp docker
+   ```
+
+3. **Service Status Check**
+   ```bash
+   # View all service status
+   docker compose ps
+   
+   # View service logs
+   docker compose logs -f
+   
+   # Restart services
+   docker compose restart
+   ```
+
+4. **Complete Reset**
+   ```bash
+   # Stop and remove all containers and data
+   docker compose down -v
+   
+   # Restart
+   docker compose up -d
+   ```
+
+**Get Help:**
+- If you encounter problems, please check [GitHub Issues](https://github.com/EM-GeekLab/NexusGate/issues)
+- Or submit a new Issue in the project repository
 
 ## 🔍 System Features
 
@@ -168,10 +302,10 @@ Manage platform-integrated applications,offering flexible expiration settings fo
 
 We're constantly adding new features and capabilities to NexusGate. Here's what we're working on next:
 
-- [ ] 🌐 Internationalization: Complete i18n support with official Chinese language support.
+- [x] 🌐 Internationalization: Complete i18n support with official Chinese language support.
 - [ ] 📊 Enhanced Analytics: Expand our monitoring metrics including success rates, request volumes, token usage statistics, request completion rates, Agent usage rankings, model usage rankings, error analysis, full-chain latency, inference latency, and throughput measurements.
-- [ ] 🔄 Prometheus Integration: Create comprehensive overview dashboards by integrating with external Prometheus instances to monitor server hardware, inference frameworks, and other information sources.
-- [ ] 🚦 Traffic Control: Implement fine-grained traffic management for each API key, including quotas and priorities for specific models, enabling administrators to precisely control resource allocation.
+- [x] 🔄 Prometheus Integration: Create comprehensive overview dashboards by integrating with external Prometheus instances to monitor server hardware, inference frameworks, and other information sources.
+- [x] 🚦 Traffic Control: Implement fine-grained traffic management for each API key, including quotas and priorities for specific models, enabling administrators to precisely control resource allocation.
 - [ ] 💡 Manual Reporting SDK: Develop SDKs for more granular tracking that can be embedded directly in developer code, enabling more detailed monitoring such as end-user analytics.
 - [ ] 👍 Feedback System: Build robust feedback mechanisms to collect and analyze user responses to AI-generated content.
 - [ ] 💬 Prompt Management: Create tools for prompt creation, optimization, and batch testing, helping developers craft more effective interactions with LLMs.
@@ -191,7 +325,7 @@ Please check out [CONTRIBUTING.md](CONTRIBUTING.md) to learn how to get started.
 
 **Contributors**
 
-<img src="https://contrib.rocks/image?repo=GeekTechX/NexusGate" />
+<img src="https://contrib.rocks/image?repo=EM-GeekLab/NexusGate" />
 
 ## 📚 Documentation
 

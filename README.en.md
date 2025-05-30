@@ -348,4 +348,4 @@ Please check out [CONTRIBUTING.md](CONTRIBUTING.md) to learn how to get started.
 
 ## 📚 Documentation
 
-For more detailed information, visit our [official documentation](https://docs.nexusgate.cc).
+For more detailed information, visit our [official documentation](https://geektechstudio.feishu.cn/wiki/RNWDwS8NyiZZdokTV4IcmXm5nBg).

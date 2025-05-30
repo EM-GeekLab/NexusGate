@@ -345,4 +345,4 @@ NexusGate 为管理组织所有 LLM 应用提供统一仪表板：
 
 ## 📚 文档
 
-有关更详细的信息，请访问我们的[官方文档](https://docs.nexusgate.cc)。
+有关更详细的信息，请访问我们的[官方文档](https://geektechstudio.feishu.cn/wiki/RNWDwS8NyiZZdokTV4IcmXm5nBg)。

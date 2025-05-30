@@ -21,9 +21,11 @@ Monitor and manage your Agent applications with just one line of code
 
 ## 🚀 Introduction
 
-NexusGate is a monitoring and management platform for Agent applications. It helps Agent applications understand user feedback without additional development, accelerating the optimization and iteration lifecycle.
+NexusGate is an open-source, lightweight Agent application monitoring and management tool. It provides a comprehensive platform for managing, tracking, debugging, analyzing, and optimizing Agents and intelligent applications within an enterprise.
 
-With NexusGate, you only need to modify one line of code to monitor, manage, and optimize your Agent applications. It also helps enterprises establish internal intelligence infrastructure through out-of-the-box, one-click setup.
+Designed for AI developers and enterprise administrators, NexusGate features user-friendly REST APIs and an intuitive management interface. It offers functionalities such as **Agent runtime logging**, **Agent performance tracking**, **cost analysis**, **multi-model management**, **enterprise-wide multi-Agent application management**, and **monitoring for all-in-one machine performance and inference services**. On NexusGate, developers can optimize Agent configurations based on detailed historical records, while enterprise administrators can use a centralized monitoring dashboard to manage all Agents within the enterprise from a single point, thereby improving overall management and development efficiency.
+
+With NexusGate, you can build a "management panel" and "task manager" for your enterprise's "intelligent infrastructure" with a single click. Integration is as simple as modifying a single line of code, enabling you to monitor, manage, and optimize your Agent applications.
 
 ## ✨ Key Features
 

@@ -25,7 +25,7 @@ NexusGate is an open-source, lightweight **AI Agent and LLM application** monito
 
 With the rapid development of Large Language Model (LLM) technology, intelligent Agents and AI applications built on LLMs are being widely deployed in enterprises. NexusGate provides a comprehensive platform for managing, tracking, debugging, analyzing, and optimizing these **LLM-based intelligent Agent applications**. Whether it's simple ChatBots, complex multi-step Agent workflows, or knowledge base applications integrated with RAG (Retrieval Augmented Generation), NexusGate offers a unified monitoring and management experience.
 
-Designed for AI developers and enterprise administrators, NexusGate features an intuitive management interface and developer-friendly REST APIs, providing functionalities such as **LLM call logging**, **Agent runtime performance tracking**, **Token cost analysis**, **multi-platform model unified management**, **enterprise-grade AI application governance**, and **inference service monitoring**. On NexusGate, developers can optimize Agent configurations based on detailed LLM interaction history, while enterprise administrators can use a centralized monitoring dashboard to manage all LLM-based intelligent applications within the enterprise from a single point, improving overall management and development efficiency.
+Designed for AI developers and enterprise administrators, NexusGate features an intuitive management interface and developer-friendly REST APIs, providing functionalities such as **LLM call logging**, **Agent runtime performance tracking**, **Token cost analysis**, **LLM request traffic control**, **multi-platform model unified management**, **enterprise-grade AI application governance**, and **inference service monitoring**. On NexusGate, developers can optimize Agent configurations based on detailed LLM interaction history, while enterprise administrators can use a centralized monitoring dashboard to manage all LLM-based intelligent applications within the enterprise from a single point, improving overall management and development efficiency.
 
 ## ✨ Key Features
 
@@ -348,4 +348,4 @@ Please check out [CONTRIBUTING.md](CONTRIBUTING.md) to learn how to get started.
 
 ## 📚 Documentation
 
-For more detailed information, visit our [official documentation](https://docs.nexusgate.io).
+For more detailed information, visit our [official documentation](https://docs.nexusgate.cc).

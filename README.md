@@ -25,7 +25,7 @@ NexusGate 是一款开源、轻量的 **AI Agent 和 LLM 应用**监控与管理
 
 随着大语言模型（LLM）技术的快速发展，基于 LLM 构建的智能 Agent 和 AI 应用正在企业中广泛部署。NexusGate 提供了全面的平台来管理、跟踪、调试、分析和优化这些 **基于 LLM 的智能 Agent 应用**。无论是简单的 ChatBot、复杂的多步骤 Agent 工作流，还是集成了 RAG（检索增强生成）的知识库应用，NexusGate 都能为您提供统一的监控和管理体验。
 
-NexusGate 面向 AI 开发者和企业管理员，设计了直观的管理界面和友好的 REST API，并提供 **LLM 调用记录**、**Agent 运行性能跟踪**、**Token 成本分析**、**多平台模型统一管理**、**企业级 AI 应用治理**、**推理服务监控**等功能。在 NexusGate 上，开发者能基于详细的 LLM 交互历史优化 Agent 配置，企业管理员可使用集中式监控面板一站式管理企业内所有基于 LLM 的智能应用，提高整体管理与开发效率。
+NexusGate 面向 AI 开发者和企业管理员，设计了直观的管理界面和友好的 REST API，并提供 **LLM 调用记录**、**Agent 运行性能跟踪**、**Token 成本分析**、**LLM 请求流量控制**、**多平台模型统一管理**、**企业级 AI 应用治理**、**推理服务监控**等功能。在 NexusGate 上，开发者能基于详细的 LLM 交互历史优化 Agent 配置，企业管理员可使用集中式监控面板一站式管理企业内所有基于 LLM 的智能应用，提高整体管理与开发效率。
 
 ## ✨ 主要特点
 
@@ -341,8 +341,8 @@ NexusGate 为管理组织所有 LLM 应用提供统一仪表板：
 
 **Contributors**
 
-<img src="https://contrib.rocks/image?repo=GeekTechX/NexusGate" />
+<img src="https://contrib.rocks/image?repo=EM-GeekLab/NexusGate" />
 
 ## 📚 文档
 
-有关更详细的信息，请访问我们的[官方文档](https://docs.nexusgate.io)。
+有关更详细的信息，请访问我们的[官方文档](https://docs.nexusgate.cc)。

@@ -69,7 +69,8 @@ docker compose version
 如果您使用的是 Linux 或 macOS，可以直接运行以下命令来快速部署 NexusGate：
 
 ```bash
-curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.sh | bash
+curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.sh -o quick-start.sh
+bash quick-start.sh
 ```
 
 如果您使用的是 Windows，请下载 [quick-start.bat](https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.bat) 并在 CMD 中运行：

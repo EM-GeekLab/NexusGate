@@ -69,7 +69,8 @@ If the commands output version information normally, the installation is success
 If you are using Linux or macOS, you can run the following command to quickly deploy NexusGate:
 
 ```bash
-curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.sh | bash
+curl -fsSL https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.sh -o quick-start.sh
+bash quick-start.sh
 ```
 
 If you are using Windows, please download [quick-start.bat](https://github.com/EM-GeekLab/NexusGate/raw/refs/heads/main/scripts/quick-start.bat) and run it in CMD:

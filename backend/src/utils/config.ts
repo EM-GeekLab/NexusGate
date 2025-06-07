@@ -19,6 +19,26 @@ function env<TSchema extends z.ZodSchema, TValue = z.infer<TSchema>>(
   throw new Error(`Environment variable ${envName} is not valid: ${parsed.error}`);
 }
 
+function zBoolean(): z.ZodPipeline<
+  z.ZodEffects<z.ZodOptional<z.ZodString>, boolean, string | undefined>,
+  z.ZodBoolean
+> {
+  return z
+    .string()
+    .optional()
+    .transform((v) => {
+      if (v === undefined || v === "") return false;
+      if (Number.isSafeInteger(v)) {
+        return Number(v) > 0;
+      }
+      const v2 = v?.toLowerCase();
+      if (v2 === "true") return true;
+      if (v2 === "false") return false;
+      return Boolean(v2);
+    })
+    .pipe(z.boolean());
+}
+
 function zObject<TSchema extends z.ZodSchema>(
   schema: TSchema,
 ): z.ZodPipeline<
@@ -61,7 +81,7 @@ export const DEFAULT_REFILL_RATE = env(
 );
 export const COMMIT_SHA = env("commit sha", z.coerce.string(), "unknown");
 export const INIT_CONFIG_PATH = env("init config path", z.coerce.string(), "./init.json");
-export const ENABLE_INIT_CONFIG = env("enable init config", z.coerce.boolean().optional(), "false");
+export const ENABLE_INIT_CONFIG = env("enable init config", zBoolean(), "false");
 
 export const initConfigJsonSchema = z.object({
   upstreams: z.array(

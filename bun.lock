@@ -7,21 +7,21 @@
     "backend": {
       "name": "nexus-gate-server",
       "dependencies": {
-        "@elysiajs/cors": "^1.2.0",
-        "@elysiajs/server-timing": "^1.2.1",
-        "@elysiajs/swagger": "^1.2.2",
-        "consola": "^3.4.0",
-        "drizzle-orm": "^0.40.0",
-        "elysia": "^1.2.25",
-        "ioredis": "^5.6.0",
-        "openai": "^4.86.2",
+        "@elysiajs/cors": "^1.3.3",
+        "@elysiajs/server-timing": "^1.3.0",
+        "@elysiajs/swagger": "^1.3.0",
+        "consola": "^3.4.2",
+        "drizzle-orm": "^0.40.1",
+        "elysia": "^1.3.3",
+        "ioredis": "^5.6.1",
+        "openai": "^4.104.0",
         "typebox": "^0.0.1",
       },
       "devDependencies": {
         "@biomejs/biome": "1.9.4",
-        "@types/bun": "^1.2.4",
-        "drizzle-kit": "^0.30.5",
-        "pg": "^8.13.3",
+        "@types/bun": "^1.2.15",
+        "drizzle-kit": "^0.30.6",
+        "pg": "^8.16.0",
       },
       "peerDependencies": {
         "typescript": "^5.8.2",
@@ -919,7 +919,7 @@
 
     "electron-to-chromium": ["electron-to-chromium@1.5.114", "https://registry.npmmirror.com/electron-to-chromium/-/electron-to-chromium-1.5.114.tgz", {}, "sha512-DFptFef3iktoKlFQK/afbo274/XNWD00Am0xa7M8FZUepHlHT8PEuiNBoRfFHbH1okqN58AlhbJ4QTkcnXorjA=="],
 
-    "elysia": ["elysia@1.3.3", "https://registry.npmmirror.com/elysia/-/elysia-1.3.3.tgz", { "dependencies": { "cookie": "^1.0.2", "exact-mirror": "0.1.2", "fast-decode-uri-component": "^1.0.1" }, "optionalDependencies": { "@sinclair/typebox": "^0.34.33", "openapi-types": "^12.1.3" }, "peerDependencies": { "file-type": ">= 20.0.0", "typescript": ">= 5.0.0" } }, "sha512-x6a89d4h0xX9TB0CSGkUuKNqIK776HBJw0WHtK1B3ViQqZijsLnOor6be/7TwVl8MG6m59NHGHbmbBS6lnCXSw=="],
+    "elysia": ["elysia@1.3.4", "https://registry.npmmirror.com/elysia/-/elysia-1.3.4.tgz", { "dependencies": { "cookie": "^1.0.2", "exact-mirror": "0.1.2", "fast-decode-uri-component": "^1.0.1" }, "optionalDependencies": { "@sinclair/typebox": "^0.34.33", "openapi-types": "^12.1.3" }, "peerDependencies": { "file-type": ">= 20.0.0", "typescript": ">= 5.0.0" } }, "sha512-kAfM3Zwovy3z255IZgTKVxBw91HbgKhYl3TqrGRdZqqr+Fd+4eKOfvxgaKij22+MZLczPzIHtscAmvfpI3+q/A=="],
 
     "emoji-regex": ["emoji-regex@9.2.2", "https://registry.npmmirror.com/emoji-regex/-/emoji-regex-9.2.2.tgz", {}, "sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg=="],
 

@@ -12,11 +12,11 @@ export const adminRateLimits = new Elysia()
   })
   .get(
     "/ratelimits/:identifier",
-    async ({ params, error }) => {
+    async ({ params, status }) => {
       const { identifier } = params;
       const config = getRateLimitConfig(identifier);
       if (!config) {
-        return error(404, "Rate limit configuration not found");
+        return status(404, "Rate limit configuration not found");
       }
       return { identifier, ...config };
     },
@@ -28,17 +28,17 @@ export const adminRateLimits = new Elysia()
   )
   .post(
     "/ratelimits",
-    async ({ body, error, set }) => {
+    async ({ body, status, set }) => {
       const { identifier, ...config } = body;
       const existing = getRateLimitConfig(identifier);
 
       if (existing && Object.keys(existing).length > 0) {
-        return error(409, "Rate limit configuration already exists");
+        return status(409, "Rate limit configuration already exists");
       }
 
       const success = setRateLimitConfig(identifier, config);
       if (!success) {
-        return error(500, "Failed to create rate limit configuration");
+        return status(500, "Failed to create rate limit configuration");
       }
 
       set.status = 201;
@@ -55,17 +55,17 @@ export const adminRateLimits = new Elysia()
   )
   .delete(
     "/ratelimits/:identifier",
-    async ({ params, error, set }) => {
+    async ({ params, status, set }) => {
       const { identifier } = params;
       const existing = getRateLimitConfig(identifier);
 
       if (!existing || Object.keys(existing).length === 0) {
-        return error(404, "Rate limit configuration not found");
+        return status(404, "Rate limit configuration not found");
       }
 
       const success = deleteRateLimitConfig(identifier);
       if (!success) {
-        return error(500, "Failed to delete rate limit configuration");
+        return status(500, "Failed to delete rate limit configuration");
       }
 
       set.status = 204;

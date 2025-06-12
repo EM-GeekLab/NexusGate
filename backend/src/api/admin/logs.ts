@@ -25,11 +25,11 @@ export const adminLogs = new Elysia()
   )
   .get(
     "/logs/:id",
-    async ({ error, params }) => {
+    async ({ status, params }) => {
       const { id } = params;
       const r = await getLog(id);
       if (r === null) {
-        return error(404, "Log not found");
+        return status(404, "Log not found");
       }
       return r;
     },

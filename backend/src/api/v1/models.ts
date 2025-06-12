@@ -5,7 +5,7 @@ import { listUpstreams } from "@/db";
 
 const logger = consola.withTag("modelsQuery");
 
-export const modelsQueryApi = new Elysia().get("/models", async ({ error }) => {
+export const modelsQueryApi = new Elysia().get("/models", async () => {
   logger.debug("queryModels");
 
   const upstreams = await listUpstreams();

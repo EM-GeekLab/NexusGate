@@ -41,13 +41,13 @@ export const completionsApi = new Elysia({
   .use(rateLimitPlugin)
   .post(
     "/completions",
-    async function* ({ body, error, bearer }) {
+    async function* ({ body, status, bearer }) {
       if (bearer === undefined) {
-        return error(500);
+        return status(500);
       }
       const upstream = await selectUpstream(body.model);
       if (!upstream) {
-        return error(404, "Model not found");
+        return status(404, "Model not found");
       }
       const requestedModel = body.model;
       const upstreamEndpoint = `${upstream.url}/chat/completions`;
@@ -117,7 +117,7 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return error(500, "Failed to fetch upstream");
+            return status(500, "Failed to fetch upstream");
           }
           if (!resp.ok) {
             const msg = await resp.text();
@@ -138,7 +138,7 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return error(resp.status, msg);
+            return status(resp.status, msg);
           }
           const respText = await resp.text();
           const respJson = JSON.parse(respText) as ChatCompletion;
@@ -149,12 +149,15 @@ export const completionsApi = new Elysia({
           completion.ttft = Date.now() - begin;
           completion.duration = Date.now() - begin;
           completion.completion = respJson.choices.map((c) => {
-            const msg = c.message as ChatCompletionMessage & { reasoning_content?: string };
+            const msg = c.message as ChatCompletionMessage & {
+              reasoning_content?: string;
+            };
             return {
               role: c.message.role as string,
               content:
-                (msg.reasoning_content ? `<think>${msg.reasoning_content}</think>\n` : "") +
-                (msg.content ?? undefined),
+                (msg.reasoning_content
+                  ? `<think>${msg.reasoning_content}</think>\n`
+                  : "") + (msg.content ?? undefined),
             };
           });
           addCompletions(completion, bearer);
@@ -164,7 +167,10 @@ export const completionsApi = new Elysia({
 
         case true: {
           if (!!body.n && body.n > 1) {
-            return error(400, "Stream completions with n > 1 is not supported");
+            return status(
+              400,
+              "Stream completions with n > 1 is not supported"
+            );
           }
 
           // always set include_usage to true
@@ -204,7 +210,7 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return error(500, "Failed to fetch upstream");
+            return status(500, "Failed to fetch upstream");
           }
           if (!resp.ok) {
             const msg = await resp.text();
@@ -225,7 +231,7 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return error(resp.status, msg);
+            return status(resp.status, msg);
           }
           if (!resp.body) {
             logger.error("upstream error", {
@@ -245,7 +251,7 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return error(500, "No body");
+            return status(500, "No body");
           }
 
           logger.debug("parse stream completions response");
@@ -270,8 +276,9 @@ export const completionsApi = new Elysia({
                 {
                   role: undefined,
                   content:
-                    (extendedTags.think ? `<think>${extendedTags.think.join("")}</think>\n` : "") +
-                    partials.join(""),
+                    (extendedTags.think
+                      ? `<think>${extendedTags.think.join("")}</think>\n`
+                      : "") + partials.join(""),
                 },
               ];
               completion.status = "completed";
@@ -295,7 +302,7 @@ export const completionsApi = new Elysia({
                 msg: "Invalid JSON",
                 chunk,
               });
-              return error(500, "Invalid JSON");
+              return status(500, "Invalid JSON");
             }
             if (data.usage) {
               completion.promptTokens = data.usage.prompt_tokens;
@@ -305,7 +312,10 @@ export const completionsApi = new Elysia({
               yield `data: ${chunk}\n\n`;
               continue;
             }
-            if (data.choices.length === 1 && data.choices[0].finish_reason !== "stop") {
+            if (
+              data.choices.length === 1 &&
+              data.choices[0].finish_reason !== "stop"
+            ) {
               // If there is only one choice, regular chunk
               const delta = data.choices[0].delta;
               const content = delta.content;
@@ -329,7 +339,8 @@ export const completionsApi = new Elysia({
             // work around: api.deepseek.com returns choices with empty content and finish_reason = "stop" in usage response
             if (
               data.choices.length === 0 ||
-              (data.choices.length === 1 && data.choices[0].finish_reason === "stop")
+              (data.choices.length === 1 &&
+                data.choices[0].finish_reason === "stop")
             ) {
               // Assuse that is the last chunk
               console.log(data.usage);
@@ -337,8 +348,9 @@ export const completionsApi = new Elysia({
                 {
                   role: undefined,
                   content:
-                    (extendedTags.think ? `<think>${extendedTags.think.join("")}</think>\n` : "") +
-                    partials.join(""),
+                    (extendedTags.think
+                      ? `<think>${extendedTags.think.join("")}</think>\n`
+                      : "") + partials.join(""),
                 },
               ];
               completion.status = "completed";
@@ -350,7 +362,7 @@ export const completionsApi = new Elysia({
               continue;
             }
             // Unreachable, unless upstream returned a malformed response
-            return error(500, "Unexpected chunk");
+            return status(500, "Unexpected chunk");
           }
           if (isFirstChunk) {
             logger.error("upstream error: no chunk received");
@@ -367,7 +379,7 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return error(500, "No chunk received");
+            return status(500, "No chunk received");
           }
         }
       }
@@ -378,5 +390,5 @@ export const completionsApi = new Elysia({
       rateLimit: {
         identifier: (body) => (body as { model: string }).model,
       },
-    },
+    }
   );

@@ -16,11 +16,11 @@ export const adminApiKey = new Elysia()
   )
   .get(
     "/apiKey/:key",
-    async ({ error, params }) => {
+    async ({ status, params }) => {
       const { key } = params;
       const r = await findApiKey(key);
       if (r === null) {
-        return error(404, "Key not found");
+        return status(404, "Key not found");
       }
       return r;
     },
@@ -32,7 +32,7 @@ export const adminApiKey = new Elysia()
   )
   .post(
     "/apiKey",
-    async ({ body, error }) => {
+    async ({ body, status }) => {
       const key = generateApiKey();
       const r = await upsertApiKey({
         key,
@@ -40,7 +40,7 @@ export const adminApiKey = new Elysia()
         expiresAt: body.expires_at,
       });
       if (r === null) {
-        return error(500, "Failed to create key");
+        return status(500, "Failed to create key");
       }
       return {
         key: r.key,
@@ -55,7 +55,7 @@ export const adminApiKey = new Elysia()
   )
   .delete(
     "/apiKey/:key",
-    async ({ error, params }) => {
+    async ({ status, params }) => {
       const { key } = params;
       const r = await upsertApiKey({
         key,
@@ -63,7 +63,7 @@ export const adminApiKey = new Elysia()
         updatedAt: new Date(),
       });
       if (r === null) {
-        return error(404, "Key not found");
+        return status(404, "Key not found");
       }
       return {
         key: r.key,

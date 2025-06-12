@@ -30,11 +30,11 @@ export const adminCompletions = new Elysia()
   )
   .get(
     "/completions/:id",
-    async ({ error, params }) => {
+    async ({ status, params }) => {
       const { id } = params;
       const r = await findCompletion(id);
       if (r === null) {
-        return error(404, "Completion not found");
+        return status(404, "Completion not found");
       }
       // 如果 model 字段存在且包含 '@'，则截断
       if (r.model && r.model.includes("@")) {
@@ -50,11 +50,11 @@ export const adminCompletions = new Elysia()
   )
   .delete(
     "/completions/:id",
-    async ({ error, params }) => {
+    async ({ status, params }) => {
       const { id } = params;
       const r = await deleteCompletion(id);
       if (r === null) {
-        return error(404, "Completion not found");
+        return status(404, "Completion not found");
       }
       return r;
     },

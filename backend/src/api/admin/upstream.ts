@@ -7,10 +7,10 @@ export const adminUpstream = new Elysia()
   })
   .post(
     "/upstream",
-    async ({ body, error }) => {
+    async ({ body, status }) => {
       const r = await insertUpstream(body);
       if (r === null) {
-        return error(500, "Failed to create upstream");
+        return status(500, "Failed to create upstream");
       }
       return r;
     },
@@ -26,11 +26,11 @@ export const adminUpstream = new Elysia()
   )
   .delete(
     "/upstream/:id",
-    async ({ error, params }) => {
+    async ({ status, params }) => {
       const { id } = params;
       const r = await deleteUpstream(id);
       if (r === null) {
-        return error(404, "Upstream not found");
+        return status(404, "Upstream not found");
       }
       return r;
     },

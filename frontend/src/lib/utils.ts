@@ -9,10 +9,22 @@ export function removeUndefinedFields<T extends object>(obj: T): T {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null)) as T
 }
 
-const formatter = new Intl.NumberFormat('zh-CN', {
-  style: 'decimal',
-  useGrouping: 'min2',
-})
+const formatter = (() => {
+  try {
+    return new Intl.NumberFormat('zh-CN', {
+      style: 'decimal',
+      // @ts-expect-error: 'min2' option is in ES2023, our target is ES2022
+      useGrouping: 'min2',
+    })
+  } catch (e) {
+    if (e instanceof RangeError) {
+      return new Intl.NumberFormat('zh-CN', {
+        style: 'decimal',
+      })
+    }
+    throw e
+  }
+})()
 
 export function formatNumber(n: number, forNaN = '-'): string {
   return Number.isNaN(n) ? forNaN : formatter.format(n)
@@ -24,4 +36,8 @@ export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Om
     delete copy[key]
   }
   return copy
+}
+
+export function getAPIBaseURL() {
+  return new URL('v1', location.origin).toString()
 }

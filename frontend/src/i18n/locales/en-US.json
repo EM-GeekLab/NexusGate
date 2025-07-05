@@ -52,6 +52,7 @@
     "pages.api-keys.columns.NoExpirationDate": "No expiration date",
     "pages.api-keys.columns.CreatedAt": "Created at",
     "pages.api-keys.columns.ExpiresAt": "Expires at",
+    "pages.api-keys.columns.Actions": "Actions",
     "pages.api-keys.data-table.View": "View",
     "pages.api-keys.data-table.ShowRevoked": "Show revoked",
     "pages.api-keys.row-action-button.APIKeyCopied": "API key copied to clipboard",
@@ -59,11 +60,16 @@
     "pages.api-keys.row-action-button.AreYouSure?": "Are you sure?",
     "pages.api-keys.row-action-button.APIKeyOfApplicationWillBeRevoked": "The API key of application <bold>{{comment}}</bold> will be revoked.",
     "pages.api-keys.row-action-button.OpenMenu": "Open menu",
+    "pages.api-keys.row-action-button.CopyBaseURL": "Copy Base URL",
     "pages.api-keys.row-action-button.CopyAPIKey": "Copy API Key",
     "pages.api-keys.row-action-button.ViewRequests": "View requests",
     "pages.api-keys.row-action-button.RevokeAPIKey": "Revoke API Key",
     "pages.api-keys.row-action-button.Cancel": "Cancel",
     "pages.api-keys.row-action-button.Continue": "Continue",
+    "pages.api-keys.invocation-guide.Use": "Use",
+    "pages.api-keys.invocation-guide.APIInvocationGuide": "API invocation guide",
+    "pages.api-keys.invocation-guide.SetAPIKeyEnvVar": "Set the API key as an environment variable (using Linux as an example):",
+    "pages.api-keys.invocation-guide.ReferToCodeForInvocation": "Refer to the following sample code for invocation:",
     "pages.requests.columns.CreatedAt": "Created at",
     "pages.requests.columns.Pending": "Pending",
     "pages.requests.columns.Completed": "Completed",
@@ -149,4 +155,4 @@
     "routes.requests.route.Requests": "Requests",
     "routes.dashboard.index.Welcome": "Hello from home",
     "routes.dashboard.route.Overview": "Overview"
-  }
+}

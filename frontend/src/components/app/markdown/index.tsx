@@ -1,9 +1,12 @@
 import ReactMarkdown from 'react-markdown'
+import rehypeHighlight from 'rehype-highlight'
 import rehypeKatex from 'rehype-katex'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import { cn } from '@/lib/utils'
+
+import './highlightjs-theme-github.css'
 
 export function Markdown({ text, className, size = 'sm' }: { text: string; className?: string; size?: 'sm' | 'base' }) {
   return (
@@ -17,7 +20,7 @@ export function Markdown({ text, className, size = 'sm' }: { text: string; class
         className,
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex, rehypeHighlight]}>
         {text}
       </ReactMarkdown>
     </div>

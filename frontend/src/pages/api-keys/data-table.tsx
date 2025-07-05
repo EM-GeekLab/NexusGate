@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Settings2Icon } from 'lucide-react'
+import { CodeXmlIcon, Settings2Icon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
@@ -11,15 +12,22 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 import { AddButton } from './add-button'
+import { ApiKeyInvocationGuideButton } from './api-invocation-help'
 import { columns, type ApiKey } from './columns'
 
-import { useTranslation } from 'react-i18next'
-
 export function ApiKeysDataTable({ data, includeRevoked }: { data: ApiKey[]; includeRevoked: boolean }) {
+  const { t } = useTranslation()
   return (
     <div className="py-4">
-      <div className="flex items-center pb-4">
+      <div className="flex items-center gap-4 pb-4">
         <AddButton size="sm" />
+        <div className="flex-grow" />
+        <ApiKeyInvocationGuideButton asChild>
+          <Button variant="outline" size="sm">
+            <CodeXmlIcon />
+            {t('pages.api-keys.invocation-guide.APIInvocationGuide')}
+          </Button>
+        </ApiKeyInvocationGuideButton>
         <ApiKeysViewOptions includeRevoked={includeRevoked} />
       </div>
       <DataTable columns={columns} data={data} />
@@ -34,7 +42,7 @@ function ApiKeysViewOptions({ includeRevoked }: { includeRevoked: boolean }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="ml-auto">
+        <Button variant="outline" size="sm">
           <Settings2Icon />
           {t('pages.api-keys.data-table.View')}
         </Button>

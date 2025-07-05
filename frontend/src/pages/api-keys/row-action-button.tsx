@@ -1,10 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowUpDownIcon, CopyIcon, MoreHorizontalIcon, OctagonXIcon } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { api } from '@/lib/api'
 import { newApiError } from '@/lib/error'
+import { getAPIBaseURL } from '@/lib/utils'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,9 +29,6 @@ import {
 import { useCopy } from '@/hooks/use-copy'
 
 import type { ApiKey } from './columns'
-
-import { useTranslation } from 'react-i18next'
-import { Trans } from 'react-i18next'
 
 export const RowActionButton = ({ data }: { data: ApiKey }) => {
   const { t } = useTranslation()
@@ -89,6 +88,10 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
+          <DropdownMenuItem onClick={() => copy(getAPIBaseURL())}>
+            <CopyIcon />
+            {t('pages.api-keys.row-action-button.CopyBaseURL')}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => copy(data.key)}>
             <CopyIcon />
             {t('pages.api-keys.row-action-button.CopyAPIKey')}
@@ -114,11 +117,11 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
         <AlertDialogHeader>
           <AlertDialogTitle>{t('pages.api-keys.row-action-button.AreYouSure?')}</AlertDialogTitle>
           <AlertDialogDescription>
-          <Trans
-            i18nKey="pages.api-keys.row-action-button.APIKeyOfApplicationWillBeRevoked"
-            values={{ comment: data.comment }}
-            components={{ bold: <span className="text-foreground font-bold" /> }}
-          />
+            <Trans
+              i18nKey="pages.api-keys.row-action-button.APIKeyOfApplicationWillBeRevoked"
+              values={{ comment: data.comment }}
+              components={{ bold: <span className="text-foreground font-bold" /> }}
+            />
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

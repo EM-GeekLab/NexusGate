@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}🚀 NexusGate 一键部署脚本${NC}"
 echo "===================================="
 
-# 检查 Docker 是否安装
+# 检查 Docker 是否安装和权限
 check_docker() {
     if ! command -v docker &> /dev/null; then
         echo -e "${RED}❌ Docker 未安装，请先安装 Docker！${NC}"
@@ -29,7 +29,18 @@ check_docker() {
         exit 1
     fi
     
-    echo -e "${GREEN}✅ Docker 环境检查通过${NC}"
+    # 检查 Docker 权限
+    echo -e "${BLUE}🔍 检查 Docker 权限...${NC}"
+    if ! docker ps &> /dev/null; then
+        echo -e "${RED}❌ Docker 权限不足！${NC}"
+        echo ""
+        echo "请以 root 用户或 sudo 权限运行脚本:"
+        echo -e "   ${BLUE}sudo bash quick-start.sh${NC}"
+        echo ""
+        exit 1
+    fi
+    
+    echo -e "${GREEN}✅ Docker 环境和权限检查通过${NC}"
 }
 
 # 生成随机密码
@@ -225,18 +236,8 @@ show_access_info() {
     echo -e "${BLUE}📖 使用说明:${NC}"
     echo "1. 在浏览器中打开上述地址"
     echo "2. 使用管理员密钥登录系统"
-    echo "3. 开始配置您的第一个模型和应用"
-    echo ""
-    echo -e "${BLUE}🛠️  常用命令:${NC}"
-    echo "- 查看服务状态: docker compose ps"
-    echo "- 查看服务日志: docker compose logs -f"
-    echo "- 停止服务: docker compose down"
-    echo "- 重启服务: docker compose restart"
-    echo ""
-    echo -e "${YELLOW}⚠️  安全提醒:${NC}"
-    echo "- 请妥善保管管理员密钥"
-    echo "- 生产环境请修改默认配置"
-    echo "- 定期备份数据库数据"
+    echo "3. 开始配置您的第一个模型和应用，其中 BaseURL 需要设置为 http://localhost:${WEB_PORT:-8080}/v1/"
+    echo "后续您也可以通过该服务器的 IP 地址或域名访问 NexusGate，BaseURL 需要设置为 http://<服务器IP或域名>:${WEB_PORT:-8080}/v1/"
 }
 
 # 主函数

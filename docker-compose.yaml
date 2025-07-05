@@ -4,14 +4,16 @@ services:
     environment:
       - "POSTGRES_USER=nexusgate"
       - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change_me_in_production}"
+      - "POSTGRES_DB=nexusgate"
     volumes:
       - "./db:/var/lib/postgresql/data"
     restart: on-failure
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nexusgate -h localhost"]
+      test: ["CMD-SHELL", "pg_isready -U nexusgate -d nexusgate -h localhost"]
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   redis:
     image: "redis:latest"
@@ -39,3 +41,4 @@ services:
       - backend
     ports:
       - "${WEB_PORT:-8080}:80"
+ 

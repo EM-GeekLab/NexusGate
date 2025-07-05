@@ -127,11 +127,11 @@ bash quick-start.sh
    ```
 
    **重要参数说明：**
-   | 参数名 | 必需 | 说明 | 示例值 |
+   | 参数名               | 必需 | 说明                       | 示例值                  |
    | -------------------- | ---- | -------------------------- | ----------------------- |
-   | `POSTGRES_PASSWORD` | ✅ | 数据库密码，建议使用强密码 | `MySecurePass123!` |
-   | `ADMIN_SUPER_SECRET` | ✅ | 管理员登录密钥 | `admin_key_2024_secure` |
-   | `WEB_PORT` | ❌ | Web 服务端口 | `8080` |
+   | `POSTGRES_PASSWORD`  | ✅    | 数据库密码，建议使用强密码 | `MySecurePass123!`      |
+   | `ADMIN_SUPER_SECRET` | ✅    | 管理员登录密钥             | `admin_key_2024_secure` |
+   | `WEB_PORT`           | ❌    | Web 服务端口               | `8080`                  |
 
    > ⚠️ **安全提示**：
    >
@@ -272,7 +272,7 @@ client = OpenAI(api_key="your-openai-api-key")
 
 # 修改后:
 from openai import OpenAI
-client = OpenAI(api_key="your-nexusgate-api-key", base_url="https://your-nexusgate-server/v1")
+client = OpenAI(api_key="your-nexusgate-api-key", base_url="https://your-nexusgate-server/v1/")
 ```
 
 #### JavaScript/TypeScript
@@ -286,7 +286,7 @@ const openai = new OpenAI({ apiKey: "your-openai-api-key" });
 import OpenAI from "openai";
 const openai = new OpenAI({
   apiKey: "your-nexusgate-api-key",
-  baseURL: "https://your-nexusgate-server/v1",
+  baseURL: "https://your-nexusgate-server/v1/",
 });
 ```
 
@@ -295,7 +295,7 @@ const openai = new OpenAI({
 NexusGate 提供全面的 OpenAPI 文档，便于与您现有的系统和工作流程集成。可以通过以下地址访问 OpenAPI 规范：
 
 ```
-https://your-nexusgate-server/swagger
+https://your-nexusgate-server/openapi.json
 ```
 
 该文档包括所有可用端点、请求/响应格式和身份验证要求，使开发者能够快速理解并利用 NexusGate 的全部功能。

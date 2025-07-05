@@ -1,7 +1,7 @@
 name: Build Docker Images
 on:
   release:
-    types: [created]
+    types: [published, created]
   workflow_dispatch:
   push:
     branches:

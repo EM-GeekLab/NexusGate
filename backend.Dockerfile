@@ -15,12 +15,12 @@ RUN --mount=type=cache,target=/cache \
     bun install --frozen-lockfile --filter "!nexus-gate-docs"
 
 FROM deps AS builder
-ARG COMMIT_SHA
-ENV COMMIT_SHA=${COMMIT_SHA}
 COPY . .
 RUN cd backend && bun build src/index.ts --target bun --outdir out/
 
 FROM base AS runner 
+ARG COMMIT_SHA
+ENV COMMIT_SHA=${COMMIT_SHA}
 COPY --from=builder /app/backend/out/index.js /app/index.js
 COPY --from=builder /app/backend/drizzle /app/drizzle
 USER bun

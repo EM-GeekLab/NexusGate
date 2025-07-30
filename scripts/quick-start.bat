@@ -12,6 +12,34 @@ echo 🚀 NexusGate 一键部署脚本
 echo ==================================
 echo.
 
+REM 选择下载源
+:select_download_source
+echo 🌐 请选择下载源
+echo ==================================
+echo 1^) GitHub 官方源 ^(推荐海外用户^)
+echo 2^) 国内镜像源 ^(推荐国内用户，更快更稳定^)
+echo ==================================
+
+:input_source_choice
+set /p "source_choice=请选择 (1/2): "
+
+if "%source_choice%"=="1" (
+    set DOWNLOAD_SOURCE=github
+    set COMPOSE_URL=https://raw.githubusercontent.com/EM-GeekLab/NexusGate/main/docker-compose.yaml
+    echo ✅ 已选择 GitHub 官方源
+    goto :check_docker
+) else if "%source_choice%"=="2" (
+    set DOWNLOAD_SOURCE=china
+    set COMPOSE_URL=https://cnb.cool/EM-GeekLab/NexusGate/-/git/raw/main/docker-compose.cn.yaml
+    echo ✅ 已选择国内镜像源
+    goto :check_docker
+) else (
+    echo ❌ 请输入有效选项 ^(1 或 2^)
+    goto :input_source_choice
+)
+
+echo.
+
 REM 检查 Docker 是否安装
 :check_docker
 echo 📋 检查 Docker 环境...
@@ -43,17 +71,22 @@ REM 下载配置文件
 :download_configs
 echo 📥 下载配置文件...
 
-if exist "docker-compose.yaml" (
-    echo ⚠️  docker-compose.yaml 已存在，跳过下载
+set "compose_file=docker-compose.yaml"
+if "%DOWNLOAD_SOURCE%"=="china" (
+    set "compose_file=docker-compose.cn.yaml"
+)
+
+if exist "%compose_file%" (
+    echo ⚠️  %compose_file% 已存在，跳过下载
 ) else (
-    echo 正在下载 docker-compose.yaml...
-    powershell -Command "try { Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/EM-GeekLab/NexusGate/main/docker-compose.yaml' -OutFile 'docker-compose.yaml' -ErrorAction Stop } catch { Write-Host 'Error: ' + $_.Exception.Message; exit 1 }"
+    echo 正在下载 %compose_file%...
+    powershell -Command "try { Invoke-WebRequest -Uri '%COMPOSE_URL%' -OutFile '%compose_file%' -ErrorAction Stop } catch { Write-Host 'Error: ' + $_.Exception.Message; exit 1 }"
     if errorlevel 1 (
         echo ❌ 下载配置文件失败，请检查网络连接
         pause
         exit /b 1
     )
-    echo ✅ docker-compose.yaml 下载完成
+    echo ✅ %compose_file% 下载完成
 )
 echo.
 
@@ -239,14 +272,19 @@ REM 启动服务
 :start_services
 echo 🚀 启动 NexusGate 服务...
 
+set "compose_file=docker-compose.yaml"
+if "%DOWNLOAD_SOURCE%"=="china" (
+    set "compose_file=docker-compose.cn.yaml"
+)
+
 REM 检查是否使用新版 docker compose 命令
 docker compose version >nul 2>&1
 if errorlevel 1 (
     echo 使用 docker-compose 启动服务...
-    docker-compose up -d
+    docker-compose -f "%compose_file%" up -d
 ) else (
     echo 使用 docker compose 启动服务...
-    docker compose up -d
+    docker compose -f "%compose_file%" up -d
 )
 
 if errorlevel 1 (

@@ -15,6 +15,37 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}🚀 NexusGate 一键部署脚本${NC}"
 echo "===================================="
 
+# 选择下载源
+select_download_source() {
+    echo -e "${BLUE}🌐 请选择下载源${NC}"
+    echo "===================================="
+    echo "1) GitHub 官方源 (推荐海外用户)"
+    echo "2) 国内镜像源 (推荐国内用户，更快更稳定)"
+    echo "===================================="
+    
+    while true; do
+        read -p "请选择 (1/2): " choice
+        case $choice in
+            1)
+                DOWNLOAD_SOURCE="github"
+                COMPOSE_URL="https://raw.githubusercontent.com/EM-GeekLab/NexusGate/main/docker-compose.yaml"
+                echo -e "${GREEN}✅ 已选择 GitHub 官方源${NC}"
+                break
+                ;;
+            2)
+                DOWNLOAD_SOURCE="china"
+                COMPOSE_URL="https://cnb.cool/EM-GeekLab/NexusGate/-/git/raw/main/docker-compose.cn.yaml"
+                echo -e "${GREEN}✅ 已选择国内镜像源${NC}"
+                break
+                ;;
+            *)
+                echo -e "${RED}❌ 请输入有效选项 (1 或 2)${NC}"
+                ;;
+        esac
+    done
+    echo ""
+}
+
 # 检查 Docker 是否安装和权限
 check_docker() {
     if ! command -v docker &> /dev/null; then
@@ -52,11 +83,16 @@ generate_password() {
 download_configs() {
     echo -e "${BLUE}📥 下载配置文件...${NC}"
     
-    if [ ! -f "docker-compose.yaml" ]; then
-        curl -fsSL https://raw.githubusercontent.com/EM-GeekLab/NexusGate/main/docker-compose.yaml -o docker-compose.yaml
-        echo -e "${GREEN}✅ docker-compose.yaml 下载完成${NC}"
+    local compose_file="docker-compose.yaml"
+    if [ "$DOWNLOAD_SOURCE" = "china" ]; then
+        compose_file="docker-compose.cn.yaml"
+    fi
+    
+    if [ ! -f "$compose_file" ]; then
+        curl -fsSL "$COMPOSE_URL" -o "$compose_file"
+        echo -e "${GREEN}✅ $compose_file 下载完成${NC}"
     else
-        echo -e "${YELLOW}⚠️  docker-compose.yaml 已存在，跳过下载${NC}"
+        echo -e "${YELLOW}⚠️  $compose_file 已存在，跳过下载${NC}"
     fi
 }
 
@@ -203,11 +239,16 @@ EOF
 start_services() {
     echo -e "${BLUE}🚀 启动 NexusGate 服务...${NC}"
     
+    local compose_file="docker-compose.yaml"
+    if [ "$DOWNLOAD_SOURCE" = "china" ]; then
+        compose_file="docker-compose.cn.yaml"
+    fi
+    
     # 检查是否使用新版 docker compose 命令
     if docker compose version &> /dev/null; then
-        docker compose up -d
+        docker compose -f "$compose_file" up -d
     else
-        docker-compose up -d
+        docker-compose -f "$compose_file" up -d
     fi
     
     echo -e "${GREEN}✅ 服务启动完成！${NC}"
@@ -242,6 +283,7 @@ show_access_info() {
 
 # 主函数
 main() {
+    select_download_source
     check_docker
     download_configs
     create_env_file

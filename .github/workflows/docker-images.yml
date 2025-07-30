@@ -9,6 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  CN_REGISTRY: docker.cnb.cool
 
 jobs:
   build-images:
@@ -21,9 +22,11 @@ jobs:
           - name: backend
             dockerfile: backend.Dockerfile
             image_name: em-geeklab/nexus-gate-server
+            cn_image_name: em-geeklab/nexusgate/server
           - name: frontend
             dockerfile: frontend.Dockerfile
             image_name: em-geeklab/nexus-gate-web
+            cn_image_name: em-geeklab/nexusgate/web
     permissions:
       contents: read
       packages: write
@@ -38,6 +41,13 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to the CN Container registry
+        if: github.event_name == 'release'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.CN_REGISTRY }}
+          username: ${{ secrets.CN_REGISTRY_USERNAME }}
+          password: ${{ secrets.CN_REGISTRY_PASSWORD }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -46,7 +56,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ matrix.image.image_name }}
+          images: |
+            ${{ env.REGISTRY }}/${{ matrix.image.image_name }}
+            ${{ github.event_name == 'release' && format('{0}/{1}', env.CN_REGISTRY, matrix.image.cn_image_name) || '' }}
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@v6

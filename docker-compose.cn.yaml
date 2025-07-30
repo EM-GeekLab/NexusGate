@@ -20,7 +20,7 @@ services:
     restart: on-failure
 
   backend:
-    image: "docker.cnb.cool/em-geeklab/nexus-gate-server:latest"
+    image: "docker.cnb.cool/em-geeklab/nexusgate/server:latest"
     environment:
       - "DATABASE_URL=postgres://nexusgate:${POSTGRES_PASSWORD:-change_me_in_production}@database:5432/nexusgate"
       - "ADMIN_SUPER_SECRET=${ADMIN_SUPER_SECRET:-admin_key_change_in_production}"
@@ -33,7 +33,7 @@ services:
         condition: service_started
 
   frontend:
-    image: "docker.cnb.cool/em-geeklab/nexus-gate-web:latest"
+    image: "docker.cnb.cool/em-geeklab/nexusgate/web:latest"
     environment:
       - "BACKEND_URL=http://backend:3000"
     restart: on-failure

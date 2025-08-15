@@ -6,6 +6,11 @@ server {
   
   server_name ${SERVER_NAME:-'localhost'};
 
+  proxy_connect_timeout 180s;
+  proxy_send_timeout 180s;
+  proxy_read_timeout 180s;
+  send_timeout 180s;
+
   location /v1/ {
     proxy_pass ${BACKEND_URL:-'http://backend:3000/'};
     proxy_set_header Host \$host;

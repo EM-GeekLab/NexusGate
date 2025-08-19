@@ -302,7 +302,7 @@ const openai = new OpenAI({
 NexusGate 提供全面的 OpenAPI 文档，便于与您现有的系统和工作流程集成。可以通过以下地址访问 OpenAPI 规范：
 
 ```
-https://your-nexusgate-server/openapi.json
+https://your-nexusgate-server/api/openapi.json
 ```
 
 该文档包括所有可用端点、请求/响应格式和身份验证要求，使开发者能够快速理解并利用 NexusGate 的全部功能。

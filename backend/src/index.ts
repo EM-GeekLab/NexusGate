@@ -36,7 +36,9 @@ const app = new Elysia()
           title: "NexusGate API Documentation",
           version: "0.0.1",
         },
-      },
+      }, 
+      path: "/api/docs",
+      specPath: "/api/openapi.json"
     }),
   )
   .use(serverTiming())

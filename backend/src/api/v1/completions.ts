@@ -11,25 +11,14 @@ import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 
 const logger = consola.withTag("completionsApi");
 
-// very basic validation for only top level fields
+// loose validation, only check required fields
 const tChatCompletionCreate = t.Object({
   messages: t.Array(t.Unknown()),
   model: t.String(),
-  frequency_penalty: t.Optional(t.Number()),
-  logprobs: t.Optional(t.Boolean()),
-  max_tokens: t.Optional(t.Number()),
   n: t.Optional(t.Number()),
-  presence_penalty: t.Optional(t.Number()),
-  response_format: t.Optional(t.Unknown()),
-  stop: t.Optional(t.Union([t.String(), t.Array(t.String())])),
   stream: t.Optional(t.Boolean()),
   stream_options: t.Optional(t.Unknown()),
-  temperature: t.Optional(t.Number()),
-  tool_choice: t.Optional(t.Unknown()),
-  tools: t.Optional(t.Array(t.Unknown())),
-  top_logprobs: t.Optional(t.Number()),
-  top_p: t.Optional(t.Number()),
-});
+}, { additionalProperties: true });
 
 export const completionsApi = new Elysia({
   prefix: "/chat",

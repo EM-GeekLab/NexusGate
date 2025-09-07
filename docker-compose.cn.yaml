@@ -31,3 +31,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    init: true

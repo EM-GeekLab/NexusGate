@@ -4,46 +4,16 @@ import { swagger } from "@elysiajs/swagger";
 import { serverTiming } from "@elysiajs/server-timing";
 import { routes } from "@/api";
 import { loggerPlugin } from "@/plugins/loggerPlugin";
-import { ALLOWED_ORIGINS, PORT, PRODUCTION } from "@/utils/config";
+import { ALLOWED_ORIGINS, PORT, PRODUCTION, FRONTEND_DIR } from "@/utils/config";
 import { consola } from "consola";
 import { initConfig } from "./utils/init";
 import { staticPlugin } from "@elysiajs/static";
 import { exists, readFile } from "node:fs/promises"
+import { join, resolve } from "node:path";
 
 await initConfig();
 
-const staticRoute = await (async () => {
-  let elysia = new Elysia();
-  if (await exists("dist")) {
-    elysia = elysia.use(staticPlugin({
-      assets: "dist",
-      alwaysStatic: true,
-      prefix: "/",
-    }))
-    if (await exists("dist/index.html")) {
-      const indexHtml = await readFile("dist/index.html", "utf-8");
-      elysia = elysia.get("/*", ({ headers: { accept } }) => {
-        if (typeof accept === "string" && !accept.includes("text/html")) {
-          return new Response("Not Found", {
-            status: 404,
-          });
-        }
-        return new Response(indexHtml, {
-          headers: {
-            "Content-Type": "text/html",
-          },
-        });
-      }, {
-        headers: t.Object({
-          accept: t.Optional(t.String())
-        })
-      })
-    }
-  }
-  return elysia;
-})()
-
-const app = new Elysia()
+let app = new Elysia()
   .use(loggerPlugin)
   .use(
     cors({
@@ -75,14 +45,39 @@ const app = new Elysia()
     }),
   )
   .use(serverTiming())
-  .use(routes)
-  .use(staticRoute)
-  .listen({
-    port: PORT,
-    reusePort: PRODUCTION,
-    hostname: "0.0.0.0",
-    idleTimeout: 255,
-  });
+  .use(routes);
+
+if (await exists(FRONTEND_DIR)) {
+  const dir = resolve(FRONTEND_DIR);
+  consola.log(`Setting up static file serving from ${dir}`);
+  app = app.use(staticPlugin({
+    assets: dir,
+    alwaysStatic: true,
+    prefix: "/",
+  }))
+  if (await exists(join(dir, "index.html"))) {
+    const indexHtml = await readFile(join(dir, "index.html"), "utf-8");
+    app = app.get("/*", ({ headers: { accept } }) => {
+      if (typeof accept === "string" && !accept.includes("text/html")) {
+        return new Response("Not Found", {
+          status: 404,
+        });
+      }
+      return new Response(indexHtml, {
+        headers: {
+          "Content-Type": "text/html",
+        },
+      });
+    });
+  }
+}
+
+app = app.listen({
+  port: PORT,
+  reusePort: PRODUCTION,
+  hostname: "0.0.0.0",
+  idleTimeout: 255,
+});
 
 consola.log(`🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`);
 

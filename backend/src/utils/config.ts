@@ -105,3 +105,5 @@ export const FORCILY_ADD_API_KEYS = env(
   "forcily add api keys",
   zObject(forcilyAddApiKeysSchema.optional()),
 );
+
+export const FRONTEND_DIR = env("frontend dir", z.coerce.string(), "dist")

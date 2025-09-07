@@ -21,6 +21,7 @@ FROM builder-common AS builder-backend
 RUN cd backend && bun run build
 
 FROM builder-common AS builder-frontend
+ARG COMMIT_SHA
 ENV VITE_BASE_URL=/ VITE_COMMIT_SHA=${COMMIT_SHA}
 RUN cd frontend && bun run build
 

@@ -37,7 +37,7 @@ export const adminApiKey = new Elysia()
       const r = await upsertApiKey({
         key,
         comment: body.comment,
-        expiresAt: body.expires_at,
+        expiresAt: body.expiresAt,
       });
       if (r === null) {
         return status(500, "Failed to create key");
@@ -48,7 +48,7 @@ export const adminApiKey = new Elysia()
     },
     {
       body: t.Object({
-        expires_at: t.Optional(t.Date()),
+        expiresAt: t.Optional(t.Date()),
         comment: t.Optional(t.String()),
       }),
     },

@@ -76,7 +76,7 @@
   "pages.requests.columns.Completed": "已完成",
   "pages.requests.columns.Failed": "失败",
   "pages.requests.columns.Model": "模型",
-  "pages.requests.columns.TTFT": "首 Token 返回时间",
+  "pages.requests.columns.TTFT": "TTFT",
   "pages.requests.columns.TimeToFirstToken": "首 Token 返回时间",
   "pages.requests.columns.Duration": "持续时间",
   "pages.requests.columns.Request": "请求",

@@ -15,7 +15,7 @@ export const modelsQueryApi = new Elysia().get("/models", async () => {
       id: upstream.model,
       object: "model",
       created: upstream.createdAt.getTime(),
-      owned_by: upstream.name,
+      ownedBy: upstream.name,
     })),
   };
 });

@@ -12,10 +12,36 @@ import { exists, readFile } from "node:fs/promises"
 
 await initConfig();
 
-let indexHtml = "";
-if (await exists("dist/index.html")) {
-  indexHtml = await readFile("dist/index.html", "utf-8");
-}
+const staticRoute = await (async () => {
+  let elysia = new Elysia();
+  if (await exists("dist")) {
+    elysia = elysia.use(staticPlugin({
+      assets: "dist",
+      alwaysStatic: true,
+      prefix: "/",
+    }))
+    if (await exists("dist/index.html")) {
+      const indexHtml = await readFile("dist/index.html", "utf-8");
+      elysia = elysia.get("/*", ({ headers: { accept } }) => {
+        if (typeof accept === "string" && !accept.includes("text/html")) {
+          return new Response("Not Found", {
+            status: 404,
+          });
+        }
+        return new Response(indexHtml, {
+          headers: {
+            "Content-Type": "text/html",
+          },
+        });
+      }, {
+        headers: t.Object({
+          accept: t.Optional(t.String())
+        })
+      })
+    }
+  }
+  return elysia;
+})()
 
 const app = new Elysia()
   .use(loggerPlugin)
@@ -50,26 +76,7 @@ const app = new Elysia()
   )
   .use(serverTiming())
   .use(routes)
-  .use(staticPlugin({
-    assets: "dist",
-    alwaysStatic: true,
-    prefix: "/",
-  })).get("/*", ({ headers: { accept } }) => {
-    if (typeof accept === "string" && !accept.includes("text/html")) {
-      return new Response("Not Found", {
-        status: 404,
-      });
-    }
-    return new Response(indexHtml, {
-      headers: {
-        "Content-Type": "text/html",
-      },
-    });
-  }, {
-    headers: t.Object({
-      accept: t.Optional(t.String())
-    })
-  })
+  .use(staticRoute)
   .listen({
     port: PORT,
     reusePort: PRODUCTION,

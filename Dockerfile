@@ -14,15 +14,24 @@ RUN --mount=type=cache,target=/cache \
     BUN_INSTALL_CACHE_DIR=/cache \
     bun install --frozen-lockfile --filter "!nexus-gate-docs"
 
-FROM deps AS builder
+FROM deps AS builder-common
+COPY . .
+
+FROM builder-common AS builder-backend
+RUN cd backend && bun run build
+
+FROM builder-common AS builder-frontend
+ENV VITE_BASE_URL=/ VITE_COMMIT_SHA=${COMMIT_SHA}
+RUN cd frontend && bun run build
+
+FROM base AS runner 
 ARG COMMIT_SHA
 ENV COMMIT_SHA=${COMMIT_SHA}
-COPY . .
-ENV VITE_BASE_URL=/ VITE_COMMIT_SHA=${COMMIT_SHA}
-RUN cd frontend && bun run build 
+COPY --from=builder-backend /app/backend/out/index.js /app/index.js
+COPY --from=builder-backend /app/backend/drizzle /app/drizzle
+COPY --from=builder-frontend /app/frontend/dist /app/dist
 
-FROM nginx:alpine AS runner
-COPY ./nginx-entrypoint.sh /nginx-entrypoint.sh
-COPY --from=builder /app/frontend/dist/ /var/www/html/
-EXPOSE 80/tcp
-CMD ["/bin/sh", "/nginx-entrypoint.sh"]
+USER bun
+EXPOSE 3000/tcp
+
+ENTRYPOINT [ "bun", "run", "index.js" ]

@@ -19,8 +19,8 @@ services:
     image: "redis:latest"
     restart: on-failure
 
-  backend:
-    image: "ghcr.io/em-geeklab/nexus-gate-server:latest"
+  nexusgate:
+    image: "ghcr.io/em-geeklab/nexusgate:latest"
     environment:
       - "DATABASE_URL=postgres://nexusgate:${POSTGRES_PASSWORD:-change_me_in_production}@database:5432/nexusgate"
       - "ADMIN_SUPER_SECRET=${ADMIN_SUPER_SECRET:-admin_key_change_in_production}"
@@ -31,14 +31,3 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-
-  frontend:
-    image: "ghcr.io/em-geeklab/nexus-gate-web:latest"
-    environment:
-      - "BACKEND_URL=http://backend:3000"
-    restart: on-failure
-    depends_on:
-      - backend
-    ports:
-      - "${WEB_PORT:-8080}:80"
- 

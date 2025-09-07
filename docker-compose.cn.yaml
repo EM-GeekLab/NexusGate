@@ -19,7 +19,7 @@ services:
     image: "m.daocloud.io/docker.io/library/redis:latest"
     restart: on-failure
 
-  backend:
+  nexusgate:
     image: "docker.cnb.cool/em-geeklab/nexusgate/server:latest"
     environment:
       - "DATABASE_URL=postgres://nexusgate:${POSTGRES_PASSWORD:-change_me_in_production}@database:5432/nexusgate"
@@ -31,14 +31,3 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-
-  frontend:
-    image: "docker.cnb.cool/em-geeklab/nexusgate/web:latest"
-    environment:
-      - "BACKEND_URL=http://backend:3000"
-    restart: on-failure
-    depends_on:
-      - backend
-    ports:
-      - "${WEB_PORT:-8080}:80"
- 

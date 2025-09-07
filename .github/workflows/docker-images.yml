@@ -10,23 +10,12 @@ on:
 env:
   REGISTRY: ghcr.io
   CN_REGISTRY: docker.cnb.cool
-
+  IMAGE_NAME: em-geeklab/nexusgate
+  CN_IMAGE_NAME: em-geeklab/nexusgate/server
 jobs:
   build-images:
     name: Build and push multi-arch images
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        image: 
-          - name: backend
-            dockerfile: backend.Dockerfile
-            image_name: em-geeklab/nexus-gate-server
-            cn_image_name: em-geeklab/nexusgate/server
-          - name: frontend
-            dockerfile: frontend.Dockerfile
-            image_name: em-geeklab/nexus-gate-web
-            cn_image_name: em-geeklab/nexusgate/web
     permissions:
       contents: read
       packages: write
@@ -57,8 +46,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ matrix.image.image_name }}
-            ${{ github.event_name == 'release' && format('{0}/{1}', env.CN_REGISTRY, matrix.image.cn_image_name) || '' }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            ${{ github.event_name == 'release' && format('{0}/{1}', env.CN_REGISTRY, env.CN_IMAGE_NAME) || '' }}
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@v6
@@ -67,11 +56,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          file: ${{ matrix.image.dockerfile }}
           platforms: linux/amd64,linux/arm64
           build-args: COMMIT_SHA=${{ github.sha }}
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ matrix.image.image_name }}
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}

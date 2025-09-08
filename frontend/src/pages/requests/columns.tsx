@@ -150,7 +150,7 @@ function DurationDisplay({ duration }: { duration: number | null }) {
 function getLastUserMessage(messages: ChatCompletionMessageParam[]): string {
   if (!messages.length) return ''
   const lastUserMessage = messages.findLast((message) => message.role === 'user')
-  if (lastUserMessage == null) return ''
+  if (lastUserMessage == null || lastUserMessage.content == null) return ''
   const { content } = lastUserMessage
   if (typeof content === 'string') return content
   return content

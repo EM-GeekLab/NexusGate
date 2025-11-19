@@ -1,6 +1,6 @@
 services:
   database:
-    image: "postgres:latest"
+    image: "postgres:17-alpine"
     environment:
       - "POSTGRES_USER=nexusgate"
       - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change_me_in_production}"
@@ -16,11 +16,11 @@ services:
       start_period: 10s
 
   redis:
-    image: "redis:latest"
+    image: "redis:alpine"
     restart: on-failure
 
   nexusgate:
-    image: "ghcr.io/em-geeklab/nexusgate:latest"
+    image: "ghcr.io/em-geeklab/nexusgate:main"
     environment:
       - "DATABASE_URL=postgres://nexusgate:${POSTGRES_PASSWORD:-change_me_in_production}@database:5432/nexusgate"
       - "ADMIN_SUPER_SECRET=${ADMIN_SUPER_SECRET:-admin_key_change_in_production}"

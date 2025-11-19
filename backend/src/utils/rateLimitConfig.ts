@@ -1,4 +1,5 @@
 import { consola } from "consola";
+import { DEFAULT_RATE_LIMIT, DEFAULT_REFILL_RATE } from "./config";
 
 const logger = consola.withTag("rateLimitConfig");
 
@@ -8,8 +9,8 @@ export interface RateLimitConfig {
 }
 
 export const DEFAULT_RATE_LIMIT_CONFIG: RateLimitConfig = {
-  limit: 10,
-  refill: 1,
+  limit: DEFAULT_RATE_LIMIT,
+  refill: DEFAULT_REFILL_RATE,
 };
 
 const MODEL_CONFIGS: Record<string, RateLimitConfig> = {};

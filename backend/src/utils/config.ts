@@ -29,13 +29,13 @@ function zBoolean(): z.ZodPipeline<
     .string()
     .optional()
     .transform((v) => {
-      if (v === undefined || v === "") return false;
+      if (v === undefined || v === "") {return false;}
       if (Number.isSafeInteger(v)) {
         return Number(v) > 0;
       }
       const v2 = v?.toLowerCase();
-      if (v2 === "true") return true;
-      if (v2 === "false") return false;
+      if (v2 === "true") {return true;}
+      if (v2 === "false") {return false;}
       return Boolean(v2);
     })
     .pipe(z.boolean());

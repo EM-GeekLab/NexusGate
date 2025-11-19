@@ -1,4 +1,4 @@
-import Elysia, { t } from "elysia";
+import { Elysia, t } from "elysia";
 import {
   deleteRateLimitConfig,
   getAllRateLimits,

@@ -5,7 +5,7 @@ import { serverTiming } from "@elysiajs/server-timing";
 import { staticPlugin } from "@elysiajs/static";
 import { swagger } from "@elysiajs/swagger";
 import { consola } from "consola";
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import {
   ALLOWED_ORIGINS,
   FRONTEND_DIR,

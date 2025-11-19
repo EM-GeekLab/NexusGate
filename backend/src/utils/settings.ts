@@ -1,4 +1,4 @@
-import type { Static, TSchema } from "@sinclair/typebox";
+import  { type Static, type TSchema } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
 import {
   deleteSetting as deleteSettingFromDb,

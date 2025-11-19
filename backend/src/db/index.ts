@@ -1,4 +1,4 @@
-import consola from "consola";
+import { consola } from "consola";
 import { and, asc, count, desc, eq, not, sql, sum } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sql";
 import { migrate } from "drizzle-orm/bun-sql/migrator";

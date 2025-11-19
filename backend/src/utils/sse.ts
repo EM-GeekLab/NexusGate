@@ -7,8 +7,8 @@ export async function* parseSse(
   while (true) {
     const { value, done } = await reader.read();
 
-    if (done) break;
-    if (!value) continue;
+    if (done) {break;}
+    if (!value) {continue;}
 
     buffer += value;
     const lines = buffer.split("\n");

@@ -1,7 +1,7 @@
 import { consola } from "consola";
 import { Elysia, t } from "elysia";
-import type { ChatCompletion, ChatCompletionChunk } from "openai/resources";
-import type { ChatCompletionMessage } from "openai/src/resources/index.js";
+import  { type ChatCompletion, type ChatCompletionChunk } from "openai/resources";
+import  { type ChatCompletionMessage } from "openai/src/resources/index.js";
 import { addCompletions, type Completion } from "@/utils/completions";
 import { parseSse } from "@/utils/sse";
 import { selectUpstream } from "@/utils/upstream";

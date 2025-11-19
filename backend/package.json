@@ -23,12 +23,18 @@
     "elysia": "^1.4.16",
     "ioredis": "^5.8.2",
     "openai": "^4.104.0",
-    "typebox": "^0.0.1"
+    "typebox": "^0.0.1",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
+    "prettier": "^3.6.2",
+    "oxlint": "^1.29.0",
+    "oxlint-tsgolint": "^0.7.1",
+    "@typescript/native-preview": "^7.0.0-dev.20251117.1"
   },
   "scripts": {
     "dev": "COMMIT_SHA=$(git rev-parse HEAD) CONSOLA_LEVEL=9999 FRONTEND_DIR=../frontend/dist bun --watch --hot --no-clear-screen --inspect src/index.ts",
     "build": "NODE_ENV=production bun build src/index.ts --target bun --outdir out/",
-    "format": "biome format --write",
-    "check": "biome check --write"
+    "lint": "oxlint --type-aware",
+    "fmt": "prettier --list-different --write .",
+    "check": "tsgo --noEmit"
   }
 }

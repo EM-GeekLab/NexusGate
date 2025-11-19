@@ -1,0 +1,58 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "env": {
+    "builtin": true
+  },
+  "plugins": [
+    "unicorn",
+    "typescript",
+    "oxc",
+    "eslint",
+    "import",
+    "jsdoc",
+    "node",
+    "regex"
+  ],
+  "ignorePatterns": ["scripts/test-*.ts", "*.config.ts"],
+  "categories": {
+    "correctness": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "typescript/no-confusing-void-expression": "warn",
+    "typescript/no-misused-promises": "warn",
+    "typescript/no-mixed-enums": "warn",
+    "typescript/no-unnecessary-boolean-literal-compare": "warn",
+    "typescript/no-unnecessary-template-expression": "warn",
+    "typescript/no-unnecessary-type-arguments": "warn",
+    "typescript/no-unnecessary-type-assertion": "warn",
+    "typescript/no-unsafe-argument": "warn",
+    "typescript/no-unsafe-assignment": "warn",
+    "typescript/no-unsafe-call": "warn",
+    "typescript/no-unsafe-enum-comparison": "warn",
+    "typescript/no-unsafe-member-access": "warn",
+    "typescript/no-unsafe-return": "warn",
+    "typescript/non-nullable-type-assertion-style": "warn",
+    "typescript/only-throw-warn": "warn",
+    "typescript/prefer-promise-reject-warns": "warn",
+    "typescript/prefer-reduce-type-parameter": "warn",
+    "typescript/prefer-return-this-type": "warn",
+    "typescript/promise-function-async": "warn",
+    "typescript/related-getter-setter-pairs": "warn",
+    "typescript/require-await": "warn",
+    "typescript/restrict-plus-operands": "warn",
+    "typescript/switch-exhaustiveness-check": "warn",
+    "typescript/use-unknown-in-catch-callback-variable": "warn",
+    "no-await-in-loop": "off",
+    "import/no-default-export": "warn",
+    "import/no-named-as-default": "warn",
+    "import/no-named-as-default-member": "warn",
+    "import/consistent-type-specifier-style": ["warn", "prefer-inline"],
+    "curly": "warn",
+    "no-extra-label": "warn",
+    "no-template-curly-in-string": "warn",
+    "yoda": "warn",
+    "typescript/consistent-type-imports": "warn"
+  },
+  "settings": {}
+}

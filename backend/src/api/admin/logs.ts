@@ -1,5 +1,5 @@
-import { getLog, listLogs } from "@/db";
 import { Elysia, t } from "elysia";
+import { getLog, listLogs } from "@/db";
 
 export const adminLogs = new Elysia()
   .get(

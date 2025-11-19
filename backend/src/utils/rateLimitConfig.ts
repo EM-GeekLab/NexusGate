@@ -44,7 +44,10 @@ export function getRateLimitConfig(identifier: string): RateLimitConfig | null {
  * @param config The rate limit configuration
  * @returns Success status
  */
-export function setRateLimitConfig(identifier: string, config: RateLimitConfig): boolean {
+export function setRateLimitConfig(
+  identifier: string,
+  config: RateLimitConfig,
+): boolean {
   try {
     MODEL_CONFIGS[identifier] = { ...config };
     logger.debug(`Rate limit configuration set for ${identifier}`);

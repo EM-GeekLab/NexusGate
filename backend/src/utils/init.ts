@@ -35,20 +35,26 @@ export async function initConfig(): Promise<void> {
       });
 
       if (result) {
-        logger.success(`Created upstream: ${upstream.name} (${upstream.model})(${upstream.url})`);
+        logger.success(
+          `Created upstream: ${upstream.name} (${upstream.model})(${upstream.url})`,
+        );
       } else {
         logger.warn(
           `Upstream already exists: ${upstream.name} (${upstream.model})(${upstream.url})`,
         );
       }
     } catch (error) {
-      logger.error(`Failed to create upstream ${upstream.name}: ${(error as Error).message}`);
+      logger.error(
+        `Failed to create upstream ${upstream.name}: ${(error as Error).message}`,
+      );
     }
   }
 
   if (FORCILY_ADD_API_KEYS !== undefined && FORCILY_ADD_API_KEYS.length > 0) {
     logger.info("Adding presetted API keys");
-    logger.warn("Setting API keys via FORCILY_ADD_API_KEYS is not recommended! Use with caution!");
+    logger.warn(
+      "Setting API keys via FORCILY_ADD_API_KEYS is not recommended! Use with caution!",
+    );
     for (const key of FORCILY_ADD_API_KEYS) {
       try {
         const result = await db.upsertApiKey({ key });
@@ -58,7 +64,9 @@ export async function initConfig(): Promise<void> {
           logger.warn(`Failed to insert API key: ${key}`);
         }
       } catch (error) {
-        logger.error(`Failed to create API key ${key}: ${(error as Error).message}`);
+        logger.error(
+          `Failed to create API key ${key}: ${(error as Error).message}`,
+        );
       }
     }
   }
@@ -75,7 +83,9 @@ async function loadInitConfig(): Promise<InitConfigJson | null> {
   const configFile = Bun.file(INIT_CONFIG_PATH);
   if (await configFile.exists()) {
     try {
-      logger.info(`Loading initialization configuration from file: ${INIT_CONFIG_PATH}`);
+      logger.info(
+        `Loading initialization configuration from file: ${INIT_CONFIG_PATH}`,
+      );
       const configData = await configFile.text();
       const config = JSON.parse(configData);
       const parsed = await initConfigJsonSchema.safeParseAsync(config);

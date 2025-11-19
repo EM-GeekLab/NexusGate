@@ -1,7 +1,10 @@
-import { consume, type TokenBucketOptions } from "@/utils/tokenBucket";
-import { DEFAULT_RATE_LIMIT_CONFIG, getRateLimitConfig } from "../utils/rateLimitConfig";
 import { consola } from "consola";
 import { Elysia } from "elysia";
+import { consume, type TokenBucketOptions } from "@/utils/tokenBucket";
+import {
+  DEFAULT_RATE_LIMIT_CONFIG,
+  getRateLimitConfig,
+} from "../utils/rateLimitConfig";
 import { apiKeyPlugin } from "./apiKeyPlugin";
 
 const logger = consola.withTag("rateLimitPlugin");
@@ -28,7 +31,8 @@ export const rateLimitPlugin = new Elysia({
           }
         }
 
-        const config = getRateLimitConfig(identifier) ?? DEFAULT_RATE_LIMIT_CONFIG;
+        const config =
+          getRateLimitConfig(identifier) ?? DEFAULT_RATE_LIMIT_CONFIG;
 
         const limit = options?.customConfig?.limit ?? config.limit;
         const refill = options?.customConfig?.refill ?? config.refill;
@@ -49,7 +53,9 @@ export const rateLimitPlugin = new Elysia({
           return error(429, "Rate limit exceeded");
         }
 
-        logger.debug(`Rate limit (${identifier}:${bearer}): ${newTokens}/${limit}`);
+        logger.debug(
+          `Rate limit (${identifier}:${bearer}): ${newTokens}/${limit}`,
+        );
 
         set.headers["X-RateLimit-Limit"] = limit.toString();
         set.headers["X-RateLimit-Remaining"] = newTokens.toString();

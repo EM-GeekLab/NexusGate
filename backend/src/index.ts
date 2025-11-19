@@ -1,15 +1,20 @@
-import { Elysia, t } from "elysia";
+import { exists, readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { cors } from "@elysiajs/cors";
-import { swagger } from "@elysiajs/swagger";
 import { serverTiming } from "@elysiajs/server-timing";
+import { staticPlugin } from "@elysiajs/static";
+import { swagger } from "@elysiajs/swagger";
+import { consola } from "consola";
+import { Elysia, t } from "elysia";
+import {
+  ALLOWED_ORIGINS,
+  FRONTEND_DIR,
+  PORT,
+  PRODUCTION,
+} from "@/utils/config";
 import { routes } from "@/api";
 import { loggerPlugin } from "@/plugins/loggerPlugin";
-import { ALLOWED_ORIGINS, PORT, PRODUCTION, FRONTEND_DIR } from "@/utils/config";
-import { consola } from "consola";
 import { initConfig } from "./utils/init";
-import { staticPlugin } from "@elysiajs/static";
-import { exists, readFile } from "node:fs/promises"
-import { join, resolve } from "node:path";
 
 await initConfig();
 
@@ -41,7 +46,7 @@ let app = new Elysia()
         },
       },
       path: "/api/docs",
-      specPath: "/api/openapi.json"
+      specPath: "/api/openapi.json",
     }),
   )
   .use(serverTiming())
@@ -50,11 +55,13 @@ let app = new Elysia()
 if (await exists(FRONTEND_DIR)) {
   const dir = resolve(FRONTEND_DIR);
   consola.log(`Setting up static file serving from ${dir}`);
-  app = app.use(staticPlugin({
-    assets: dir,
-    alwaysStatic: true,
-    prefix: "/",
-  }))
+  app = app.use(
+    staticPlugin({
+      assets: dir,
+      alwaysStatic: true,
+      prefix: "/",
+    }),
+  );
   if (await exists(join(dir, "index.html"))) {
     const indexHtml = await readFile(join(dir, "index.html"), "utf-8");
     app = app.get("/*", ({ headers: { accept } }) => {
@@ -79,6 +86,8 @@ app = app.listen({
   idleTimeout: 255,
 });
 
-consola.log(`🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`);
+consola.log(
+  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
+);
 
 export type App = typeof app;

@@ -1,3 +1,4 @@
+import consola from "consola";
 import { findApiKey, insertCompletion, insertLog } from "@/db";
 import type {
   CompletionsCompletionType,
@@ -5,7 +6,6 @@ import type {
   CompletionsStatusEnumType,
   SrvLogsLevelEnumType,
 } from "@/db/schema";
-import consola from "consola";
 
 export type Completion = {
   model: string;
@@ -41,7 +41,8 @@ export async function addCompletions(
     };
   },
 ) {
-  const keyId = apiKey === undefined ? -1 : ((await findApiKey(apiKey))?.id ?? -1);
+  const keyId =
+    apiKey === undefined ? -1 : ((await findApiKey(apiKey))?.id ?? -1);
   const completion = await insertCompletion({
     apiKeyId: keyId,
     ...c,

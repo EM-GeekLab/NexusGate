@@ -1,8 +1,7 @@
-import { Elysia } from "elysia";
-
-import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 import { consola } from "consola";
+import { Elysia } from "elysia";
 import { findApiKey, sumCompletionTokenUsage } from "@/db";
+import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 
 const logger = consola.withTag("usageQuery");
 

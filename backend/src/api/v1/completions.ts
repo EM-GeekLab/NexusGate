@@ -1,24 +1,26 @@
+import { consola } from "consola";
 import { Elysia, t } from "elysia";
-import type { ChatCompletionChunk, ChatCompletion } from "openai/resources";
-
-import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
+import type { ChatCompletion, ChatCompletionChunk } from "openai/resources";
+import type { ChatCompletionMessage } from "openai/src/resources/index.js";
 import { addCompletions, type Completion } from "@/utils/completions";
 import { parseSse } from "@/utils/sse";
-import { consola } from "consola";
 import { selectUpstream } from "@/utils/upstream";
-import type { ChatCompletionMessage } from "openai/src/resources/index.js";
+import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 
 const logger = consola.withTag("completionsApi");
 
 // loose validation, only check required fields
-const tChatCompletionCreate = t.Object({
-  messages: t.Array(t.Unknown()),
-  model: t.String(),
-  n: t.Optional(t.Number()),
-  stream: t.Optional(t.Boolean()),
-  stream_options: t.Optional(t.Unknown()),
-}, { additionalProperties: true });
+const tChatCompletionCreate = t.Object(
+  {
+    messages: t.Array(t.Unknown()),
+    model: t.String(),
+    n: t.Optional(t.Number()),
+    stream: t.Optional(t.Boolean()),
+    stream_options: t.Optional(t.Unknown()),
+  },
+  { additionalProperties: true },
+);
 
 export const completionsApi = new Elysia({
   prefix: "/chat",
@@ -158,7 +160,7 @@ export const completionsApi = new Elysia({
           if (!!body.n && body.n > 1) {
             return status(
               400,
-              "Stream completions with n > 1 is not supported"
+              "Stream completions with n > 1 is not supported",
             );
           }
 
@@ -379,5 +381,5 @@ export const completionsApi = new Elysia({
       rateLimit: {
         identifier: (body) => (body as { model: string }).model,
       },
-    }
+    },
   );

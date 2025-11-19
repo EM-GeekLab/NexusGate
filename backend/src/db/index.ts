@@ -1,9 +1,9 @@
-import { drizzle } from "drizzle-orm/bun-sql";
-import * as schema from "./schema";
-import { and, asc, count, desc, eq, not, sql, sum } from "drizzle-orm";
 import consola from "consola";
-import { DATABASE_URL } from "@/utils/config";
+import { and, asc, count, desc, eq, not, sql, sum } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/bun-sql";
 import { migrate } from "drizzle-orm/bun-sql/migrator";
+import { DATABASE_URL } from "@/utils/config";
+import * as schema from "./schema";
 
 const globalThis_ = globalThis as typeof globalThis & {
   db: ReturnType<typeof drizzle>;
@@ -49,7 +49,10 @@ export type PartialList<T> = {
  */
 export async function findApiKey(key: string): Promise<ApiKey | null> {
   logger.debug("findApiKey", key);
-  const r = await db.select().from(schema.ApiKeysTable).where(eq(schema.ApiKeysTable.key, key));
+  const r = await db
+    .select()
+    .from(schema.ApiKeysTable)
+    .where(eq(schema.ApiKeysTable.key, key));
   return r.length === 1 ? r[0] : null;
 }
 
@@ -100,7 +103,10 @@ export async function upsertApiKey(c: ApiKeyInsert): Promise<ApiKey | null> {
  * @param upstream upstream name
  * @returns db records of upstream, null if not found
  */
-export async function findUpstreams(model: string, upstream?: string): Promise<Upstream[]> {
+export async function findUpstreams(
+  model: string,
+  upstream?: string,
+): Promise<Upstream[]> {
   logger.debug("findUpstreams", model, upstream);
   const r = await db
     .select()
@@ -108,7 +114,9 @@ export async function findUpstreams(model: string, upstream?: string): Promise<U
     .where(
       and(
         eq(schema.UpstreamTable.model, model),
-        upstream !== undefined ? eq(schema.UpstreamTable.name, upstream) : undefined,
+        upstream !== undefined
+          ? eq(schema.UpstreamTable.name, upstream)
+          : undefined,
         not(schema.UpstreamTable.deleted),
       ),
     );
@@ -121,7 +129,10 @@ export async function findUpstreams(model: string, upstream?: string): Promise<U
  */
 export async function listUpstreams() {
   logger.debug("listUpstreams");
-  const r = await db.select().from(schema.UpstreamTable).where(not(schema.UpstreamTable.deleted));
+  const r = await db
+    .select()
+    .from(schema.UpstreamTable)
+    .where(not(schema.UpstreamTable.deleted));
   return r;
 }
 
@@ -160,9 +171,15 @@ export async function listUpstreamModels() {
  * @param c parameters of upstream to insert
  * @returns record of the new upstream, null if already exists
  */
-export async function insertUpstream(c: UpstreamInsert): Promise<Upstream | null> {
+export async function insertUpstream(
+  c: UpstreamInsert,
+): Promise<Upstream | null> {
   logger.debug("insertUpstream", c);
-  const r = await db.insert(schema.UpstreamTable).values(c).onConflictDoNothing().returning();
+  const r = await db
+    .insert(schema.UpstreamTable)
+    .values(c)
+    .onConflictDoNothing()
+    .returning();
   return r.length === 1 ? r[0] : null;
 }
 
@@ -181,7 +198,10 @@ export async function deleteUpstream(id: number) {
   return r.length === 1 ? r[0] : null;
 }
 
-export type UpstreamAggregatedByModel = { model: string; upstreams: Upstream[] }[];
+export type UpstreamAggregatedByModel = {
+  model: string;
+  upstreams: Upstream[];
+}[];
 
 /**
  * group upstreams by model
@@ -200,7 +220,10 @@ export async function groupUpstreamByModel() {
   return r as UpstreamAggregatedByModel;
 }
 
-export type UpstreamAggregatedByName = { name: string; upstreams: Upstream[] }[];
+export type UpstreamAggregatedByName = {
+  name: string;
+  upstreams: Upstream[];
+}[];
 
 /**
  * group upstreams by name
@@ -224,9 +247,15 @@ export async function groupUpstreamByName() {
  * @param c parameters of completion to insert
  * @returns db record of completion, null if already exists
  */
-export async function insertCompletion(c: CompletionInsert): Promise<Completion | null> {
+export async function insertCompletion(
+  c: CompletionInsert,
+): Promise<Completion | null> {
   logger.debug("insertCompletion", c.model);
-  const r = await db.insert(schema.CompletionsTable).values(c).onConflictDoNothing().returning();
+  const r = await db
+    .insert(schema.CompletionsTable)
+    .values(c)
+    .onConflictDoNothing()
+    .returning();
   return r.length === 1 ? r[0] : null;
 }
 
@@ -243,7 +272,11 @@ export async function sumCompletionTokenUsage(apiKeyId?: number) {
       total_completion_tokens: sum(schema.CompletionsTable.completionTokens),
     })
     .from(schema.CompletionsTable)
-    .where(apiKeyId !== undefined ? eq(schema.CompletionsTable.apiKeyId, apiKeyId) : undefined);
+    .where(
+      apiKeyId !== undefined
+        ? eq(schema.CompletionsTable.apiKeyId, apiKeyId)
+        : undefined,
+    );
   return r.length === 1 ? r[0] : null;
 }
 
@@ -269,8 +302,12 @@ export async function listCompletions(
     .where(
       and(
         not(schema.CompletionsTable.deleted),
-        apiKeyId !== undefined ? eq(schema.CompletionsTable.apiKeyId, apiKeyId) : undefined,
-        upstreamId !== undefined ? eq(schema.CompletionsTable.upstreamId, upstreamId) : undefined,
+        apiKeyId !== undefined
+          ? eq(schema.CompletionsTable.apiKeyId, apiKeyId)
+          : undefined,
+        upstreamId !== undefined
+          ? eq(schema.CompletionsTable.upstreamId, upstreamId)
+          : undefined,
       ),
     )
     .orderBy(desc(schema.CompletionsTable.id))
@@ -321,7 +358,12 @@ export async function findCompletion(id: number): Promise<Completion | null> {
   const r = await db
     .select()
     .from(schema.CompletionsTable)
-    .where(and(eq(schema.CompletionsTable.id, id), not(schema.CompletionsTable.deleted)));
+    .where(
+      and(
+        eq(schema.CompletionsTable.id, id),
+        not(schema.CompletionsTable.deleted),
+      ),
+    );
   return r.length === 1 ? r[0] : null;
 }
 
@@ -347,7 +389,9 @@ export async function listLogs(
     .from(schema.SrvLogsTable)
     .where(
       and(
-        apiKeyId !== undefined ? eq(schema.SrvLogsTable.relatedApiKeyId, apiKeyId) : undefined,
+        apiKeyId !== undefined
+          ? eq(schema.SrvLogsTable.relatedApiKeyId, apiKeyId)
+          : undefined,
         upstreamId !== undefined
           ? eq(schema.SrvLogsTable.relatedCompletionId, upstreamId)
           : undefined,
@@ -387,7 +431,11 @@ export async function listLogs(
  */
 export async function insertLog(c: SrvLogInsert): Promise<SrvLog | null> {
   logger.debug("insertLog");
-  const r = await db.insert(schema.SrvLogsTable).values(c).onConflictDoNothing().returning();
+  const r = await db
+    .insert(schema.SrvLogsTable)
+    .values(c)
+    .onConflictDoNothing()
+    .returning();
   return r.length === 1 ? r[0] : null;
 }
 
@@ -411,7 +459,10 @@ export async function getLog(logId: number): Promise<{
       completion: schema.CompletionsTable,
     })
     .from(schema.SrvLogsTable)
-    .leftJoin(schema.ApiKeysTable, eq(schema.SrvLogsTable.relatedApiKeyId, schema.ApiKeysTable.id))
+    .leftJoin(
+      schema.ApiKeysTable,
+      eq(schema.SrvLogsTable.relatedApiKeyId, schema.ApiKeysTable.id),
+    )
     .leftJoin(
       schema.UpstreamTable,
       eq(schema.SrvLogsTable.relatedUpstreamId, schema.UpstreamTable.id),
@@ -430,7 +481,10 @@ export async function getLog(logId: number): Promise<{
  */
 export async function getAllSettings() {
   logger.debug("getAllSettings");
-  const r = await db.select().from(schema.SettingsTable).orderBy(asc(schema.SettingsTable.key));
+  const r = await db
+    .select()
+    .from(schema.SettingsTable)
+    .orderBy(asc(schema.SettingsTable.key));
   return r;
 }
 

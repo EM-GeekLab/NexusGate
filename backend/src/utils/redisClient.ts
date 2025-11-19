@@ -1,5 +1,5 @@
-import Redis from "ioredis";
 import { consola } from "consola";
+import Redis from "ioredis";
 import { REDIS_URL } from "@/utils/config";
 
 const logger = consola.withTag("redisClient");

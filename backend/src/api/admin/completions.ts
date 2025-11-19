@@ -1,5 +1,5 @@
-import { deleteCompletion, findCompletion, listCompletions } from "@/db";
 import { Elysia, t } from "elysia";
+import { deleteCompletion, findCompletion, listCompletions } from "@/db";
 
 export const adminCompletions = new Elysia()
   .get(

@@ -1,5 +1,5 @@
-import { findApiKey, sumCompletionTokenUsage } from "@/db";
 import { Elysia, t } from "elysia";
+import { findApiKey, sumCompletionTokenUsage } from "@/db";
 
 export const adminUsage = new Elysia().get(
   "/usage",

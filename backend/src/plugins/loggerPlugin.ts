@@ -1,5 +1,5 @@
-import { Elysia } from "elysia";
 import { consola } from "consola";
+import { Elysia } from "elysia";
 
 const logger = consola.withTag("router");
 

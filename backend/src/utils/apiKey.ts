@@ -1,5 +1,5 @@
-import { updateApiKey } from "@/db";
 import * as crypto from "node:crypto";
+import { updateApiKey } from "@/db";
 
 /**
  * check if an API key is valid
@@ -11,7 +11,11 @@ export async function checkApiKey(key: string): Promise<boolean> {
     key,
     lastSeen: new Date(),
   });
-  return r !== null && !r.revoked && (r.expiresAt === null || r.expiresAt > new Date());
+  return (
+    r !== null &&
+    !r.revoked &&
+    (r.expiresAt === null || r.expiresAt > new Date())
+  );
 }
 
 /**

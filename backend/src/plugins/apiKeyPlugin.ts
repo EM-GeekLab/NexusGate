@@ -15,12 +15,14 @@ export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
   .macro({
     checkApiKey: {
       async beforeHandle({ error, bearer }) {
-        if (!bearer || !(await checkApiKey(bearer))) return error(401, "Invalid API key");
+        if (!bearer || !(await checkApiKey(bearer)))
+          return error(401, "Invalid API key");
       },
     },
     checkAdminApiKey: {
       async beforeHandle({ error, bearer }) {
-        if (!bearer || !(bearer === ADMIN_SUPER_SECRET)) return error(401, "Invalid admin secret");
+        if (!bearer || !(bearer === ADMIN_SUPER_SECRET))
+          return error(401, "Invalid admin secret");
       },
     },
   });

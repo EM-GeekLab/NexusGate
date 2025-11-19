@@ -35,6 +35,6 @@
     "build": "NODE_ENV=production bun build src/index.ts --target bun --outdir out/",
     "lint": "oxlint --type-aware",
     "fmt": "prettier --list-different --write .",
-    "check": "tsgo --noEmit"
+    "check": "tsgo -p tsconfig.check.json"
   }
 }

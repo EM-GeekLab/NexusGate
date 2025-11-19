@@ -1,31 +1,37 @@
+// A additional typescript configuration for tsgo
+// remove some options that are not compatible with tsgo
 {
   "compilerOptions": {
-    // Enable latest features
-    "lib": ["ESNext", "DOM"],
+    // Environment setup & latest features
+    "lib": ["ESNext"],
     "target": "ESNext",
-    "module": "ESNext",
+    "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": false,
+
     // Bundler mode
+    "noEmit": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "emitDeclarationOnly": true,
+    // "verbatimModuleSyntax": true,
+
     // Best practices
     "strict": true,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
-    // Paths
+
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "composite": true
+    }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "out", "tmp"]
+  "exclude": ["node_modules", "dist"]
 }

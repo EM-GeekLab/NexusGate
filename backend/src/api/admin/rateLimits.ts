@@ -1,10 +1,10 @@
+import Elysia, { t } from "elysia";
 import {
+  deleteRateLimitConfig,
   getAllRateLimits,
   getRateLimitConfig,
   setRateLimitConfig,
-  deleteRateLimitConfig,
 } from "@/utils/rateLimitConfig";
-import Elysia, { t } from "elysia";
 
 export const adminRateLimits = new Elysia()
   .get("/ratelimits", async () => {

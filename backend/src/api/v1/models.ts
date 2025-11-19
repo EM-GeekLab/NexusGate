@@ -1,6 +1,5 @@
-import { Elysia } from "elysia";
-
 import { consola } from "consola";
+import { Elysia } from "elysia";
 import { listUpstreams } from "@/db";
 
 const logger = consola.withTag("modelsQuery");

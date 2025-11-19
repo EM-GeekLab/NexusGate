@@ -1,5 +1,5 @@
-import { deleteUpstream, insertUpstream, listUpstreams } from "@/db";
 import Elysia, { t } from "elysia";
+import { deleteUpstream, insertUpstream, listUpstreams } from "@/db";
 
 export const adminUpstream = new Elysia()
   .get("/upstream", async (_) => {

@@ -80,7 +80,9 @@ export const CompletionsTable = pgTable("completions", {
   apiKeyId: integer("api_key_id")
     .notNull()
     .references((): AnyPgColumn => ApiKeysTable.id),
-  upstreamId: integer("upstream_id").references((): AnyPgColumn => UpstreamTable.id),
+  upstreamId: integer("upstream_id").references(
+    (): AnyPgColumn => UpstreamTable.id,
+  ),
   model: varchar("model").notNull(),
   prompt: jsonb("prompt").notNull().$type<CompletionsPromptType>(),
   promptTokens: integer("prompt_tokens").notNull(),
@@ -95,7 +97,12 @@ export const CompletionsTable = pgTable("completions", {
   rating: real("rating"),
 });
 
-export const SrvLogsLevelEnum = pgEnum("srv_logs_level", ["unspecific", "info", "warn", "error"]);
+export const SrvLogsLevelEnum = pgEnum("srv_logs_level", [
+  "unspecific",
+  "info",
+  "warn",
+  "error",
+]);
 export type SrvLogsLevelEnumType = (typeof SrvLogsLevelEnum.enumValues)[number];
 export type SrvLogDetailsType = {
   type: string;
@@ -104,8 +111,12 @@ export type SrvLogDetailsType = {
 
 export const SrvLogsTable = pgTable("srv_logs", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity().unique(),
-  relatedApiKeyId: integer("related_api_key_id").references((): AnyPgColumn => ApiKeysTable.id),
-  relatedUpstreamId: integer("related_upstream_id").references((): AnyPgColumn => UpstreamTable.id),
+  relatedApiKeyId: integer("related_api_key_id").references(
+    (): AnyPgColumn => ApiKeysTable.id,
+  ),
+  relatedUpstreamId: integer("related_upstream_id").references(
+    (): AnyPgColumn => UpstreamTable.id,
+  ),
   relatedCompletionId: integer("related_completion_id").references(
     (): AnyPgColumn => CompletionsTable.id,
   ),

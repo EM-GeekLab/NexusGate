@@ -1,5 +1,5 @@
-import redisClient from "./redisClient";
 import { consola } from "consola";
+import redisClient from "./redisClient";
 
 const logger = consola.withTag("tokenBucket");
 
@@ -28,12 +28,16 @@ async function refill(
     const lastRefillStr = await redisClient.get(`${key}:lastRefill`);
 
     if (!tokensStr || !lastRefillStr) {
-      await redisClient.set(`${key}:tokens`, options.capacity, { EX: EXPIRY_TIME });
+      await redisClient.set(`${key}:tokens`, options.capacity, {
+        EX: EXPIRY_TIME,
+      });
       await redisClient.set(`${key}:lastRefill`, now, { EX: EXPIRY_TIME });
       return { tokens: options.capacity, lastRefill: now };
     }
 
-    const currentTokens = tokensStr ? Number.parseFloat(tokensStr) : options.capacity;
+    const currentTokens = tokensStr
+      ? Number.parseFloat(tokensStr)
+      : options.capacity;
     const lastRefill = lastRefillStr ? Number.parseInt(lastRefillStr) : now;
     const elapsed = (now - lastRefill) / 1000;
     const tokensToAdd = Math.floor(elapsed * options.refillRate);

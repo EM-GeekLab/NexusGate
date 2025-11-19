@@ -12,8 +12,5 @@
     "esbuild",
     "protobufjs",
     "sharp"
-  ],
-  "dependencies": {
-    "@elysiajs/static": "^1.3.0"
-  }
+  ]
 }

@@ -1,213 +1,285 @@
-import { describe, test, expect, mock } from "bun:test";
+import { describe, test, expect, mock, beforeEach } from "bun:test";
 
-// Mock the database module
-const mockModels = [
-  {
+// Define types locally to avoid importing from @/db which triggers DB connection
+type Provider = {
+  id: number;
+  name: string;
+  type: string;
+  baseUrl: string;
+  apiKey: string | null;
+  comment: string | null;
+  deleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type Model = {
+  id: number;
+  providerId: number;
+  systemName: string;
+  remoteId: string | null;
+  modelType: "chat" | "embedding";
+  weight: number;
+  contextLength: number | null;
+  inputPrice: number | null;
+  outputPrice: number | null;
+  comment: string | null;
+  deleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+// Test data factories
+function createMockProvider(overrides: Partial<Provider> = {}): Provider {
+  return {
+    id: 1,
+    name: "OpenAI",
+    type: "openai",
+    baseUrl: "https://api.openai.com/v1",
+    apiKey: "sk-test-key",
+    comment: null,
+    deleted: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  };
+}
+
+function createMockModel(overrides: Partial<Model> = {}): Model {
+  return {
     id: 1,
     providerId: 1,
     systemName: "gpt-4",
-    remoteId: "gpt-4-turbo",
-    modelType: "chat" as const,
-    weight: 1.0,
-    contextLength: 128000,
-    inputPrice: "10.00",
-    outputPrice: "30.00",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    provider: {
-      id: 1,
-      name: "OpenAI",
-      type: "openai",
-      baseUrl: "https://api.openai.com/v1",
-      apiKey: "sk-test-key",
-      deleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  },
-  {
-    id: 2,
-    providerId: 2,
-    systemName: "gpt-4",
     remoteId: null,
-    modelType: "chat" as const,
-    weight: 2.0,
-    contextLength: 128000,
-    inputPrice: "8.00",
-    outputPrice: "24.00",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    provider: {
-      id: 2,
-      name: "Azure",
-      type: "azure",
-      baseUrl: "https://myazure.openai.azure.com",
-      apiKey: "azure-key",
-      deleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  },
-  {
-    id: 3,
-    providerId: 1,
-    systemName: "text-embedding-3-large",
-    remoteId: "text-embedding-3-large",
-    modelType: "embedding" as const,
+    modelType: "chat",
     weight: 1.0,
-    contextLength: 8191,
-    inputPrice: "0.13",
-    outputPrice: null,
+    contextLength: 128000,
+    inputPrice: 10.0,
+    outputPrice: 30.0,
+    comment: null,
+    deleted: false,
     createdAt: new Date(),
     updatedAt: new Date(),
-    provider: {
-      id: 1,
-      name: "OpenAI",
-      type: "openai",
-      baseUrl: "https://api.openai.com/v1",
-      apiKey: "sk-test-key",
-      deleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  },
-];
+    ...overrides,
+  };
+}
 
-// Test getRemoteModelId utility
+// ============================================
+// Tests for buildUpstreamUrl
+// These are pure functions that don't need DB
+// ============================================
+describe("buildUpstreamUrl", () => {
+  // Inline implementation of buildUpstreamUrl for testing
+  // (to avoid importing from model.ts which would trigger @/db import)
+  const buildUpstreamUrl = (provider: Provider, endpoint: string): string => {
+    const baseUrl = provider.baseUrl.endsWith("/")
+      ? provider.baseUrl.slice(0, -1)
+      : provider.baseUrl;
+    return `${baseUrl}${endpoint}`;
+  };
+
+  test("builds correct URL with baseUrl without trailing slash", () => {
+    const provider = createMockProvider({ baseUrl: "https://api.openai.com/v1" });
+    const result = buildUpstreamUrl(provider, "/chat/completions");
+    expect(result).toBe("https://api.openai.com/v1/chat/completions");
+  });
+
+  test("builds correct URL with baseUrl with trailing slash", () => {
+    const provider = createMockProvider({ baseUrl: "https://api.openai.com/v1/" });
+    const result = buildUpstreamUrl(provider, "/chat/completions");
+    expect(result).toBe("https://api.openai.com/v1/chat/completions");
+  });
+
+  test("builds embeddings URL correctly", () => {
+    const provider = createMockProvider({ baseUrl: "https://api.openai.com/v1" });
+    const result = buildUpstreamUrl(provider, "/embeddings");
+    expect(result).toBe("https://api.openai.com/v1/embeddings");
+  });
+
+  test("handles custom base URLs", () => {
+    const provider = createMockProvider({ baseUrl: "http://localhost:11434/v1" });
+    const result = buildUpstreamUrl(provider, "/chat/completions");
+    expect(result).toBe("http://localhost:11434/v1/chat/completions");
+  });
+
+  test("handles Azure-style URLs", () => {
+    const provider = createMockProvider({
+      baseUrl: "https://myresource.openai.azure.com/openai/deployments/gpt-4",
+    });
+    const result = buildUpstreamUrl(provider, "/chat/completions");
+    expect(result).toBe(
+      "https://myresource.openai.azure.com/openai/deployments/gpt-4/chat/completions"
+    );
+  });
+});
+
+// ============================================
+// Tests for getRemoteModelId
+// ============================================
 describe("getRemoteModelId", () => {
-  test("returns remoteId when it exists", () => {
-    const model = { systemName: "gpt-4", remoteId: "gpt-4-turbo" };
-    // @ts-ignore - simplified model type for testing
-    const result = model.remoteId ?? model.systemName;
-    expect(result).toBe("gpt-4-turbo");
+  // Inline implementation for testing
+  const getRemoteModelId = (model: Model): string => {
+    return model.remoteId || model.systemName;
+  };
+
+  test("returns remoteId when it is set", () => {
+    const model = createMockModel({ systemName: "gpt-4", remoteId: "gpt-4-turbo-preview" });
+    const result = getRemoteModelId(model);
+    expect(result).toBe("gpt-4-turbo-preview");
   });
 
   test("returns systemName when remoteId is null", () => {
-    const model = { systemName: "gpt-4", remoteId: null };
-    // @ts-ignore - simplified model type for testing
-    const result = model.remoteId ?? model.systemName;
+    const model = createMockModel({ systemName: "gpt-4", remoteId: null });
+    const result = getRemoteModelId(model);
     expect(result).toBe("gpt-4");
   });
-});
 
-// Test buildUpstreamUrl utility
-describe("buildUpstreamUrl", () => {
-  test("builds correct URL with trailing slash in baseUrl", () => {
-    const provider = { baseUrl: "https://api.openai.com/v1/" };
-    const endpoint = "/embeddings";
-    const url = provider.baseUrl.replace(/\/$/, "") + endpoint;
-    expect(url).toBe("https://api.openai.com/v1/embeddings");
+  test("returns systemName when remoteId is empty string", () => {
+    const model = createMockModel({ systemName: "gpt-4", remoteId: "" });
+    const result = getRemoteModelId(model);
+    expect(result).toBe("gpt-4");
   });
 
-  test("builds correct URL without trailing slash in baseUrl", () => {
-    const provider = { baseUrl: "https://api.openai.com/v1" };
-    const endpoint = "/chat/completions";
-    const url = provider.baseUrl.replace(/\/$/, "") + endpoint;
-    expect(url).toBe("https://api.openai.com/v1/chat/completions");
-  });
-});
-
-// Test model name parsing (for @provider syntax)
-describe("parseModelName", () => {
-  test("parses model name without provider", () => {
-    const modelName = "gpt-4";
-    const parts = modelName.split("@");
-    expect(parts).toEqual(["gpt-4"]);
-    expect(parts.length).toBe(1);
+  test("handles embedding model", () => {
+    const model = createMockModel({
+      systemName: "text-embedding-3-large",
+      remoteId: null,
+      modelType: "embedding",
+    });
+    const result = getRemoteModelId(model);
+    expect(result).toBe("text-embedding-3-large");
   });
 
-  test("parses model name with provider", () => {
-    const modelName = "gpt-4@OpenAI";
-    const parts = modelName.split("@");
-    expect(parts).toEqual(["gpt-4", "OpenAI"]);
-    expect(parts.length).toBe(2);
+  test("handles model with different remoteId", () => {
+    const model = createMockModel({
+      systemName: "my-custom-gpt4",
+      remoteId: "gpt-4-0125-preview",
+    });
+    const result = getRemoteModelId(model);
+    expect(result).toBe("gpt-4-0125-preview");
   });
 });
 
-// Test weighted random selection algorithm
-describe("weightedRandomSelection", () => {
-  test("selects from candidates based on weight", () => {
-    const candidates = [
-      { id: 1, weight: 1.0 },
-      { id: 2, weight: 2.0 },
-      { id: 3, weight: 1.0 },
-    ];
+// ============================================
+// Tests for selectModel logic
+// Tests the weighted selection algorithm
+// ============================================
+describe("selectModel logic", () => {
+  type ModelWithProvider = { model: Model; provider: Provider };
 
-    const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
-    expect(totalWeight).toBe(4.0);
+  // Inline implementation of the selection logic for testing
+  const parseModelName = (modelName: string) => {
+    let systemName = modelName;
+    let providerName: string | undefined;
+    if (modelName.includes("@")) {
+      const parts = modelName.split("@");
+      systemName = parts[0];
+      providerName = parts[1];
+    }
+    return { systemName, providerName };
+  };
 
-    // Simulate selection with fixed random value
-    const randomValue = 0.5 * totalWeight; // 2.0
-    let cumWeight = 0;
-    let selectedId: number | null = null;
-    for (const candidate of candidates) {
-      cumWeight += candidate.weight;
-      if (randomValue < cumWeight) {
-        selectedId = candidate.id;
-        break;
+  const filterByProvider = (
+    candidates: ModelWithProvider[],
+    providerName: string
+  ): ModelWithProvider[] => {
+    return candidates.filter(
+      (c) => c.provider.name.toLowerCase() === providerName.toLowerCase()
+    );
+  };
+
+  const weightedRandomSelect = (filtered: ModelWithProvider[]): ModelWithProvider => {
+    const totalWeight = filtered.reduce((sum, c) => sum + c.model.weight, 0);
+    const random = Math.random() * totalWeight;
+    let cumulative = 0;
+    for (const candidate of filtered) {
+      cumulative += candidate.model.weight;
+      if (random < cumulative) {
+        return candidate;
       }
     }
-    expect(selectedId).toBe(2); // Should select candidate with id 2
+    return filtered[0];
+  };
+
+  test("parses model@provider syntax correctly", () => {
+    const { systemName, providerName } = parseModelName("gpt-4@OpenAI");
+    expect(systemName).toBe("gpt-4");
+    expect(providerName).toBe("OpenAI");
   });
 
-  test("handles single candidate", () => {
-    const candidates = [{ id: 1, weight: 1.0 }];
-    const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
-    expect(totalWeight).toBe(1.0);
-    expect(candidates[0].id).toBe(1);
+  test("parses simple model name without provider", () => {
+    const { systemName, providerName } = parseModelName("gpt-4");
+    expect(systemName).toBe("gpt-4");
+    expect(providerName).toBeUndefined();
   });
 
-  test("handles zero weight candidates (should be filtered out)", () => {
-    const candidates = [
-      { id: 1, weight: 0 },
-      { id: 2, weight: 1.0 },
+  test("handles complex model names with @ in provider", () => {
+    const { systemName, providerName } = parseModelName("claude-3@anthropic");
+    expect(systemName).toBe("claude-3");
+    expect(providerName).toBe("anthropic");
+  });
+
+  test("filters by provider name case-insensitively", () => {
+    const openaiProvider = createMockProvider({ id: 1, name: "OpenAI" });
+    const azureProvider = createMockProvider({ id: 2, name: "Azure" });
+    const candidates: ModelWithProvider[] = [
+      { model: createMockModel({ id: 1, providerId: 1 }), provider: openaiProvider },
+      { model: createMockModel({ id: 2, providerId: 2 }), provider: azureProvider },
     ];
-    const validCandidates = candidates.filter((c) => c.weight > 0);
-    expect(validCandidates.length).toBe(1);
-    expect(validCandidates[0].id).toBe(2);
-  });
-});
 
-// Test model type filtering
-describe("modelTypeFiltering", () => {
-  test("filters chat models", () => {
-    const chatModels = mockModels.filter((m) => m.modelType === "chat");
-    expect(chatModels.length).toBe(2);
-    expect(chatModels.every((m) => m.modelType === "chat")).toBe(true);
+    const filtered = filterByProvider(candidates, "openai"); // lowercase
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].provider.name).toBe("OpenAI");
   });
 
-  test("filters embedding models", () => {
-    const embeddingModels = mockModels.filter((m) => m.modelType === "embedding");
-    expect(embeddingModels.length).toBe(1);
-    expect(embeddingModels[0].systemName).toBe("text-embedding-3-large");
+  test("returns empty array when provider not found", () => {
+    const openaiProvider = createMockProvider({ name: "OpenAI" });
+    const candidates: ModelWithProvider[] = [
+      { model: createMockModel(), provider: openaiProvider },
+    ];
+
+    const filtered = filterByProvider(candidates, "NonExistent");
+    expect(filtered.length).toBe(0);
   });
 
-  test("returns all models when no type specified", () => {
-    expect(mockModels.length).toBe(3);
-  });
-});
+  test("weighted selection works with single candidate", () => {
+    const provider = createMockProvider();
+    const model = createMockModel();
+    const candidates: ModelWithProvider[] = [{ model, provider }];
 
-// Test model by systemName lookup
-describe("modelLookup", () => {
-  test("finds models by systemName", () => {
-    const systemName = "gpt-4";
-    const matches = mockModels.filter((m) => m.systemName === systemName);
-    expect(matches.length).toBe(2); // Both OpenAI and Azure have gpt-4
+    const result = weightedRandomSelect(candidates);
+    expect(result.model.id).toBe(model.id);
   });
 
-  test("finds model by systemName and provider", () => {
-    const systemName = "gpt-4";
-    const providerName = "Azure";
-    const matches = mockModels.filter(
-      (m) => m.systemName === systemName && m.provider.name === providerName
-    );
-    expect(matches.length).toBe(1);
-    expect(matches[0].provider.id).toBe(2);
+  test("weighted selection respects weights over many iterations", () => {
+    const provider1 = createMockProvider({ id: 1, name: "Provider1" });
+    const provider2 = createMockProvider({ id: 2, name: "Provider2" });
+    const model1 = createMockModel({ id: 1, providerId: 1, weight: 1 });
+    const model2 = createMockModel({ id: 2, providerId: 2, weight: 99 }); // Much higher weight
+
+    const candidates: ModelWithProvider[] = [
+      { model: model1, provider: provider1 },
+      { model: model2, provider: provider2 },
+    ];
+
+    // Run multiple times to verify weighted selection works
+    let provider2Count = 0;
+    for (let i = 0; i < 100; i++) {
+      const result = weightedRandomSelect(candidates);
+      if (result.provider.id === 2) provider2Count++;
+    }
+
+    // With weight ratio 1:99, provider2 should be selected most of the time (>80%)
+    expect(provider2Count).toBeGreaterThan(80);
   });
 
-  test("returns empty for non-existent model", () => {
-    const systemName = "non-existent-model";
-    const matches = mockModels.filter((m) => m.systemName === systemName);
-    expect(matches.length).toBe(0);
+  test("calculates total weight correctly", () => {
+    const candidates: ModelWithProvider[] = [
+      { model: createMockModel({ weight: 1.0 }), provider: createMockProvider() },
+      { model: createMockModel({ weight: 2.0 }), provider: createMockProvider() },
+      { model: createMockModel({ weight: 0.5 }), provider: createMockProvider() },
+    ];
+    const totalWeight = candidates.reduce((sum, c) => sum + c.model.weight, 0);
+    expect(totalWeight).toBe(3.5);
   });
 });

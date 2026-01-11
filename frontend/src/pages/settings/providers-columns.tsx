@@ -1,7 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { ChevronRightIcon } from 'lucide-react'
 
-import type { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ApiKeyCopyButton } from '@/pages/api-keys/api-key-copy-button'
@@ -10,7 +9,16 @@ import { ProviderRowActionButton } from './provider-row-action-button'
 
 import i18n from '@/i18n'
 
-export type Provider = Exclude<Awaited<ReturnType<typeof api.admin.providers.get>>['data'], null>[number]
+export interface Provider {
+  id: number
+  name: string
+  type: string
+  baseUrl: string
+  apiKey: string | null
+  deleted: boolean
+  createdAt: string
+  updatedAt: string
+}
 
 export const columns: ColumnDef<Provider>[] = [
   {

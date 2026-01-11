@@ -13,6 +13,15 @@ import { addEmbedding, type EmbeddingRecord } from "@/utils/embeddings";
 const logger = consola.withTag("embeddingsApi");
 
 // OpenAI-compatible embeddings request schema
+interface EmbeddingCreateBody {
+  input: string | string[];
+  model: string;
+  dimensions?: number;
+  encoding_format?: "float" | "base64";
+  user?: string;
+  [key: string]: unknown;
+}
+
 const tEmbeddingCreate = t.Object(
   {
     input: t.Union([t.String(), t.Array(t.String())]),
@@ -34,7 +43,8 @@ export const embeddingsApi = new Elysia({
   .use(rateLimitPlugin)
   .post(
     "/",
-    async ({ body, status, bearer }) => {
+    async ({ body: rawBody, status, bearer }) => {
+      const body = rawBody as EmbeddingCreateBody;
       if (bearer === undefined) {
         return status(500);
       }

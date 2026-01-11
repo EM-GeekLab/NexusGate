@@ -142,7 +142,7 @@ export function ModelAddButton({ providerId, size = 'sm', ...props }: ModelAddBu
                           <SelectValue placeholder={t('pages.settings.models.SelectModel')} />
                         </SelectTrigger>
                         <SelectContent>
-                          {remoteModels.map((m) => (
+                          {remoteModels.map((m: { id: string }) => (
                             <SelectItem key={m.id} value={m.id}>
                               {m.id}
                             </SelectItem>

@@ -4,9 +4,8 @@ import { format } from 'date-fns'
 import { CheckIcon, CopyIcon, XIcon } from 'lucide-react'
 
 import { api } from '@/lib/api'
-import { cn, formatNumber } from '@/lib/utils'
+import { formatNumber } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 
 import { useEmbeddingDetail } from '../embedding-detail-provider'
 
@@ -43,7 +42,7 @@ export function DetailPanel() {
           <div className="text-muted-foreground">{t('pages.embeddings.detail-panel.Loading')}</div>
         </div>
       ) : embedding ? (
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-auto">
           <div className="space-y-4 p-4">
             {/* Metadata */}
             <div className="space-y-2">
@@ -77,7 +76,7 @@ export function DetailPanel() {
               <div className="bg-muted/50 rounded-md border p-3">
                 <pre className="whitespace-pre-wrap break-words font-mono text-sm">
                   {Array.isArray(embedding.input)
-                    ? embedding.input.map((text, i) => (
+                    ? embedding.input.map((text: string, i: number) => (
                         <div key={i} className="mb-2 last:mb-0">
                           <span className="text-muted-foreground">[{i + 1}]</span> {text}
                         </div>
@@ -97,12 +96,12 @@ export function DetailPanel() {
               </div>
               <div className="bg-muted/50 max-h-[300px] overflow-auto rounded-md border p-3">
                 <pre className="font-mono text-xs">
-                  {embedding.embedding.map((vec, i) => (
+                  {embedding.embedding.map((vec: number[], i: number) => (
                     <div key={i} className="mb-2 last:mb-0">
                       {Array.isArray(embedding.input) && embedding.input.length > 1 && (
                         <div className="text-muted-foreground mb-1">[{i + 1}]</div>
                       )}
-                      [{vec.slice(0, 10).map((v) => v.toFixed(6)).join(', ')}
+                      [{vec.slice(0, 10).map((v: number) => v.toFixed(6)).join(', ')}
                       {vec.length > 10 && `, ... (${vec.length - 10} more)`}]
                     </div>
                   ))}
@@ -110,7 +109,7 @@ export function DetailPanel() {
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
       ) : (
         <div className="flex flex-1 items-center justify-center">
           <div className="text-muted-foreground">{t('pages.embeddings.detail-panel.NotFound')}</div>

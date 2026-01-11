@@ -1,16 +1,24 @@
 import type { ColumnDef } from '@tanstack/react-table'
 
-import type { api } from '@/lib/api'
 import { IndicatorBadge } from '@/components/ui/indicator-badge'
 
 import { ModelRowActionButton } from './model-row-action-button'
 
 import i18n from '@/i18n'
 
-export type Model = Exclude<
-  Awaited<ReturnType<typeof api.admin.providers({ id: 0 }).models.get>>['data'],
-  null
->[number]
+export interface Model {
+  id: number
+  providerId: number
+  systemName: string
+  remoteId: string | null
+  modelType: 'chat' | 'embedding'
+  weight: number
+  contextLength: number | null
+  inputPrice: string | null
+  outputPrice: string | null
+  createdAt: string
+  updatedAt: string
+}
 
 export const columns: ColumnDef<Model>[] = [
   {

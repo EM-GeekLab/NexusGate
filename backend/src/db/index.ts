@@ -1,9 +1,10 @@
 import { consola } from "consola";
-import { and, asc, count, desc, eq, not, sql, sum } from "drizzle-orm";
+import { and, asc, count, desc, eq, not, sql, sum, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sql";
 import { migrate } from "drizzle-orm/bun-sql/migrator";
 import { DATABASE_URL } from "@/utils/config";
 import * as schema from "./schema";
+import type { ModelTypeEnumType } from "./schema";
 
 const globalThis_ = globalThis as typeof globalThis & {
   db: ReturnType<typeof drizzle>;
@@ -35,6 +36,14 @@ export type SrvLog = typeof schema.SrvLogsTable.$inferSelect;
 export type SrvLogInsert = typeof schema.SrvLogsTable.$inferInsert;
 export type Setting = typeof schema.SettingsTable.$inferSelect;
 export type SettingInsert = typeof schema.SettingsTable.$inferInsert;
+
+// New Provider + Model architecture types
+export type Provider = typeof schema.ProvidersTable.$inferSelect;
+export type ProviderInsert = typeof schema.ProvidersTable.$inferInsert;
+export type Model = typeof schema.ModelsTable.$inferSelect;
+export type ModelInsert = typeof schema.ModelsTable.$inferInsert;
+export type Embedding = typeof schema.EmbeddingsTable.$inferSelect;
+export type EmbeddingInsert = typeof schema.EmbeddingsTable.$inferInsert;
 
 export type PartialList<T> = {
   data: T[];
@@ -532,5 +541,422 @@ export async function deleteSetting(key: string): Promise<Setting | null> {
     .delete(schema.SettingsTable)
     .where(eq(schema.SettingsTable.key, key))
     .returning();
+  return r.length === 1 ? r[0] : null;
+}
+
+// ============================================
+// Provider CRUD Operations
+// ============================================
+
+/**
+ * list all providers (not deleted)
+ */
+export async function listProviders(): Promise<Provider[]> {
+  logger.debug("listProviders");
+  return await db
+    .select()
+    .from(schema.ProvidersTable)
+    .where(not(schema.ProvidersTable.deleted))
+    .orderBy(asc(schema.ProvidersTable.id));
+}
+
+/**
+ * find provider by id
+ */
+export async function findProvider(id: number): Promise<Provider | null> {
+  logger.debug("findProvider", id);
+  const r = await db
+    .select()
+    .from(schema.ProvidersTable)
+    .where(
+      and(
+        eq(schema.ProvidersTable.id, id),
+        not(schema.ProvidersTable.deleted),
+      ),
+    );
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * find provider by name
+ */
+export async function findProviderByName(
+  name: string,
+): Promise<Provider | null> {
+  logger.debug("findProviderByName", name);
+  const r = await db
+    .select()
+    .from(schema.ProvidersTable)
+    .where(
+      and(
+        eq(schema.ProvidersTable.name, name),
+        not(schema.ProvidersTable.deleted),
+      ),
+    );
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * insert provider into database
+ */
+export async function insertProvider(
+  p: ProviderInsert,
+): Promise<Provider | null> {
+  logger.debug("insertProvider", p.name);
+  const r = await db
+    .insert(schema.ProvidersTable)
+    .values(p)
+    .onConflictDoNothing()
+    .returning();
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * update provider
+ */
+export async function updateProvider(
+  id: number,
+  p: Partial<ProviderInsert>,
+): Promise<Provider | null> {
+  logger.debug("updateProvider", id);
+  const r = await db
+    .update(schema.ProvidersTable)
+    .set({ ...p, updatedAt: new Date() })
+    .where(eq(schema.ProvidersTable.id, id))
+    .returning();
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * soft delete provider
+ */
+export async function deleteProvider(id: number): Promise<Provider | null> {
+  logger.debug("deleteProvider", id);
+  const r = await db
+    .update(schema.ProvidersTable)
+    .set({ deleted: true, updatedAt: new Date() })
+    .where(eq(schema.ProvidersTable.id, id))
+    .returning();
+  return r.length === 1 ? r[0] : null;
+}
+
+// ============================================
+// Model CRUD Operations
+// ============================================
+
+/**
+ * list all models for a provider
+ */
+export async function listModelsByProvider(
+  providerId: number,
+): Promise<Model[]> {
+  logger.debug("listModelsByProvider", providerId);
+  return await db
+    .select()
+    .from(schema.ModelsTable)
+    .where(
+      and(
+        eq(schema.ModelsTable.providerId, providerId),
+        not(schema.ModelsTable.deleted),
+      ),
+    )
+    .orderBy(asc(schema.ModelsTable.systemName));
+}
+
+/**
+ * list all models (optionally filtered by type)
+ */
+export async function listModels(
+  modelType?: ModelTypeEnumType,
+): Promise<Model[]> {
+  logger.debug("listModels", modelType);
+  return await db
+    .select()
+    .from(schema.ModelsTable)
+    .where(
+      and(
+        not(schema.ModelsTable.deleted),
+        modelType ? eq(schema.ModelsTable.modelType, modelType) : undefined,
+      ),
+    )
+    .orderBy(asc(schema.ModelsTable.systemName));
+}
+
+/**
+ * find model by id
+ */
+export async function findModel(id: number): Promise<Model | null> {
+  logger.debug("findModel", id);
+  const r = await db
+    .select()
+    .from(schema.ModelsTable)
+    .where(and(eq(schema.ModelsTable.id, id), not(schema.ModelsTable.deleted)));
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * find models by system name (for load balancing)
+ */
+export async function findModelsBySystemName(
+  systemName: string,
+  modelType?: ModelTypeEnumType,
+): Promise<Model[]> {
+  logger.debug("findModelsBySystemName", systemName, modelType);
+  return await db
+    .select()
+    .from(schema.ModelsTable)
+    .where(
+      and(
+        eq(schema.ModelsTable.systemName, systemName),
+        not(schema.ModelsTable.deleted),
+        modelType ? eq(schema.ModelsTable.modelType, modelType) : undefined,
+      ),
+    );
+}
+
+/**
+ * insert model into database
+ */
+export async function insertModel(m: ModelInsert): Promise<Model | null> {
+  logger.debug("insertModel", m.systemName);
+  const r = await db
+    .insert(schema.ModelsTable)
+    .values(m)
+    .onConflictDoNothing()
+    .returning();
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * update model
+ */
+export async function updateModel(
+  id: number,
+  m: Partial<ModelInsert>,
+): Promise<Model | null> {
+  logger.debug("updateModel", id);
+  const r = await db
+    .update(schema.ModelsTable)
+    .set({ ...m, updatedAt: new Date() })
+    .where(eq(schema.ModelsTable.id, id))
+    .returning();
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * soft delete model
+ */
+export async function deleteModel(id: number): Promise<Model | null> {
+  logger.debug("deleteModel", id);
+  const r = await db
+    .update(schema.ModelsTable)
+    .set({ deleted: true, updatedAt: new Date() })
+    .where(eq(schema.ModelsTable.id, id))
+    .returning();
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * get model with its provider info
+ */
+export async function getModelWithProvider(id: number): Promise<{
+  model: Model;
+  provider: Provider;
+} | null> {
+  logger.debug("getModelWithProvider", id);
+  const r = await db
+    .select({
+      model: schema.ModelsTable,
+      provider: schema.ProvidersTable,
+    })
+    .from(schema.ModelsTable)
+    .innerJoin(
+      schema.ProvidersTable,
+      eq(schema.ModelsTable.providerId, schema.ProvidersTable.id),
+    )
+    .where(
+      and(eq(schema.ModelsTable.id, id), not(schema.ModelsTable.deleted)),
+    );
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * get models with provider info by system name (for load balancing selection)
+ */
+export async function getModelsWithProviderBySystemName(
+  systemName: string,
+  modelType?: ModelTypeEnumType,
+): Promise<{ model: Model; provider: Provider }[]> {
+  logger.debug("getModelsWithProviderBySystemName", systemName, modelType);
+  return await db
+    .select({
+      model: schema.ModelsTable,
+      provider: schema.ProvidersTable,
+    })
+    .from(schema.ModelsTable)
+    .innerJoin(
+      schema.ProvidersTable,
+      eq(schema.ModelsTable.providerId, schema.ProvidersTable.id),
+    )
+    .where(
+      and(
+        eq(schema.ModelsTable.systemName, systemName),
+        not(schema.ModelsTable.deleted),
+        not(schema.ProvidersTable.deleted),
+        modelType ? eq(schema.ModelsTable.modelType, modelType) : undefined,
+      ),
+    );
+}
+
+/**
+ * list unique system names (for global model registry)
+ */
+export async function listUniqueSystemNames(
+  modelType?: ModelTypeEnumType,
+): Promise<string[]> {
+  logger.debug("listUniqueSystemNames", modelType);
+  const r = await db
+    .selectDistinct({ systemName: schema.ModelsTable.systemName })
+    .from(schema.ModelsTable)
+    .where(
+      and(
+        not(schema.ModelsTable.deleted),
+        modelType ? eq(schema.ModelsTable.modelType, modelType) : undefined,
+      ),
+    )
+    .orderBy(asc(schema.ModelsTable.systemName));
+  return r.map((x) => x.systemName);
+}
+
+/**
+ * update weights for models with same system name (batch update for load balancing)
+ */
+export async function updateModelWeights(
+  weights: { modelId: number; weight: number }[],
+): Promise<void> {
+  logger.debug("updateModelWeights", weights);
+  for (const { modelId, weight } of weights) {
+    await db
+      .update(schema.ModelsTable)
+      .set({ weight, updatedAt: new Date() })
+      .where(eq(schema.ModelsTable.id, modelId));
+  }
+}
+
+// ============================================
+// Embedding CRUD Operations
+// ============================================
+
+/**
+ * insert embedding record
+ */
+export async function insertEmbedding(
+  e: EmbeddingInsert,
+): Promise<Embedding | null> {
+  logger.debug("insertEmbedding", e.model);
+  const r = await db
+    .insert(schema.EmbeddingsTable)
+    .values(e)
+    .onConflictDoNothing()
+    .returning();
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * list embeddings (paginated)
+ */
+export async function listEmbeddings(
+  offset: number,
+  limit: number,
+  apiKeyId?: number,
+  modelId?: number,
+): Promise<PartialList<Embedding>> {
+  logger.debug("listEmbeddings", offset, limit, apiKeyId, modelId);
+  const sq = db
+    .select({ id: schema.EmbeddingsTable.id })
+    .from(schema.EmbeddingsTable)
+    .where(
+      and(
+        not(schema.EmbeddingsTable.deleted),
+        apiKeyId ? eq(schema.EmbeddingsTable.apiKeyId, apiKeyId) : undefined,
+        modelId ? eq(schema.EmbeddingsTable.modelId, modelId) : undefined,
+      ),
+    )
+    .orderBy(desc(schema.EmbeddingsTable.id))
+    .offset(offset)
+    .limit(limit)
+    .as("sq");
+
+  const r = await db
+    .select()
+    .from(schema.EmbeddingsTable)
+    .innerJoin(sq, eq(schema.EmbeddingsTable.id, sq.id))
+    .orderBy(desc(schema.EmbeddingsTable.id));
+
+  const total = await db
+    .select({ total: count(schema.EmbeddingsTable.id) })
+    .from(schema.EmbeddingsTable)
+    .where(
+      and(
+        not(schema.EmbeddingsTable.deleted),
+        apiKeyId ? eq(schema.EmbeddingsTable.apiKeyId, apiKeyId) : undefined,
+        modelId ? eq(schema.EmbeddingsTable.modelId, modelId) : undefined,
+      ),
+    );
+
+  if (total.length !== 1) {
+    throw new Error("total count failed");
+  }
+
+  return {
+    data: r.map((x) => x.embeddings),
+    total: total[0].total,
+    from: offset,
+  };
+}
+
+/**
+ * find embedding by id
+ */
+export async function findEmbedding(id: number): Promise<Embedding | null> {
+  logger.debug("findEmbedding", id);
+  const r = await db
+    .select()
+    .from(schema.EmbeddingsTable)
+    .where(
+      and(
+        eq(schema.EmbeddingsTable.id, id),
+        not(schema.EmbeddingsTable.deleted),
+      ),
+    );
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * soft delete embedding
+ */
+export async function deleteEmbedding(id: number): Promise<Embedding | null> {
+  logger.debug("deleteEmbedding", id);
+  const r = await db
+    .update(schema.EmbeddingsTable)
+    .set({ deleted: true, updatedAt: new Date() })
+    .where(eq(schema.EmbeddingsTable.id, id))
+    .returning();
+  return r.length === 1 ? r[0] : null;
+}
+
+/**
+ * sum embedding token usage
+ */
+export async function sumEmbeddingTokenUsage(apiKeyId?: number) {
+  logger.debug("sumEmbeddingTokenUsage", apiKeyId);
+  const r = await db
+    .select({
+      total_input_tokens: sum(schema.EmbeddingsTable.inputTokens),
+    })
+    .from(schema.EmbeddingsTable)
+    .where(
+      apiKeyId ? eq(schema.EmbeddingsTable.apiKeyId, apiKeyId) : undefined,
+    );
   return r.length === 1 ? r[0] : null;
 }

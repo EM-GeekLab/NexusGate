@@ -6,6 +6,7 @@ import {
   pgTable,
   real,
   timestamp,
+  unique,
   varchar,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
@@ -137,4 +138,99 @@ export const SettingsTable = pgTable("settings", {
     .unique(),
   value: jsonb("value").notNull(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ============================================
+// Provider + Model Architecture (New)
+// ============================================
+
+/**
+ * Providers table - represents an LLM service provider (e.g., OpenAI, Azure, local vLLM)
+ */
+export const ProvidersTable = pgTable("providers", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar("name", { length: 63 }).notNull().unique(),
+  type: varchar("type", { length: 31 }).notNull().default("openai"),
+  baseUrl: varchar("base_url", { length: 255 }).notNull(),
+  apiKey: varchar("api_key", { length: 255 }),
+  comment: varchar("comment"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deleted: boolean("deleted").notNull().default(false),
+});
+
+/**
+ * Model type enum - distinguishes between chat and embedding models
+ */
+export const ModelTypeEnum = pgEnum("model_type", ["chat", "embedding"]);
+export type ModelTypeEnumType = "chat" | "embedding";
+
+/**
+ * Models table - represents a model configuration under a provider
+ */
+export const ModelsTable = pgTable(
+  "models",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    providerId: integer("provider_id")
+      .notNull()
+      .references((): AnyPgColumn => ProvidersTable.id),
+    // System name - the name used in API requests
+    systemName: varchar("system_name", { length: 63 }).notNull(),
+    // Remote ID - the actual model ID in upstream (optional, defaults to systemName)
+    remoteId: varchar("remote_id", { length: 63 }),
+    // Model type
+    modelType: ModelTypeEnum("model_type").notNull().default("chat"),
+    // Context length (optional)
+    contextLength: integer("context_length"),
+    // Pricing (optional) - price per 1M tokens in USD
+    inputPrice: real("input_price"),
+    outputPrice: real("output_price"),
+    // Load balancing weight
+    weight: real("weight").notNull().default(1),
+    comment: varchar("comment"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    deleted: boolean("deleted").notNull().default(false),
+  },
+  (table) => [
+    // Same system name can only appear once per provider
+    unique("models_provider_system_name_unique").on(
+      table.providerId,
+      table.systemName,
+    ),
+  ],
+);
+
+/**
+ * Embeddings input type - can be a string or array of strings
+ */
+export type EmbeddingsInputType = string | string[];
+
+/**
+ * Embeddings table - logs embedding API requests
+ */
+export const EmbeddingsTable = pgTable("embeddings", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity().unique(),
+  apiKeyId: integer("api_key_id")
+    .notNull()
+    .references((): AnyPgColumn => ApiKeysTable.id),
+  modelId: integer("model_id").references((): AnyPgColumn => ModelsTable.id),
+  // Requested model name
+  model: varchar("model").notNull(),
+  // Input text(s)
+  input: jsonb("input").notNull().$type<EmbeddingsInputType>(),
+  // Token usage
+  inputTokens: integer("input_tokens").notNull(),
+  // Embedding vectors (array of arrays for batch requests)
+  embedding: jsonb("embedding").notNull().$type<number[][]>(),
+  // Vector dimensions
+  dimensions: integer("dimensions").notNull(),
+  // Request status
+  status: CompletionsStatusEnum().notNull().default("pending"),
+  // Request duration in milliseconds
+  duration: integer("duration").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deleted: boolean("deleted").notNull().default(false),
 });

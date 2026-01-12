@@ -1,5 +1,5 @@
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import { ArrowUpDownIcon, LayoutGridIcon, PackageIcon, WaypointsIcon } from 'lucide-react'
+import { ArrowUpDownIcon, BoxIcon, LayoutGridIcon, PackageIcon, WaypointsIcon } from 'lucide-react'
 
 import {
   Sidebar,
@@ -29,6 +29,11 @@ const navItems = [
     icon: <ArrowUpDownIcon />,
     title: i18n.t('components.app.app-sidebar.Requests'),
     href: '/requests',
+  },
+  {
+    icon: <BoxIcon />,
+    title: i18n.t('components.app.app-sidebar.Embeddings'),
+    href: '/embeddings',
   },
   {
     icon: <LayoutGridIcon />,

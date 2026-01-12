@@ -21,7 +21,7 @@ export const rateLimitPlugin = new Elysia({
         refill?: number;
       };
     }) => ({
-      async beforeHandle({ error, set, bearer, body }) {
+      async beforeHandle({ status, set, bearer, body }) {
         let identifier = "default";
         if (options?.identifier) {
           try {
@@ -38,7 +38,7 @@ export const rateLimitPlugin = new Elysia({
         const refill = options?.customConfig?.refill ?? config.refill;
 
         if (Number.isNaN(limit) || Number.isNaN(refill)) {
-          return error(500, "Invalid rate limit configuration");
+          return status(500, "Invalid rate limit configuration");
         }
 
         const opt = {
@@ -50,7 +50,7 @@ export const rateLimitPlugin = new Elysia({
 
         const newTokens = await consume(opt, 1);
         if (newTokens === false) {
-          return error(429, "Rate limit exceeded");
+          return status(429, "Rate limit exceeded");
         }
 
         logger.debug(

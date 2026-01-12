@@ -1,7 +1,10 @@
 import { consola } from "consola";
 import { Elysia, t } from "elysia";
-import  { type ChatCompletion, type ChatCompletionChunk } from "openai/resources";
-import  { type ChatCompletionMessage } from "openai/src/resources/index.js";
+import type {
+  ChatCompletion,
+  ChatCompletionChunk,
+  ChatCompletionMessage,
+} from "openai/resources";
 import { addCompletions, type Completion } from "@/utils/completions";
 import { parseSse } from "@/utils/sse";
 import { selectUpstream } from "@/utils/upstream";
@@ -13,7 +16,10 @@ const logger = consola.withTag("completionsApi");
 // loose validation, only check required fields
 const tChatCompletionCreate = t.Object(
   {
-    messages: t.Array(t.Unknown()),
+    messages: t.Array(t.Object({
+      role: t.String(),
+      content: t.String(),
+    })),
     model: t.String(),
     n: t.Optional(t.Number()),
     stream: t.Optional(t.Boolean()),
@@ -58,8 +64,7 @@ export const completionsApi = new Elysia({
         model: requestedModel,
         upstreamId: upstream.id,
         prompt: {
-          messages: body.messages.map((u) => {
-            const m = u as { role: string; content: string };
+          messages: body.messages.map((m) => {
             return {
               role: m.role as string,
               content: m.content as string,
@@ -305,10 +310,10 @@ export const completionsApi = new Elysia({
             }
             if (
               data.choices.length === 1 &&
-              data.choices[0].finish_reason !== "stop"
+              data.choices[0]!.finish_reason !== "stop"
             ) {
               // If there is only one choice, regular chunk
-              const delta = data.choices[0].delta;
+              const delta = data.choices[0]!.delta;
               const content = delta.content;
               if (content) {
                 partials.push(content);
@@ -331,7 +336,7 @@ export const completionsApi = new Elysia({
             if (
               data.choices.length === 0 ||
               (data.choices.length === 1 &&
-                data.choices[0].finish_reason === "stop")
+                data.choices[0]!.finish_reason === "stop")
             ) {
               // Assuse that is the last chunk
               console.log(data.usage);

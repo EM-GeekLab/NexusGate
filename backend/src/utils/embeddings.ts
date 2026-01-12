@@ -1,4 +1,4 @@
-import consola from "consola";
+import { consola } from "consola";
 import { findApiKey, insertEmbedding, insertLog } from "@/db";
 import type {
   CompletionsStatusEnumType,

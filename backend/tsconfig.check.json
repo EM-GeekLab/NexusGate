@@ -1,5 +1,3 @@
-// A additional typescript configuration for tsgo
-// remove some options that are not compatible with tsgo
 {
   "compilerOptions": {
     // Environment setup & latest features
@@ -8,13 +6,13 @@
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
-    "allowJs": false,
+    "allowJs": true,
 
     // Bundler mode
     "noEmit": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    // "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": true,
 
     // Best practices
     "strict": true,
@@ -27,11 +25,11 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
-
+    
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["**/*"],
   "exclude": ["node_modules", "dist"]
 }

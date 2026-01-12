@@ -1,10 +1,10 @@
-import consola from "consola";
+import {consola} from "consola";
 import { findApiKey, insertCompletion, insertLog } from "@/db";
-import  {
-  type CompletionsCompletionType,
-  type CompletionsPromptType,
-  type CompletionsStatusEnumType,
-  type SrvLogsLevelEnumType,
+import type  {
+  CompletionsCompletionType,
+  CompletionsPromptType,
+  CompletionsStatusEnumType,
+  SrvLogsLevelEnumType,
 } from "@/db/schema";
 
 export type Completion = {

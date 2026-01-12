@@ -170,7 +170,7 @@ export const embeddingsApi = new Elysia({
 
       // Extract embeddings and record
       const embeddings = respJson.data.map((d) => d.embedding as number[]);
-      const dimensions = embeddings.length > 0 ? embeddings[0].length : 0;
+      const dimensions = embeddings.length > 0 ? embeddings[0]!.length : 0;
 
       embeddingRecord.inputTokens = respJson.usage?.prompt_tokens ?? -1;
       embeddingRecord.embedding = embeddings;

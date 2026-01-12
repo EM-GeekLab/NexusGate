@@ -18,7 +18,48 @@ import { initConfig } from "./utils/init";
 
 await initConfig();
 
-let app = new Elysia()
+async function spaPlugin(dir: string) {
+  if (!(await exists(dir))) {
+    return undefined;
+  }
+  const indexPath = join(dir, "index.html");
+  const indexHtml = (await exists(indexPath))
+    ? await readFile(indexPath, "utf-8")
+    : undefined;
+  return new Elysia({ name: "spaPlugin" })
+    .use(
+      staticPlugin({
+        assets: dir,
+        alwaysStatic: true,
+        prefix: "/",
+      }),
+    )
+    .get("/*", ({ headers: { accept }, status }) => {
+      if (!indexHtml) {
+        return status(404);
+      }
+      if (typeof accept === "string" && !accept.includes("text/html")) {
+        return status(404);
+      }
+      return new Response(indexHtml, {
+        headers: {
+          "Content-Type": "text/html",
+        },
+      });
+    })
+    .get("/", ({ status }) => {
+      if (!indexHtml) {
+        return status(404);
+      }
+      return new Response(indexHtml, {
+        headers: {
+          "Content-Type": "text/html",
+        },
+      });
+    });
+}
+
+const app = new Elysia()
   .use(loggerPlugin)
   .use(
     cors({
@@ -50,41 +91,14 @@ let app = new Elysia()
     }),
   )
   .use(serverTiming())
-  .use(routes);
-
-if (await exists(FRONTEND_DIR)) {
-  const dir = resolve(FRONTEND_DIR);
-  consola.log(`Setting up static file serving from ${dir}`);
-  app = app.use(
-    staticPlugin({
-      assets: dir,
-      alwaysStatic: true,
-      prefix: "/",
-    }),
-  );
-  if (await exists(join(dir, "index.html"))) {
-    const indexHtml = await readFile(join(dir, "index.html"), "utf-8");
-    app = app.get("/*", ({ headers: { accept } }) => {
-      if (typeof accept === "string" && !accept.includes("text/html")) {
-        return new Response("Not Found", {
-          status: 404,
-        });
-      }
-      return new Response(indexHtml, {
-        headers: {
-          "Content-Type": "text/html",
-        },
-      });
-    });
-  }
-}
-
-app = app.listen({
-  port: PORT,
-  reusePort: PRODUCTION,
-  hostname: "0.0.0.0",
-  idleTimeout: 255,
-});
+  .use(routes)
+  .use(await spaPlugin(resolve(FRONTEND_DIR)))
+  .listen({
+    port: PORT,
+    reusePort: PRODUCTION,
+    hostname: "0.0.0.0",
+    idleTimeout: 255,
+  });
 
 consola.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,

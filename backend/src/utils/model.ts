@@ -24,9 +24,9 @@ export async function selectModel(
   let providerName: string | undefined;
 
   if (modelName.includes("@")) {
-    const parts = modelName.split("@");
-    systemName = parts[0];
-    providerName = parts[1];
+    const parts = modelName.split("@", 2);
+    systemName = parts[0]!;
+    providerName = parts[1]!;
   }
 
   logger.debug("selectModel", { systemName, providerName, modelType });
@@ -56,7 +56,7 @@ export async function selectModel(
 
   // If only one candidate, return it
   if (filtered.length === 1) {
-    return filtered[0];
+    return filtered[0]!;
   }
 
   // Weighted random selection for load balancing
@@ -77,7 +77,7 @@ export async function selectModel(
   }
 
   // Fallback to first candidate (should not happen)
-  return filtered[0];
+  return filtered[0] ?? null;
 }
 
 /**

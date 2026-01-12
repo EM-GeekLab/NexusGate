@@ -111,5 +111,4 @@ class RedisClient {
 }
 
 // Export singleton instance
-const redisClient = new RedisClient();
-export default redisClient;
+export const redisClient = new RedisClient();

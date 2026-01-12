@@ -13,9 +13,9 @@ export const usageQueryApi = new Elysia({
   .use(apiKeyPlugin)
   .get(
     "/usage",
-    async ({ error, bearer }) => {
+    async ({ status, bearer }) => {
       if (bearer === undefined) {
-        return error(500);
+        return status(500);
       }
 
       logger.debug("queryUsage", bearer);

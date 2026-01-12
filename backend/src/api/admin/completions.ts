@@ -14,7 +14,7 @@ export const adminCompletions = new Elysia()
       // 如果 model 字段存在且包含 '@'，则截断
       result.data.forEach((completion) => {
         if (completion.model && completion.model.includes("@")) {
-          completion.model = completion.model.split("@")[0];
+          completion.model = completion.model.split("@", 2)[0]!;
         }
       });
       return result;
@@ -38,7 +38,7 @@ export const adminCompletions = new Elysia()
       }
       // 如果 model 字段存在且包含 '@'，则截断
       if (r.model && r.model.includes("@")) {
-        r.model = r.model.split("@")[0];
+        r.model = r.model.split("@")[0]!;
       }
       return r;
     },

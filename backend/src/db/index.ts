@@ -1,5 +1,5 @@
 import { consola } from "consola";
-import { and, asc, count, desc, eq, not, sql, sum, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, not, sql, sum } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sql";
 import { migrate } from "drizzle-orm/bun-sql/migrator";
 import { DATABASE_URL } from "@/utils/config";
@@ -62,7 +62,8 @@ export async function findApiKey(key: string): Promise<ApiKey | null> {
     .select()
     .from(schema.ApiKeysTable)
     .where(eq(schema.ApiKeysTable.key, key));
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 export async function updateApiKey(c: ApiKeyInsert) {
@@ -72,7 +73,8 @@ export async function updateApiKey(c: ApiKeyInsert) {
     .set(c)
     .where(eq(schema.ApiKeysTable.key, c.key))
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -103,7 +105,8 @@ export async function upsertApiKey(c: ApiKeyInsert): Promise<ApiKey | null> {
       set: c,
     })
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -189,7 +192,8 @@ export async function insertUpstream(
     .values(c)
     .onConflictDoNothing()
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -204,7 +208,8 @@ export async function deleteUpstream(id: number) {
     .set({ deleted: true })
     .where(eq(schema.UpstreamTable.id, id))
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 export type UpstreamAggregatedByModel = {
@@ -265,7 +270,8 @@ export async function insertCompletion(
     .values(c)
     .onConflictDoNothing()
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -286,7 +292,8 @@ export async function sumCompletionTokenUsage(apiKeyId?: number) {
         ? eq(schema.CompletionsTable.apiKeyId, apiKeyId)
         : undefined,
     );
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -328,17 +335,17 @@ export async function listCompletions(
     .from(schema.CompletionsTable)
     .innerJoin(sq, eq(schema.CompletionsTable.id, sq.id))
     .orderBy(desc(schema.CompletionsTable.id));
-  const total = await db
+  const [total] = await db
     .select({
       total: count(schema.CompletionsTable.id),
     })
     .from(schema.CompletionsTable);
-  if (total.length !== 1) {
+  if (!total) {
     throw new Error("total count failed");
   }
   return {
     data: r.map((x) => x.completions),
-    total: total[0].total,
+    total: total.total,
     from: offset,
   };
 }
@@ -354,7 +361,8 @@ export async function deleteCompletion(id: number) {
     .set({ deleted: true })
     .where(eq(schema.CompletionsTable.id, id))
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -373,7 +381,8 @@ export async function findCompletion(id: number): Promise<Completion | null> {
         not(schema.CompletionsTable.deleted),
       ),
     );
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -418,17 +427,17 @@ export async function listLogs(
     .from(schema.SrvLogsTable)
     .innerJoin(sq, eq(schema.SrvLogsTable.id, sq.id))
     .orderBy(desc(schema.SrvLogsTable.id));
-  const total = await db
+  const [total] = await db
     .select({
       total: count(schema.SrvLogsTable.id),
     })
     .from(schema.SrvLogsTable);
-  if (total.length !== 1) {
+  if (!total) {
     throw new Error("total count failed");
   }
   return {
     data: r.map((x) => x.srv_logs),
-    total: total[0].total,
+    total: total.total,
     from: offset,
   };
 }
@@ -445,7 +454,8 @@ export async function insertLog(c: SrvLogInsert): Promise<SrvLog | null> {
     .values(c)
     .onConflictDoNothing()
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -481,7 +491,8 @@ export async function getLog(logId: number): Promise<{
       eq(schema.SrvLogsTable.relatedCompletionId, schema.CompletionsTable.id),
     )
     .where(eq(schema.SrvLogsTable.id, logId));
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -509,7 +520,8 @@ export async function getSetting(key: string): Promise<Setting | null> {
     .from(schema.SettingsTable)
     .where(eq(schema.SettingsTable.key, key))
     .limit(1);
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -527,7 +539,8 @@ export async function upsertSetting(c: SettingInsert): Promise<Setting | null> {
       set: c,
     })
     .returning();
-  return r.length === 1 ? r[0] : null; // should always not null
+  const [first] = r;
+  return first ?? null; // should always not null
 }
 
 /**
@@ -541,7 +554,8 @@ export async function deleteSetting(key: string): Promise<Setting | null> {
     .delete(schema.SettingsTable)
     .where(eq(schema.SettingsTable.key, key))
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 // ============================================
@@ -569,12 +583,10 @@ export async function findProvider(id: number): Promise<Provider | null> {
     .select()
     .from(schema.ProvidersTable)
     .where(
-      and(
-        eq(schema.ProvidersTable.id, id),
-        not(schema.ProvidersTable.deleted),
-      ),
+      and(eq(schema.ProvidersTable.id, id), not(schema.ProvidersTable.deleted)),
     );
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -593,7 +605,8 @@ export async function findProviderByName(
         not(schema.ProvidersTable.deleted),
       ),
     );
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -608,7 +621,8 @@ export async function insertProvider(
     .values(p)
     .onConflictDoNothing()
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -624,7 +638,8 @@ export async function updateProvider(
     .set({ ...p, updatedAt: new Date() })
     .where(eq(schema.ProvidersTable.id, id))
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -637,7 +652,8 @@ export async function deleteProvider(id: number): Promise<Provider | null> {
     .set({ deleted: true, updatedAt: new Date() })
     .where(eq(schema.ProvidersTable.id, id))
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 // ============================================
@@ -691,7 +707,8 @@ export async function findModel(id: number): Promise<Model | null> {
     .select()
     .from(schema.ModelsTable)
     .where(and(eq(schema.ModelsTable.id, id), not(schema.ModelsTable.deleted)));
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -724,7 +741,8 @@ export async function insertModel(m: ModelInsert): Promise<Model | null> {
     .values(m)
     .onConflictDoNothing()
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -740,7 +758,8 @@ export async function updateModel(
     .set({ ...m, updatedAt: new Date() })
     .where(eq(schema.ModelsTable.id, id))
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -753,7 +772,8 @@ export async function deleteModel(id: number): Promise<Model | null> {
     .set({ deleted: true, updatedAt: new Date() })
     .where(eq(schema.ModelsTable.id, id))
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -774,10 +794,9 @@ export async function getModelWithProvider(id: number): Promise<{
       schema.ProvidersTable,
       eq(schema.ModelsTable.providerId, schema.ProvidersTable.id),
     )
-    .where(
-      and(eq(schema.ModelsTable.id, id), not(schema.ModelsTable.deleted)),
-    );
-  return r.length === 1 ? r[0] : null;
+    .where(and(eq(schema.ModelsTable.id, id), not(schema.ModelsTable.deleted)));
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -859,7 +878,8 @@ export async function insertEmbedding(
     .values(e)
     .onConflictDoNothing()
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -893,7 +913,7 @@ export async function listEmbeddings(
     .innerJoin(sq, eq(schema.EmbeddingsTable.id, sq.id))
     .orderBy(desc(schema.EmbeddingsTable.id));
 
-  const total = await db
+  const [total] = await db
     .select({ total: count(schema.EmbeddingsTable.id) })
     .from(schema.EmbeddingsTable)
     .where(
@@ -904,13 +924,13 @@ export async function listEmbeddings(
       ),
     );
 
-  if (total.length !== 1) {
+  if (!total) {
     throw new Error("total count failed");
   }
 
   return {
     data: r.map((x) => x.embeddings),
-    total: total[0].total,
+    total: total.total,
     from: offset,
   };
 }
@@ -929,7 +949,8 @@ export async function findEmbedding(id: number): Promise<Embedding | null> {
         not(schema.EmbeddingsTable.deleted),
       ),
     );
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -942,7 +963,8 @@ export async function deleteEmbedding(id: number): Promise<Embedding | null> {
     .set({ deleted: true, updatedAt: new Date() })
     .where(eq(schema.EmbeddingsTable.id, id))
     .returning();
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }
 
 /**
@@ -958,5 +980,6 @@ export async function sumEmbeddingTokenUsage(apiKeyId?: number) {
     .where(
       apiKeyId ? eq(schema.EmbeddingsTable.apiKeyId, apiKeyId) : undefined,
     );
-  return r.length === 1 ? r[0] : null;
+  const [first] = r;
+  return first ?? null;
 }

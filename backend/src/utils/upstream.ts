@@ -12,16 +12,13 @@ import { findUpstreams } from "@/db";
 export async function selectUpstream(model: string) {
   const m = model.match(/^(\S+)@(\S+)$/);
   if (m === null) {
-    const availables = await findUpstreams(model);
-    if (availables.length === 0) {
-      return undefined;
-    }
+    const [availables] = await findUpstreams(model);
     // TODO: implement load balancing
-    return availables[0];
+    return availables;
   }
-  const availables = await findUpstreams(m[1], m[2]);
-  if (availables.length === 0) {
+  if (m.length !== 3) {
     return undefined;
   }
-  return availables[0];
+  const [availables] = await findUpstreams(m[1]!, m[2]!);
+  return availables;
 }

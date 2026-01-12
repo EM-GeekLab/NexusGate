@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckIcon, PlusIcon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
+import { CheckIcon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { api } from '@/lib/api'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -322,7 +321,6 @@ interface SavedModelItemProps {
 }
 
 function SavedModelItem({ model, onDelete, isDeleting }: SavedModelItemProps) {
-  const { t } = useTranslation()
   const [showConfig, setShowConfig] = useState(false)
 
   const priceInfo = []

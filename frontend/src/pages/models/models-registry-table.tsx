@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { flexRender, getCoreRowModel, getExpandedRowModel, useReactTable } from '@tanstack/react-table'
-import type { ColumnDef, Row } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { ChevronDownIcon, ChevronRightIcon, SaveIcon, XIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'

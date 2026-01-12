@@ -124,10 +124,10 @@ export function ProviderEditDialog({ provider, open, onOpenChange }: ProviderEdi
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem value="azure">Azure OpenAI</SelectItem>
+                      {/* <SelectItem value="azure">Azure OpenAI</SelectItem> */}
                       <SelectItem value="anthropic">Anthropic</SelectItem>
                       <SelectItem value="ollama">Ollama</SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
+                      {/* <SelectItem value="custom">Custom</SelectItem> */}
                     </SelectContent>
                   </Select>
                   <FormDescription>{t('pages.settings.providers.TypeDescription')}</FormDescription>

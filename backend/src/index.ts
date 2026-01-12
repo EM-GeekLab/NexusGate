@@ -1,5 +1,5 @@
 import { exists, readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { cors } from "@elysiajs/cors";
 import { serverTiming } from "@elysiajs/server-timing";
 import { staticPlugin } from "@elysiajs/static";
@@ -26,11 +26,13 @@ async function spaPlugin(dir: string) {
   const indexHtml = (await exists(indexPath))
     ? await readFile(indexPath, "utf-8")
     : undefined;
+
   return new Elysia({ name: "spaPlugin" })
     .use(
       staticPlugin({
         assets: dir,
         alwaysStatic: true,
+        indexHTML: false, // workaround until https://github.com/elysiajs/elysia-static/pull/57 is merged
         prefix: "/",
       }),
     )
@@ -38,7 +40,7 @@ async function spaPlugin(dir: string) {
       if (!indexHtml) {
         return status(404);
       }
-      if (typeof accept === "string" && !accept.includes("text/html")) {
+      if (typeof accept === "string" && !["text/html", "*/*"].some((type) => accept.includes(type))) {
         return status(404);
       }
       return new Response(indexHtml, {
@@ -92,7 +94,7 @@ const app = new Elysia()
   )
   .use(serverTiming())
   .use(routes)
-  .use(await spaPlugin(resolve(FRONTEND_DIR)))
+  .use(await spaPlugin(FRONTEND_DIR))
   .listen({
     port: PORT,
     reusePort: PRODUCTION,

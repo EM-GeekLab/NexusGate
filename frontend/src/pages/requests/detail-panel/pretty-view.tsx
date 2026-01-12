@@ -196,21 +196,30 @@ function RequestMetaInfo() {
   const data = useRequestDetailContext()
 
   const descriptions: {
-    key: keyof typeof data
+    key: string
     name: ReactNode
     value?: ReactNode
     help?: string
     className?: string
+    hidden?: boolean
+    fullWidth?: boolean // Display value on its own line
   }[] = [
     {
       key: 'id',
       name: t('pages.requests.detail-panel.pretty-view.RequestID'),
+      value: String(data.id),
       className: 'tabular-nums',
     },
     {
       key: 'model',
       name: t('pages.requests.detail-panel.pretty-view.Model'),
       value: <CopiableText text={data.model} />,
+    },
+    {
+      key: 'providerName',
+      name: t('pages.requests.detail-panel.pretty-view.Provider'),
+      value: data.providerName ?? '-',
+      hidden: !data.providerName,
     },
     {
       key: 'ttft',
@@ -236,6 +245,20 @@ function RequestMetaInfo() {
       value: data.completionTokens === -1 ? '-' : formatNumber(data.completionTokens),
       className: 'tabular-nums',
     },
+    {
+      key: 'extraBody',
+      name: t('pages.requests.detail-panel.pretty-view.ExtraBody'),
+      value: <ExtraDataDisplay data={data.prompt.extraBody} />,
+      hidden: !data.prompt.extraBody,
+      fullWidth: true,
+    },
+    {
+      key: 'extraHeaders',
+      name: t('pages.requests.detail-panel.pretty-view.ExtraHeaders'),
+      value: <ExtraDataDisplay data={data.prompt.extraHeaders} />,
+      hidden: !data.prompt.extraHeaders,
+      fullWidth: true,
+    },
   ]
 
   return (
@@ -245,25 +268,30 @@ function RequestMetaInfo() {
       </div>
       <div className="rounded-lg px-2 py-0.5 @max-2xl:mx-3 @max-2xl:mb-3 @max-2xl:border">
         <TooltipProvider>
-          {descriptions.map(({ key, name, value, help, className }) => (
-            <dl key={key} className="flex items-center justify-between gap-2 p-2 not-last:border-b">
-              <dt className="text-muted-foreground flex items-center gap-1 text-sm">
-                {name}
-                {help && (
-                  <Tooltip>
-                    <TooltipTrigger
-                      className="text-muted-foreground hover:text-accent-foreground transition-colors"
-                      asChild
-                    >
-                      <HelpCircleIcon className="size-3.5" />
-                    </TooltipTrigger>
-                    <TooltipContent>{help}</TooltipContent>
-                  </Tooltip>
-                )}
-              </dt>
-              <dd className={cn('justify-self-end text-sm', className)}>{value ?? String(data[key])}</dd>
-            </dl>
-          ))}
+          {descriptions
+            .filter((d) => !d.hidden)
+            .map(({ key, name, value, help, className, fullWidth }) => (
+              <dl
+                key={key}
+                className={cn('gap-2 p-2 not-last:border-b', fullWidth ? 'flex flex-col' : 'flex items-center justify-between')}
+              >
+                <dt className="text-muted-foreground flex items-center gap-1 text-sm">
+                  {name}
+                  {help && (
+                    <Tooltip>
+                      <TooltipTrigger
+                        className="text-muted-foreground hover:text-accent-foreground transition-colors"
+                        asChild
+                      >
+                        <HelpCircleIcon className="size-3.5" />
+                      </TooltipTrigger>
+                      <TooltipContent>{help}</TooltipContent>
+                    </Tooltip>
+                  )}
+                </dt>
+                <dd className={cn('text-sm', fullWidth ? '' : 'justify-self-end', className)}>{value}</dd>
+              </dl>
+            ))}
         </TooltipProvider>
       </div>
     </div>
@@ -279,6 +307,19 @@ function DescriptionItemButton({ className, ...props }: ComponentProps<'button'>
       )}
       {...props}
     />
+  )
+}
+
+function ExtraDataDisplay({ data }: { data?: Record<string, unknown> }) {
+  if (!data) return '-'
+
+  const entries = Object.entries(data)
+  if (entries.length === 0) return '-'
+
+  return (
+    <pre className="bg-muted/50 max-w-full overflow-auto rounded px-2 py-1 font-mono text-xs whitespace-pre-wrap break-all">
+      {JSON.stringify(data, null, 2)}
+    </pre>
   )
 }
 

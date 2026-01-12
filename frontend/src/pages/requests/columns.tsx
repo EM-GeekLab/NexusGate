@@ -16,8 +16,13 @@ export type ChatRequest = Omit<
   Exclude<Awaited<ReturnType<typeof api.admin.completions.get>>['data'], null>['data'][number],
   'prompt' | 'completion'
 > & {
-  prompt: { messages: ChatCompletionMessageParam[] }
+  prompt: {
+    messages: ChatCompletionMessageParam[]
+    extraBody?: Record<string, unknown>
+    extraHeaders?: Record<string, string>
+  }
   completion: ChatCompletionMessage[]
+  providerName?: string | null
 }
 
 export const columns: ColumnDef<ChatRequest>[] = [

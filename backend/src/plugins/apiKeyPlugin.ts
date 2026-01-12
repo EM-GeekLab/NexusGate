@@ -12,17 +12,25 @@ export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
       bearer: key,
     };
   })
-  .macro({
-    checkApiKey: {
-      async beforeHandle({ error, bearer }) {
-        if (!bearer || !(await checkApiKey(bearer)))
-          {return error(401, "Invalid API key");}
-      },
+  .macro(() => ({
+    checkApiKey(enabled: boolean) {
+      if (!enabled) return;
+      return {
+        async beforeHandle({ bearer, error }: { bearer?: string; error: (status: number, message: string) => Response }) {
+          if (!bearer || !(await checkApiKey(bearer))) {
+            return error(401, "Invalid API key");
+          }
+        },
+      };
     },
-    checkAdminApiKey: {
-      async beforeHandle({ error, bearer }) {
-        if (!bearer || !(bearer === ADMIN_SUPER_SECRET))
-          {return error(401, "Invalid admin secret");}
-      },
+    checkAdminApiKey(enabled: boolean) {
+      if (!enabled) return;
+      return {
+        async beforeHandle({ bearer, error }: { bearer?: string; error: (status: number, message: string) => Response }) {
+          if (!bearer || bearer !== ADMIN_SUPER_SECRET) {
+            return error(401, "Invalid admin secret");
+          }
+        },
+      };
     },
-  });
+  }));

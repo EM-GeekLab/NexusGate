@@ -1,4 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from '@tanstack/react-router'
+import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { useLocalStorage } from 'usehooks-ts'
 
@@ -18,6 +20,9 @@ import { useTranslation } from 'react-i18next'
 export function AuthDialog() {
   const [secret, setSecret] = useLocalStorage('admin-secret', '')
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const router = useRouter()
+  const prevCheckPassed = useRef<boolean | undefined>(undefined)
 
   const { data: checkPassed = true } = useQuery({
     queryKey: ['check-secret', secret],
@@ -31,6 +36,15 @@ export function AuthDialog() {
     },
     enabled: !!secret,
   })
+
+  // When authentication succeeds, invalidate all queries and refresh router
+  useEffect(() => {
+    if (prevCheckPassed.current === false && checkPassed === true) {
+      queryClient.invalidateQueries()
+      router.invalidate()
+    }
+    prevCheckPassed.current = checkPassed
+  }, [checkPassed, queryClient, router])
 
   const showDialog = !checkPassed || !secret
 

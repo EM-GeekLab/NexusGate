@@ -12,6 +12,9 @@ export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
       bearer: key,
     };
   })
+  // NOTE: Using function form instead of property shorthand due to Elysia 1.4.x bug
+  // where `error` is undefined in macro beforeHandle when using property shorthand.
+  // See: https://elysiajs.com/patterns/macro.html#property-shorthand
   .macro(() => ({
     checkApiKey(enabled: boolean) {
       if (!enabled) return;

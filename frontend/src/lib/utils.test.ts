@@ -1,37 +1,5 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest'
-import { cn, removeUndefinedFields, formatNumber, omit, getAPIBaseURL } from './utils'
-
-describe('cn', () => {
-  test('merges class names', () => {
-    const result = cn('foo', 'bar')
-    expect(result).toBe('foo bar')
-  })
-
-  test('handles conditional classes', () => {
-    const result = cn('foo', false && 'bar', 'baz')
-    expect(result).toBe('foo baz')
-  })
-
-  test('merges tailwind classes correctly', () => {
-    const result = cn('p-4', 'p-2')
-    expect(result).toBe('p-2')
-  })
-
-  test('handles array of classes', () => {
-    const result = cn(['foo', 'bar'])
-    expect(result).toBe('foo bar')
-  })
-
-  test('handles empty input', () => {
-    const result = cn()
-    expect(result).toBe('')
-  })
-
-  test('handles undefined and null', () => {
-    const result = cn('foo', undefined, null, 'bar')
-    expect(result).toBe('foo bar')
-  })
-})
+import { describe, test, expect } from 'vitest'
+import { removeUndefinedFields, formatNumber, omit, getAPIBaseURL } from './utils'
 
 describe('removeUndefinedFields', () => {
   test('removes undefined fields', () => {

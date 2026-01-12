@@ -1,5 +1,5 @@
 import { consola } from "consola";
-import {redisClient} from "./redisClient";
+import { redisClient } from "./redisClient";
 
 const logger = consola.withTag("tokenBucket");
 

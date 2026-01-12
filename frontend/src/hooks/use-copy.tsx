@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
-import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 export interface UseCopyOptions {
   timeout?: number
@@ -34,7 +34,7 @@ export function useCopy(opts: UseCopyOptions = {}): UseCopyReturn {
           })
         return false
       }
-      
+
       return await navigator.clipboard
         .writeText(text)
         .then(() => {
@@ -45,9 +45,7 @@ export function useCopy(opts: UseCopyOptions = {}): UseCopyReturn {
         })
         .catch((err) => {
           if (showErrorToast) {
-            toast.error(
-              t('hooks.use-copy.FailedToCopy', { error: err }),
-            )
+            toast.error(t('hooks.use-copy.FailedToCopy', { error: err }))
           }
           return false
         })

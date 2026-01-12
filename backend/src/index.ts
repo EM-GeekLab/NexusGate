@@ -1,19 +1,19 @@
-import { exists, readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { cors } from "@elysiajs/cors";
 import { serverTiming } from "@elysiajs/server-timing";
 import { staticPlugin } from "@elysiajs/static";
 import { swagger } from "@elysiajs/swagger";
 import { consola } from "consola";
 import { Elysia } from "elysia";
+import { exists, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { routes } from "@/api";
+import { loggerPlugin } from "@/plugins/loggerPlugin";
 import {
   ALLOWED_ORIGINS,
   FRONTEND_DIR,
   PORT,
   PRODUCTION,
 } from "@/utils/config";
-import { routes } from "@/api";
-import { loggerPlugin } from "@/plugins/loggerPlugin";
 import { initConfig } from "./utils/init";
 
 await initConfig();
@@ -40,7 +40,10 @@ async function spaPlugin(dir: string) {
       if (!indexHtml) {
         return status(404);
       }
-      if (typeof accept === "string" && !["text/html", "*/*"].some((type) => accept.includes(type))) {
+      if (
+        typeof accept === "string" &&
+        !["text/html", "*/*"].some((type) => accept.includes(type))
+      ) {
         return status(404);
       }
       return new Response(indexHtml, {

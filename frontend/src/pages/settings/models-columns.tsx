@@ -1,10 +1,9 @@
 import type { ColumnDef } from '@tanstack/react-table'
 
 import { IndicatorBadge } from '@/components/ui/indicator-badge'
+import i18n from '@/i18n'
 
 import { ModelRowActionButton } from './model-row-action-button'
-
-import i18n from '@/i18n'
 
 export interface Model {
   id: number
@@ -24,15 +23,13 @@ export const columns: ColumnDef<Model>[] = [
   {
     accessorKey: 'systemName',
     header: i18n.t('pages.settings.models.columns.SystemName'),
-    cell: ({ row }) => (
-      <span className="font-mono text-sm">{row.original.systemName}</span>
-    ),
+    cell: ({ row }) => <span className="font-mono text-sm">{row.original.systemName}</span>,
   },
   {
     accessorKey: 'remoteId',
     header: i18n.t('pages.settings.models.columns.RemoteId'),
     cell: ({ row }) => (
-      <span className="font-mono text-sm text-muted-foreground">
+      <span className="text-muted-foreground font-mono text-sm">
         {row.original.remoteId ?? row.original.systemName}
       </span>
     ),
@@ -54,9 +51,7 @@ export const columns: ColumnDef<Model>[] = [
   {
     accessorKey: 'weight',
     header: i18n.t('pages.settings.models.columns.Weight'),
-    cell: ({ row }) => (
-      <span className="tabular-nums">{row.original.weight.toFixed(2)}</span>
-    ),
+    cell: ({ row }) => <span className="tabular-nums">{row.original.weight.toFixed(2)}</span>,
   },
   {
     accessorKey: 'contextLength',

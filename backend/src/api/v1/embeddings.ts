@@ -1,14 +1,10 @@
+import type { CreateEmbeddingResponse } from "openai/resources";
 import { consola } from "consola";
 import { Elysia, t } from "elysia";
-import type { CreateEmbeddingResponse } from "openai/resources";
 import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
-import {
-  selectModel,
-  buildUpstreamUrl,
-  getRemoteModelId,
-} from "@/utils/model";
 import { addEmbedding, type EmbeddingRecord } from "@/utils/embeddings";
+import { selectModel, buildUpstreamUrl, getRemoteModelId } from "@/utils/model";
 
 const logger = consola.withTag("embeddingsApi");
 
@@ -27,7 +23,9 @@ const tEmbeddingCreate = t.Object(
     input: t.Union([t.String(), t.Array(t.String())]),
     model: t.String(),
     dimensions: t.Optional(t.Number()),
-    encoding_format: t.Optional(t.Union([t.Literal("float"), t.Literal("base64")])),
+    encoding_format: t.Optional(
+      t.Union([t.Literal("float"), t.Literal("base64")]),
+    ),
     user: t.Optional(t.String()),
   },
   { additionalProperties: true },

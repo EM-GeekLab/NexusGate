@@ -1,6 +1,10 @@
 import { consola } from "consola";
-import { getModelsWithProviderBySystemName, type Model, type Provider } from "@/db";
 import type { ModelTypeEnumType } from "@/db/schema";
+import {
+  getModelsWithProviderBySystemName,
+  type Model,
+  type Provider,
+} from "@/db";
 
 const logger = consola.withTag("modelSelector");
 
@@ -32,7 +36,10 @@ export async function selectModel(
   logger.debug("selectModel", { systemName, providerName, modelType });
 
   // Get all models with the given system name
-  const candidates = await getModelsWithProviderBySystemName(systemName, modelType);
+  const candidates = await getModelsWithProviderBySystemName(
+    systemName,
+    modelType,
+  );
 
   if (candidates.length === 0) {
     logger.warn("No model found", { systemName, modelType });
@@ -83,10 +90,7 @@ export async function selectModel(
 /**
  * Build the upstream URL for a model request
  */
-export function buildUpstreamUrl(
-  provider: Provider,
-  endpoint: string,
-): string {
+export function buildUpstreamUrl(provider: Provider, endpoint: string): string {
   const baseUrl = provider.baseUrl.endsWith("/")
     ? provider.baseUrl.slice(0, -1)
     : provider.baseUrl;

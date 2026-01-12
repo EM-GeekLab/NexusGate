@@ -7,8 +7,9 @@
 
 body {
   @apply m-0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-  'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+    'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -140,7 +141,8 @@ code {
       stroke-dasharray: 42 150;
       stroke-dashoffset: -16;
     }
-    95%, 100% {
+    95%,
+    100% {
       stroke-dasharray: 42 150;
       stroke-dashoffset: -59;
     }
@@ -190,7 +192,7 @@ code {
   }
 
   button:not(:disabled),
-  [role="button"]:not(:disabled) {
+  [role='button']:not(:disabled) {
     cursor: pointer;
   }
 }

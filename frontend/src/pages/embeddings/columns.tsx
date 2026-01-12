@@ -6,7 +6,6 @@ import { match } from 'ts-pattern'
 import type { api } from '@/lib/api'
 import { cn, formatNumber } from '@/lib/utils'
 import { IndicatorBadge, MiniIndicatorBadge } from '@/components/ui/indicator-badge'
-
 import i18n from '@/i18n'
 
 export type EmbeddingRequest = Exclude<
@@ -49,11 +48,7 @@ export const columns: ColumnDef<EmbeddingRequest>[] = [
     accessorKey: 'model',
     header: i18n.t('pages.embeddings.columns.Model'),
     cell: ({ row }) => {
-      return (
-        <IndicatorBadge className="text-foreground bg-background border">
-          {row.original.model}
-        </IndicatorBadge>
-      )
+      return <IndicatorBadge className="text-foreground bg-background border">{row.original.model}</IndicatorBadge>
     },
   },
   {

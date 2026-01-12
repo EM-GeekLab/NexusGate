@@ -1,8 +1,9 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
 
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -14,27 +15,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import type { Model } from './models-columns'
-
-import { useTranslation } from 'react-i18next'
 
 const modelSchema = z.object({
   systemName: z.string().min(1).max(63).optional(),
@@ -93,9 +78,7 @@ export function ModelEditDialog({ model, open, onOpenChange }: ModelEditDialogPr
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{t('pages.settings.models.EditModel')}</DialogTitle>
-          <DialogDescription>
-            {t('pages.settings.models.EditModelDescription')}
-          </DialogDescription>
+          <DialogDescription>{t('pages.settings.models.EditModelDescription')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

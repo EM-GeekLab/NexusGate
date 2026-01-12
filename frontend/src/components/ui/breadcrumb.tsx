@@ -1,10 +1,9 @@
 import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { ChevronRight, MoreHorizontal } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
-
-import { useTranslation } from 'react-i18next'
 
 function Breadcrumb({ ...props }: React.ComponentProps<'nav'>) {
   return <nav aria-label="breadcrumb" data-slot="breadcrumb" {...props} />
@@ -70,7 +69,7 @@ function BreadcrumbSeparator({ children, className, ...props }: React.ComponentP
 
 function BreadcrumbEllipsis({ className, ...props }: React.ComponentProps<'span'>) {
   const { t } = useTranslation()
-  
+
   return (
     <span
       data-slot="breadcrumb-ellipsis"

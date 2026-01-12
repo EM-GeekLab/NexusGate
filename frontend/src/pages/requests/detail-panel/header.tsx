@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react'
 import { format } from 'date-fns'
 import { ArrowLeftIcon, BracesIcon, PanelRightIcon, Rows2Icon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { match } from 'ts-pattern'
 
 import { cn } from '@/lib/utils'
@@ -13,11 +14,9 @@ import type { ChatRequest } from '../columns'
 import { useRequestDetail } from '../request-detail-provider'
 import { useRequestDetailContext } from './index'
 
-import { useTranslation } from 'react-i18next'
-
 export function DetailPanelHeader() {
   const { t } = useTranslation()
-  
+
   const data = useRequestDetailContext()
 
   return (
@@ -46,23 +45,29 @@ export function DetailPanelHeader() {
 
 function StatusIndicator({ status }: { status: ChatRequest['status'] }) {
   const { t } = useTranslation()
-  
+
   return match(status)
     .with('pending', () => (
-      <IndicatorBadge className="bg-neutral-500/15 text-neutral-800 dark:text-neutral-200">{t('pages.requests.detail-panel.header.Pending')}</IndicatorBadge>
+      <IndicatorBadge className="bg-neutral-500/15 text-neutral-800 dark:text-neutral-200">
+        {t('pages.requests.detail-panel.header.Pending')}
+      </IndicatorBadge>
     ))
     .with('completed', () => (
-      <IndicatorBadge className="bg-green-500/15 text-green-800 dark:text-green-200">{t('pages.requests.detail-panel.header.Completed')}</IndicatorBadge>
+      <IndicatorBadge className="bg-green-500/15 text-green-800 dark:text-green-200">
+        {t('pages.requests.detail-panel.header.Completed')}
+      </IndicatorBadge>
     ))
     .with('failed', () => (
-      <IndicatorBadge className="bg-red-500/15 text-red-800 dark:text-red-200">{t('pages.requests.detail-panel.header.Failed')}</IndicatorBadge>
+      <IndicatorBadge className="bg-red-500/15 text-red-800 dark:text-red-200">
+        {t('pages.requests.detail-panel.header.Failed')}
+      </IndicatorBadge>
     ))
     .exhaustive()
 }
 
 export function DetailPanelCloseButton({ className, ...props }: ComponentProps<typeof Button>) {
   const { t } = useTranslation()
-  
+
   const { setSelectedRequestId } = useRequestDetail()
 
   return (

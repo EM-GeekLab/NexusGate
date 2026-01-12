@@ -1,11 +1,11 @@
-import type { ComponentProps } from 'react'
+import { useState, type ComponentProps } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { PlusIcon, RefreshCwIcon } from 'lucide-react'
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
 
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -18,25 +18,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-
-import { useTranslation } from 'react-i18next'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const modelSchema = z.object({
   systemName: z.string().min(1).max(63),
@@ -69,7 +53,11 @@ export function ModelAddButton({ providerId, size = 'sm', ...props }: ModelAddBu
   })
 
   // Fetch remote models from provider
-  const { data: remoteModels, refetch, isFetching } = useQuery({
+  const {
+    data: remoteModels,
+    refetch,
+    isFetching,
+  } = useQuery({
     queryKey: ['remote-models', providerId],
     queryFn: async () => {
       const { data, error } = await api.admin.providers({ id: providerId })['remote-models'].get()
@@ -115,9 +103,7 @@ export function ModelAddButton({ providerId, size = 'sm', ...props }: ModelAddBu
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{t('pages.settings.models.AddModel')}</DialogTitle>
-          <DialogDescription>
-            {t('pages.settings.models.AddModelDescription')}
-          </DialogDescription>
+          <DialogDescription>{t('pages.settings.models.AddModelDescription')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -150,13 +136,7 @@ export function ModelAddButton({ providerId, size = 'sm', ...props }: ModelAddBu
                         </SelectContent>
                       </Select>
                     )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => refetch()}
-                      disabled={isFetching}
-                    >
+                    <Button type="button" variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching}>
                       <RefreshCwIcon className={isFetching ? 'animate-spin' : ''} />
                     </Button>
                   </div>

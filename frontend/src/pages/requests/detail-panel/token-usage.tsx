@@ -1,12 +1,11 @@
+import { useTranslation } from 'react-i18next'
 import { match } from 'ts-pattern'
 
 import { formatNumber } from '@/lib/utils'
 
-import { useTranslation } from 'react-i18next'
-
 export function TokenUsage({ tokens }: { tokens?: number }) {
   const { t } = useTranslation()
-  
+
   const usage = match(tokens)
     .with(undefined, () => null)
     .with(-1, () => t('pages.requests.detail-panel.token-usage.NoTokenData'))

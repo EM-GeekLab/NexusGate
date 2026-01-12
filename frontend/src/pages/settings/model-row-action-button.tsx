@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontalIcon, PencilIcon, TrashIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { api } from '@/lib/api'
@@ -23,10 +24,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import type { Model } from './models-columns'
 import { ModelEditDialog } from './model-edit-dialog'
-
-import { useTranslation } from 'react-i18next'
+import type { Model } from './models-columns'
 
 export function ModelRowActionButton({ model }: { model: Model }) {
   const { t } = useTranslation()
@@ -94,11 +93,7 @@ export function ModelRowActionButton({ model }: { model: Model }) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <ModelEditDialog
-        model={model}
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-      />
+      <ModelEditDialog model={model} open={showEditDialog} onOpenChange={setShowEditDialog} />
     </>
   )
 }

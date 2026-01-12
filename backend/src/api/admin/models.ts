@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia";
+import type { ModelTypeEnumType } from "@/db/schema";
 import {
   deleteModel,
   findModel,
@@ -10,7 +11,6 @@ import {
   updateModel,
   updateModelWeights,
 } from "@/db";
-import type { ModelTypeEnumType } from "@/db/schema";
 
 export const adminModels = new Elysia({ prefix: "/models" })
   // List all models (global model registry)
@@ -18,12 +18,16 @@ export const adminModels = new Elysia({ prefix: "/models" })
     "/",
     async ({ query }) => {
       const { modelType } = query;
-      const models = await listModels(modelType as ModelTypeEnumType | undefined);
+      const models = await listModels(
+        modelType as ModelTypeEnumType | undefined,
+      );
       return models;
     },
     {
       query: t.Object({
-        modelType: t.Optional(t.Union([t.Literal("chat"), t.Literal("embedding")])),
+        modelType: t.Optional(
+          t.Union([t.Literal("chat"), t.Literal("embedding")]),
+        ),
       }),
       detail: {
         description: "List all models (optionally filtered by type)",
@@ -36,12 +40,16 @@ export const adminModels = new Elysia({ prefix: "/models" })
     "/system-names",
     async ({ query }) => {
       const { modelType } = query;
-      const names = await listUniqueSystemNames(modelType as ModelTypeEnumType | undefined);
+      const names = await listUniqueSystemNames(
+        modelType as ModelTypeEnumType | undefined,
+      );
       return names;
     },
     {
       query: t.Object({
-        modelType: t.Optional(t.Union([t.Literal("chat"), t.Literal("embedding")])),
+        modelType: t.Optional(
+          t.Union([t.Literal("chat"), t.Literal("embedding")]),
+        ),
       }),
       detail: {
         description: "List unique system names for the global model registry",
@@ -65,10 +73,13 @@ export const adminModels = new Elysia({ prefix: "/models" })
         systemName: t.String(),
       }),
       query: t.Object({
-        modelType: t.Optional(t.Union([t.Literal("chat"), t.Literal("embedding")])),
+        modelType: t.Optional(
+          t.Union([t.Literal("chat"), t.Literal("embedding")]),
+        ),
       }),
       detail: {
-        description: "Get all models with a specific system name (with provider info)",
+        description:
+          "Get all models with a specific system name (with provider info)",
         tags: ["Admin - Models"],
       },
     },
@@ -95,7 +106,8 @@ export const adminModels = new Elysia({ prefix: "/models" })
         ),
       }),
       detail: {
-        description: "Update load balancing weights for models with same system name",
+        description:
+          "Update load balancing weights for models with same system name",
         tags: ["Admin - Models"],
       },
     },
@@ -132,7 +144,9 @@ export const adminModels = new Elysia({ prefix: "/models" })
 
       const model = await insertModel(body);
       if (!model) {
-        return status(409, { error: "Model with this system name already exists for this provider" });
+        return status(409, {
+          error: "Model with this system name already exists for this provider",
+        });
       }
       return model;
     },
@@ -141,7 +155,9 @@ export const adminModels = new Elysia({ prefix: "/models" })
         providerId: t.Number(),
         systemName: t.String({ minLength: 1, maxLength: 63 }),
         remoteId: t.Optional(t.String({ maxLength: 63 })),
-        modelType: t.Optional(t.Union([t.Literal("chat"), t.Literal("embedding")])),
+        modelType: t.Optional(
+          t.Union([t.Literal("chat"), t.Literal("embedding")]),
+        ),
         contextLength: t.Optional(t.Number()),
         inputPrice: t.Optional(t.Number()),
         outputPrice: t.Optional(t.Number()),
@@ -172,7 +188,9 @@ export const adminModels = new Elysia({ prefix: "/models" })
       body: t.Object({
         systemName: t.Optional(t.String({ minLength: 1, maxLength: 63 })),
         remoteId: t.Optional(t.String({ maxLength: 63 })),
-        modelType: t.Optional(t.Union([t.Literal("chat"), t.Literal("embedding")])),
+        modelType: t.Optional(
+          t.Union([t.Literal("chat"), t.Literal("embedding")]),
+        ),
         contextLength: t.Optional(t.Number()),
         inputPrice: t.Optional(t.Number()),
         outputPrice: t.Optional(t.Number()),

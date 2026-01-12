@@ -3,8 +3,8 @@ import { and, asc, count, desc, eq, not, sql, sum } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sql";
 import { migrate } from "drizzle-orm/bun-sql/migrator";
 import { DATABASE_URL } from "@/utils/config";
-import * as schema from "./schema";
 import type { ModelTypeEnumType } from "./schema";
+import * as schema from "./schema";
 
 const globalThis_ = globalThis as typeof globalThis & {
   db: ReturnType<typeof drizzle>;

@@ -1,10 +1,10 @@
 import { consola } from "consola";
-import { findApiKey, insertEmbedding, insertLog } from "@/db";
 import type {
   CompletionsStatusEnumType,
   EmbeddingsInputType,
   SrvLogsLevelEnumType,
 } from "@/db/schema";
+import { findApiKey, insertEmbedding, insertLog } from "@/db";
 
 export type EmbeddingRecord = {
   model: string;

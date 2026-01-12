@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 import { RotateCcwIcon, XIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
@@ -10,8 +11,6 @@ import { useRequestDetail } from '../request-detail-provider'
 import { DetailPanelCloseButton, DetailPanelHeader } from './header'
 import { MessagesPrettyView } from './pretty-view'
 import { MessagesRawView } from './raw-view'
-
-import { useTranslation } from 'react-i18next'
 
 const DetailContext = createContext<ChatRequest | null>(null)
 export const useRequestDetailContext = () => {

@@ -1,4 +1,17 @@
 {
+  "name": "nexus-gate-server",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "scripts": {
+    "build": "bun check && NODE_ENV=production COMMIT_SHA=$(git rev-parse HEAD) bun build src/index.ts --target bun --outdir out/ --env='COMMIT_SHA*'",
+    "check": "tsgo -p tsconfig.check.json",
+    "dev": "COMMIT_SHA=$(git rev-parse HEAD) CONSOLA_LEVEL=9999 FRONTEND_DIR=../frontend/dist bun --watch --hot --no-clear-screen --inspect src/index.ts",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "lint": "oxlint --type-aware"
+  },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/server-timing": "^1.4.0",
@@ -20,18 +33,5 @@
     "oxlint": "^1.38.0",
     "oxlint-tsgolint": "^0.11.0",
     "pg": "^8.16.3"
-  },
-  "main": "./src/index.ts",
-  "module": "./src/index.ts",
-  "name": "nexus-gate-server",
-  "private": true,
-  "scripts": {
-    "build": "bun check && NODE_ENV=production COMMIT_SHA=$(git rev-parse HEAD) bun build src/index.ts --target bun --outdir out/ --env='COMMIT_SHA*'",
-    "check": "tsgo -p tsconfig.check.json",
-    "dev": "COMMIT_SHA=$(git rev-parse HEAD) CONSOLA_LEVEL=9999 FRONTEND_DIR=../frontend/dist bun --watch --hot --no-clear-screen --inspect src/index.ts",
-    "fmt": "oxfmt .",
-    "fmt:check": "oxfmt --check .",
-    "lint": "oxlint --type-aware"
-  },
-  "type": "module"
+  }
 }

@@ -8,10 +8,9 @@ import { formatError } from '@/lib/error'
 import { removeUndefinedFields } from '@/lib/utils'
 import { AppErrorComponent } from '@/components/app/app-error'
 import { queryClient } from '@/components/app/query-provider'
+import i18n from '@/i18n'
 import type { EmbeddingRequest } from '@/pages/embeddings/columns'
 import { EmbeddingsDataTable } from '@/pages/embeddings/data-table'
-
-import i18n from '@/i18n'
 
 const embeddingsSearchSchema = z.object({
   page: z.number().catch(1),

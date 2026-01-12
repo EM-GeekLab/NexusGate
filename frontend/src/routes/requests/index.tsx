@@ -8,10 +8,9 @@ import { formatError } from '@/lib/error'
 import { removeUndefinedFields } from '@/lib/utils'
 import { AppErrorComponent } from '@/components/app/app-error'
 import { queryClient } from '@/components/app/query-provider'
+import i18n from '@/i18n'
 import type { ChatRequest } from '@/pages/requests/columns'
 import { RequestsDataTable } from '@/pages/requests/data-table'
-
-import i18n from '@/i18n'
 
 const requestsSearchSchema = z.object({
   page: z.number().catch(1),

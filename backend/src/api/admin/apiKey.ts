@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
-import { generateApiKey } from "@/utils/apiKey";
 import { findApiKey, listApiKeys, upsertApiKey } from "@/db";
+import { generateApiKey } from "@/utils/apiKey";
 
 export const adminApiKey = new Elysia()
   .get(

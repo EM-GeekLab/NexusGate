@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { addDays, format } from 'date-fns'
 import { CalendarIcon, PlusIcon } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 
 import { api } from '@/lib/api'
@@ -27,8 +28,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { useCopy } from '@/hooks/use-copy'
-
-import { useTranslation } from 'react-i18next'
 
 const addKeySchema = z.object({
   comment: z.string().min(1, { message: 'Comment is required' }),
@@ -69,9 +68,7 @@ function AddDialogContent() {
     <>
       <DialogHeader>
         <DialogTitle>{t('pages.api-keys.add-button.AppCreated')}</DialogTitle>
-        <DialogDescription>
-        {t('pages.api-keys.add-button.AppCreatedDesc')}
-        </DialogDescription>
+        <DialogDescription>{t('pages.api-keys.add-button.AppCreatedDesc')}</DialogDescription>
         <KeyCreatedContent apiKey={createdKey} />
       </DialogHeader>
     </>
@@ -124,9 +121,7 @@ function AddKeyForm({ onSubmitSuccessful }: { onSubmitSuccessful: (key: string) 
               <FormControl>
                 <ExpireDatePicker value={field.value} onValueChange={field.onChange} />
               </FormControl>
-              <FormDescription>
-                {t('pages.api-keys.add-button.SetExpirationDate')}
-              </FormDescription>
+              <FormDescription>{t('pages.api-keys.add-button.SetExpirationDate')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -214,8 +209,11 @@ function ExpireDatePicker({ value, onValueChange }: { value?: Date; onValueChang
 function KeyCreatedContent({ apiKey }: { apiKey: string }) {
   const { t } = useTranslation()
 
-  const { copy, copied } = useCopy({ showSuccessToast: true, successToastMessage: t('pages.api-keys.add-button.APIKeyCopied' )})
- 
+  const { copy, copied } = useCopy({
+    showSuccessToast: true,
+    successToastMessage: t('pages.api-keys.add-button.APIKeyCopied'),
+  })
+
   return (
     <div className="grid gap-4">
       <Input value={apiKey} readOnly />

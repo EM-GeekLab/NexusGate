@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 
 import {
   AppHeader,
@@ -7,8 +8,6 @@ import {
   AppSidebarSeparator,
   AppSidebarTrigger,
 } from '@/components/app/app-header'
-
-import { useTranslation } from 'react-i18next'
 
 export const Route = createFileRoute('/embeddings')({
   component: RouteComponent,

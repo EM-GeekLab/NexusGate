@@ -3,11 +3,10 @@ import { ChevronRightIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import i18n from '@/i18n'
 import { ApiKeyCopyButton } from '@/pages/api-keys/api-key-copy-button'
 
 import { ProviderRowActionButton } from './provider-row-action-button'
-
-import i18n from '@/i18n'
 
 export interface Provider {
   id: number
@@ -33,9 +32,7 @@ export const columns: ColumnDef<Provider>[] = [
           row.toggleExpanded()
         }}
       >
-        <ChevronRightIcon
-          className={cn('h-4 w-4 transition-transform', row.getIsExpanded() && 'rotate-90')}
-        />
+        <ChevronRightIcon className={cn('h-4 w-4 transition-transform', row.getIsExpanded() && 'rotate-90')} />
       </Button>
     ),
   },
@@ -46,16 +43,12 @@ export const columns: ColumnDef<Provider>[] = [
   {
     accessorKey: 'type',
     header: i18n.t('pages.settings.providers.columns.Type'),
-    cell: ({ row }) => (
-      <span className="bg-muted rounded px-2 py-0.5 text-sm">{row.original.type}</span>
-    ),
+    cell: ({ row }) => <span className="bg-muted rounded px-2 py-0.5 text-sm">{row.original.type}</span>,
   },
   {
     accessorKey: 'baseUrl',
     header: i18n.t('pages.settings.providers.columns.BaseURL'),
-    cell: ({ row }) => (
-      <span className="font-mono text-sm">{row.original.baseUrl}</span>
-    ),
+    cell: ({ row }) => <span className="font-mono text-sm">{row.original.baseUrl}</span>,
   },
   {
     accessorKey: 'apiKey',

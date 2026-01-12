@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useLocalStorage } from 'usehooks-ts'
@@ -14,7 +15,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { useRouter } from '@tanstack/react-router'
 
 export function AuthDialog() {
   const [secret, setSecret] = useLocalStorage('admin-secret', '')

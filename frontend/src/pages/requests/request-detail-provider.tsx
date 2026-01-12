@@ -1,14 +1,13 @@
 import { createContext, useCallback, useContext, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { useQuery, type QueryObserverResult, type RefetchOptions } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 
 import { api } from '@/lib/api'
 import { formatError } from '@/lib/error'
 
 import type { ChatRequest } from './columns'
 import { useRequestsData } from './requests-data-provider'
-
-import { useTranslation } from 'react-i18next'
 
 export const RequestDetailContext = createContext<{
   selectedRequestId: number | undefined

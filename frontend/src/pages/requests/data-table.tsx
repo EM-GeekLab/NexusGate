@@ -3,6 +3,7 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import { flexRender, getCoreRowModel, useReactTable, type Table as DTable } from '@tanstack/react-table'
 import { format } from 'date-fns'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeftIcon, ChevronsRightIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { cn, formatNumber } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -13,9 +14,6 @@ import { columns, type ChatRequest } from './columns'
 import { DetailPanel } from './detail-panel'
 import { RequestDetailProvider, useRequestDetail } from './request-detail-provider'
 import { RequestsDataProvider, useRequestsData } from './requests-data-provider'
-
-import { useTranslation } from 'react-i18next'
-
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100]
 
@@ -136,7 +134,7 @@ function PageInfo({ className, ...props }: ComponentProps<'div'>) {
 
 function Pagination({ className, ...props }: ComponentProps<'div'>) {
   const { t } = useTranslation()
-  
+
   const { total } = useRequestsData()
 
   const { page, pageSize, ...rest } = useSearch({ from: '/requests/' })
@@ -164,9 +162,7 @@ function Pagination({ className, ...props }: ComponentProps<'div'>) {
         </Select>
       </div>
       <div className="flex items-center gap-4">
-        <div className="text-sm">
-          {t('pages.requests.data-table.Page',{page,pageCount})}
-        </div>
+        <div className="text-sm">{t('pages.requests.data-table.Page', { page, pageCount })}</div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"

@@ -5,9 +5,8 @@ import { api } from '@/lib/api'
 import { formatError } from '@/lib/error'
 import { AppErrorComponent } from '@/components/app/app-error'
 import { queryClient } from '@/components/app/query-provider'
-import { ProvidersDataTable } from '@/pages/settings/providers-data-table'
-
 import i18n from '@/i18n'
+import { ProvidersDataTable } from '@/pages/settings/providers-data-table'
 
 const providersQueryOptions = () =>
   queryOptions({

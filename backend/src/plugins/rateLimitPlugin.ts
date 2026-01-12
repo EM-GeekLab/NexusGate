@@ -60,5 +60,5 @@ export const rateLimitPlugin = new Elysia({
         set.headers["X-RateLimit-Limit"] = limit.toString();
         set.headers["X-RateLimit-Remaining"] = newTokens.toString();
       },
-    })
+    }),
   });

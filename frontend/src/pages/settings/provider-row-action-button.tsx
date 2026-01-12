@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontalIcon, PencilIcon, TrashIcon, ZapIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { api } from '@/lib/api'
@@ -23,10 +24,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import type { Provider } from './providers-columns'
 import { ProviderEditDialog } from './provider-edit-dialog'
-
-import { useTranslation } from 'react-i18next'
+import type { Provider } from './providers-columns'
 
 export function ProviderRowActionButton({ provider }: { provider: Provider }) {
   const { t } = useTranslation()
@@ -115,11 +114,7 @@ export function ProviderRowActionButton({ provider }: { provider: Provider }) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <ProviderEditDialog
-        provider={provider}
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-      />
+      <ProviderEditDialog provider={provider} open={showEditDialog} onOpenChange={setShowEditDialog} />
     </>
   )
 }

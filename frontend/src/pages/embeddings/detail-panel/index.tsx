@@ -2,14 +2,13 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { CheckIcon, CopyIcon, XIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { api } from '@/lib/api'
 import { formatNumber } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
 import { useEmbeddingDetail } from '../embedding-detail-provider'
-
-import { useTranslation } from 'react-i18next'
 
 export function DetailPanel() {
   const { t } = useTranslation()
@@ -74,7 +73,7 @@ export function DetailPanel() {
             <div className="space-y-2">
               <div className="text-muted-foreground text-sm">{t('pages.embeddings.detail-panel.InputText')}</div>
               <div className="bg-muted/50 rounded-md border p-3">
-                <pre className="whitespace-pre-wrap break-words font-mono text-sm">
+                <pre className="font-mono text-sm break-words whitespace-pre-wrap">
                   {Array.isArray(embedding.input)
                     ? embedding.input.map((text: string, i: number) => (
                         <div key={i} className="mb-2 last:mb-0">
@@ -90,7 +89,8 @@ export function DetailPanel() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-muted-foreground text-sm">
-                  {t('pages.embeddings.detail-panel.EmbeddingVector')} ({embedding.dimensions} {t('pages.embeddings.detail-panel.Dims')})
+                  {t('pages.embeddings.detail-panel.EmbeddingVector')} ({embedding.dimensions}{' '}
+                  {t('pages.embeddings.detail-panel.Dims')})
                 </div>
                 <CopyButton text={JSON.stringify(embedding.embedding)} />
               </div>
@@ -101,7 +101,11 @@ export function DetailPanel() {
                       {Array.isArray(embedding.input) && embedding.input.length > 1 && (
                         <div className="text-muted-foreground mb-1">[{i + 1}]</div>
                       )}
-                      [{vec.slice(0, 10).map((v: number) => v.toFixed(6)).join(', ')}
+                      [
+                      {vec
+                        .slice(0, 10)
+                        .map((v: number) => v.toFixed(6))
+                        .join(', ')}
                       {vec.length > 10 && `, ... (${vec.length - 10} more)`}]
                     </div>
                   ))}

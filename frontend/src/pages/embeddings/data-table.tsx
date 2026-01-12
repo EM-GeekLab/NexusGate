@@ -3,6 +3,7 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import { flexRender, getCoreRowModel, useReactTable, type Table as DTable } from '@tanstack/react-table'
 import { format } from 'date-fns'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeftIcon, ChevronsRightIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { cn, formatNumber } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -13,8 +14,6 @@ import { columns, type EmbeddingRequest } from './columns'
 import { DetailPanel } from './detail-panel'
 import { EmbeddingDetailProvider, useEmbeddingDetail } from './embedding-detail-provider'
 import { EmbeddingsDataProvider, useEmbeddingsData } from './embeddings-data-provider'
-
-import { useTranslation } from 'react-i18next'
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100]
 

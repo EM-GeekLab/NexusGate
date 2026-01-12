@@ -4,9 +4,13 @@ import { ADMIN_SUPER_SECRET } from "@/utils/config.ts";
 
 export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
   .derive({ as: "global" }, ({ headers }) => {
-    if (!headers.authorization) {return;}
+    if (!headers.authorization) {
+      return;
+    }
     const [method, key] = headers.authorization.split(" ");
-    if (method !== "Bearer") {return;}
+    if (method !== "Bearer") {
+      return;
+    }
 
     return {
       bearer: key,
@@ -15,14 +19,16 @@ export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
   .macro({
     checkApiKey: {
       async beforeHandle({ status, bearer }) {
-        if (!bearer || !(await checkApiKey(bearer)))
-          {return status(401, "Invalid API key");}
+        if (!bearer || !(await checkApiKey(bearer))) {
+          return status(401, "Invalid API key");
+        }
       },
     },
     checkAdminApiKey: {
       async beforeHandle({ status, bearer }) {
-        if (!bearer || !(bearer === ADMIN_SUPER_SECRET))
-          {return status(401, "Invalid admin secret");}
+        if (!bearer || !(bearer === ADMIN_SUPER_SECRET)) {
+          return status(401, "Invalid admin secret");
+        }
       },
     },
   });

@@ -1,25 +1,27 @@
-import { consola } from "consola";
-import { Elysia, t } from "elysia";
 import type {
   ChatCompletion,
   ChatCompletionChunk,
   ChatCompletionMessage,
 } from "openai/resources";
+import { consola } from "consola";
+import { Elysia, t } from "elysia";
+import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
+import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import { addCompletions, type Completion } from "@/utils/completions";
 import { parseSse } from "@/utils/sse";
 import { selectUpstream } from "@/utils/upstream";
-import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
-import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 
 const logger = consola.withTag("completionsApi");
 
 // loose validation, only check required fields
 const tChatCompletionCreate = t.Object(
   {
-    messages: t.Array(t.Object({
-      role: t.String(),
-      content: t.String(),
-    })),
+    messages: t.Array(
+      t.Object({
+        role: t.String(),
+        content: t.String(),
+      }),
+    ),
     model: t.String(),
     n: t.Optional(t.Number()),
     stream: t.Optional(t.Boolean()),
@@ -387,4 +389,4 @@ export const completionsApi = new Elysia({
         identifier: (body: unknown) => (body as { model: string }).model,
       },
     },
-  )
+  );

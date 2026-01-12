@@ -1,11 +1,11 @@
-import type { ComponentProps } from 'react'
+import { useState, type ComponentProps } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { PlusIcon } from 'lucide-react'
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
 
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -18,25 +18,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-
-import { useTranslation } from 'react-i18next'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const providerSchema = z.object({
   name: z.string().min(1).max(63),
@@ -94,9 +78,7 @@ export function ProviderAddButton({ size = 'default', ...props }: ComponentProps
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{t('pages.settings.providers.AddProvider')}</DialogTitle>
-          <DialogDescription>
-            {t('pages.settings.providers.AddProviderDescription')}
-          </DialogDescription>
+          <DialogDescription>{t('pages.settings.providers.AddProviderDescription')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

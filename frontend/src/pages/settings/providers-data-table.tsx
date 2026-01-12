@@ -1,22 +1,16 @@
 import { Fragment } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  flexRender,
-  getCoreRowModel,
-  getExpandedRowModel,
-  useReactTable,
-} from '@tanstack/react-table'
+import { flexRender, getCoreRowModel, getExpandedRowModel, useReactTable } from '@tanstack/react-table'
+import { useTranslation } from 'react-i18next'
 
 import { api } from '@/lib/api'
 import { DataTable } from '@/components/ui/data-table'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
-import { columns as modelColumns, type Model } from './models-columns'
 import { ModelAddButton } from './model-add-button'
+import { columns as modelColumns, type Model } from './models-columns'
 import { ProviderAddButton } from './provider-add-button'
 import { columns, type Provider } from './providers-columns'
-
-import { useTranslation } from 'react-i18next'
 
 export function ProvidersDataTable({ data }: { data: Provider[] }) {
   const table = useReactTable({
@@ -39,9 +33,7 @@ export function ProvidersDataTable({ data }: { data: Provider[] }) {
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -57,9 +49,7 @@ export function ProvidersDataTable({ data }: { data: Provider[] }) {
                     onClick={() => row.toggleExpanded()}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}
                   </TableRow>
                   {row.getIsExpanded() && (
@@ -110,9 +100,7 @@ function ProviderModelsTable({ providerId }: { providerId: number }) {
       {models.length > 0 ? (
         <DataTable columns={modelColumns} data={models} />
       ) : (
-        <div className="text-muted-foreground py-4 text-center text-sm">
-          {t('pages.settings.models.NoModels')}
-        </div>
+        <div className="text-muted-foreground py-4 text-center text-sm">{t('pages.settings.models.NoModels')}</div>
       )}
     </div>
   )

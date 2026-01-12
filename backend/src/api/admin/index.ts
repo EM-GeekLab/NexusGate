@@ -1,14 +1,14 @@
 import { Elysia } from "elysia";
-import { COMMIT_SHA } from "@/utils/config";
 import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
+import { COMMIT_SHA } from "@/utils/config";
 import { adminApiKey } from "./apiKey";
 import { adminCompletions } from "./completions";
+import { adminEmbeddings } from "./embeddings";
+import { adminModels } from "./models";
+import { adminProviders } from "./providers";
 import { adminRateLimits } from "./rateLimits";
 import { adminUpstream } from "./upstream";
 import { adminUsage } from "./usage";
-import { adminProviders } from "./providers";
-import { adminModels } from "./models";
-import { adminEmbeddings } from "./embeddings";
 
 export const routes = new Elysia({
   detail: {

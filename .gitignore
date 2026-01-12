@@ -17,4 +17,4 @@ node_modules
 
 dist/
 out/
-.turbo/
+coverage

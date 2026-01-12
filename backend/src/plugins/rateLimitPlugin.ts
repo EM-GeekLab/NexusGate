@@ -21,7 +21,7 @@ export const rateLimitPlugin = new Elysia({
         refill?: number;
       };
     }) => ({
-      async beforeHandle({ status, set, bearer, body }) {
+      async resolve({ status, set, bearer, body }) {
         let identifier = "default";
         if (options?.identifier) {
           try {
@@ -60,5 +60,5 @@ export const rateLimitPlugin = new Elysia({
         set.headers["X-RateLimit-Limit"] = limit.toString();
         set.headers["X-RateLimit-Remaining"] = newTokens.toString();
       },
-    }),
+    })
   });

@@ -384,7 +384,7 @@ export const completionsApi = new Elysia({
       body: tChatCompletionCreate,
       checkApiKey: true,
       rateLimit: {
-        identifier: (body) => (body as { model: string }).model,
+        identifier: (body: unknown) => (body as { model: string }).model,
       },
     },
-  );
+  )

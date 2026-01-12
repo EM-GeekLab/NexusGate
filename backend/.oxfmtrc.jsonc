@@ -1,0 +1,13 @@
+{
+  "$schema": "../node_modules/oxfmt/configuration_schema.json",
+  "endOfLine": "lf",
+  "printWidth": 80,
+  "experimentalSortImports": {
+    "order": "asc",
+    "sortSideEffects": true,
+    "newlinesBetween": false,
+    "partitionByComment": false,
+    "partitionByNewline": false,
+    "ignoreCase": false,
+  },
+}

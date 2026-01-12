@@ -1,7 +1,8 @@
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import { ArrowUpDownIcon, BoxIcon, LayoutGridIcon, PackageIcon, WaypointsIcon } from 'lucide-react'
+import { ArrowUpDownIcon, BoxIcon, LayoutGridIcon, SettingsIcon, WaypointsIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { cn } from '@/lib/utils'
 import {
   Sidebar,
   SidebarContent,
@@ -25,24 +26,24 @@ const navItems = [
   //   href: '/',
   // },
   {
-    icon: <ArrowUpDownIcon />,
+    icon: <ArrowUpDownIcon className="size-4" />,
     title: i18n.t('components.app.app-sidebar.Requests'),
     href: '/requests',
   },
   {
-    icon: <BoxIcon />,
+    icon: <BoxIcon className="size-4" />,
     title: i18n.t('components.app.app-sidebar.Embeddings'),
     href: '/embeddings',
   },
   {
-    icon: <LayoutGridIcon />,
+    icon: <LayoutGridIcon className="size-4" />,
     title: i18n.t('components.app.app-sidebar.Applications'),
     href: '/apps',
   },
   {
-    icon: <PackageIcon />,
-    title: i18n.t('components.app.app-sidebar.Providers'),
-    href: '/providers',
+    icon: <SettingsIcon className="size-4" />,
+    title: i18n.t('components.app.app-sidebar.Settings'),
+    href: '/settings',
   },
 ]
 
@@ -76,23 +77,29 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
+        <SidebarGroup className="px-3 py-2">
           <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    isActive={!!matchRoute({ to: item.href, fuzzy: true })}
-                    tooltip={{ children: item.title }}
-                    asChild
-                  >
-                    <Link to={item.href} onClick={() => setOpenMobile(false)}>
-                      {item.icon}
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+            <SidebarMenu className="gap-2">
+              {navItems.map((item) => {
+                const isActive = !!matchRoute({ to: item.href, fuzzy: true })
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      tooltip={{ children: item.title }}
+                      asChild
+                      className={cn(
+                        'h-10 gap-3 rounded-lg px-3',
+                        isActive && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+                      )}
+                    >
+                      <Link to={item.href} onClick={() => setOpenMobile(false)}>
+                        {item.icon}
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

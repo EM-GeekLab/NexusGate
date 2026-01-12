@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useLocalStorage } from 'usehooks-ts'
 
@@ -13,21 +14,29 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { useTranslation } from 'react-i18next'
+import { useRouter } from '@tanstack/react-router'
 
 export function AuthDialog() {
   const [secret, setSecret] = useLocalStorage('admin-secret', '')
   const { t } = useTranslation()
 
+  const queryClient = useQueryClient()
+  const router = useRouter()
   const { data: checkPassed = true } = useQuery({
     queryKey: ['check-secret', secret],
     queryFn: async () => {
-      const { data, error } = await api.admin.index.get()
-      if (error) {
+      const { data, error } = await api.admin.get()
+      if (error || !data) {
         toast.error(t('components.app.auth-dialog.InvalidSecret'))
         return false
       }
-      return data
+      await queryClient.invalidateQueries({
+        predicate(query) {
+          return !['check-secret', 'github-head'].includes(query.queryKey[0] as string)
+        },
+      })
+      await router.invalidate()
+      return true
     },
     enabled: !!secret,
   })

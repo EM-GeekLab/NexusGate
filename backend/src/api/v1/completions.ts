@@ -5,11 +5,11 @@ import type {
 } from "openai/resources";
 import { consola } from "consola";
 import { Elysia, t } from "elysia";
+import { getModelsWithProviderBySystemName } from "@/db";
 import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import { addCompletions, type Completion } from "@/utils/completions";
 import { parseSse } from "@/utils/sse";
-import { selectUpstream } from "@/utils/upstream";
 
 const logger = consola.withTag("completionsApi");
 
@@ -30,6 +30,88 @@ const tChatCompletionCreate = t.Object(
   { additionalProperties: true },
 );
 
+// Header prefix for NexusGate-specific headers (e.g., X-NexusGate-Provider)
+const NEXUSGATE_HEADER_PREFIX = "x-nexusgate-";
+// Header name for provider selection
+const PROVIDER_HEADER = "x-nexusgate-provider";
+
+/**
+ * Extract extra body fields (any fields not in the known schema)
+ */
+function extractExtraBody(
+  body: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const knownFields = new Set([
+    "messages",
+    "model",
+    "n",
+    "stream",
+    "stream_options",
+  ]);
+  const extra: Record<string, unknown> = {};
+  let hasExtra = false;
+
+  for (const [key, value] of Object.entries(body)) {
+    if (!knownFields.has(key)) {
+      extra[key] = value;
+      hasExtra = true;
+    }
+  }
+
+  return hasExtra ? extra : undefined;
+}
+
+// Headers that should NOT be forwarded to upstream
+const EXCLUDED_HEADERS = new Set([
+  "host",
+  "connection",
+  "content-length",
+  "content-type",
+  "authorization",
+  "accept",
+  "accept-encoding",
+  "accept-language",
+  "user-agent",
+  "origin",
+  "referer",
+  "cookie",
+  "sec-fetch-dest",
+  "sec-fetch-mode",
+  "sec-fetch-site",
+  "sec-ch-ua",
+  "sec-ch-ua-mobile",
+  "sec-ch-ua-platform",
+]);
+
+/**
+ * Extract headers to be forwarded to upstream
+ * All headers are forwarded EXCEPT:
+ * - Headers starting with "x-nexusgate-" (NexusGate-specific headers)
+ * - Standard HTTP headers (host, authorization, content-type, etc.)
+ */
+function extractUpstreamHeaders(
+  headers: Headers,
+): Record<string, string> | undefined {
+  const extra: Record<string, string> = {};
+  let hasExtra = false;
+
+  headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    // Skip NexusGate-specific headers and excluded standard headers
+    if (
+      lowerKey.startsWith(NEXUSGATE_HEADER_PREFIX) ||
+      EXCLUDED_HEADERS.has(lowerKey)
+    ) {
+      return;
+    }
+    // Forward all other headers as-is
+    extra[key] = value;
+    hasExtra = true;
+  });
+
+  return hasExtra ? extra : undefined;
+}
+
 export const completionsApi = new Elysia({
   prefix: "/chat",
   detail: {
@@ -40,31 +122,100 @@ export const completionsApi = new Elysia({
   .use(rateLimitPlugin)
   .post(
     "/completions",
-    async function* ({ body, status, bearer }) {
+    async function* ({ body, set, bearer, request }) {
       if (bearer === undefined) {
-        return status(500);
+        set.status = 500;
+        yield JSON.stringify({ error: "Internal server error" });
+        return;
       }
-      const upstream = await selectUpstream(body.model);
-      if (!upstream) {
-        return status(404, "Model not found");
+
+      const reqHeaders = request.headers;
+
+      // Extract provider from header (X-NexusGate-Provider)
+      // Support URL-encoded values for non-ASCII characters
+      const rawProviderHeader = reqHeaders.get(PROVIDER_HEADER);
+      const providerFromHeader = rawProviderHeader
+        ? decodeURIComponent(rawProviderHeader)
+        : null;
+
+      // Parse model@provider format
+      const modelMatch = body.model.match(/^(\S+)@(\S+)$/);
+      const systemName = modelMatch ? modelMatch[1]! : body.model;
+
+      // Determine target provider: header takes precedence over model@provider format
+      // Note: empty string should be treated as no provider specified
+      const targetProvider = providerFromHeader || modelMatch?.[2];
+
+      // Find models with provider info using the new architecture
+      const modelsWithProviders = await getModelsWithProviderBySystemName(
+        systemName,
+        "chat",
+      );
+
+      // First check if the model exists at all
+      if (modelsWithProviders.length === 0) {
+        // Model doesn't exist - return 404 error
+        // In async generator, use set.status to set HTTP status code
+        set.status = 404;
+        yield JSON.stringify({
+          error: {
+            message: `Model '${systemName}' not found`,
+            type: "invalid_request_error",
+            code: "model_not_found",
+          },
+        });
+        return;
       }
+
+      // If specific provider requested, try to filter to that provider
+      // If the provider doesn't offer this model, fall back to any available provider
+      let candidates = modelsWithProviders;
+      if (targetProvider) {
+        const filtered = modelsWithProviders.filter(
+          (mp) => mp.provider.name === targetProvider,
+        );
+        if (filtered.length > 0) {
+          candidates = filtered;
+        } else {
+          // Provider doesn't offer this model, ignore the provider header and use any available
+          logger.warn(
+            `Provider '${targetProvider}' does not offer model '${systemName}', falling back to available providers`,
+          );
+        }
+      }
+
+      // TODO: implement load balancing
+      const selected = candidates[0]!;
+      const { model: modelConfig, provider } = selected;
+
+      // Extract extra body fields for passthrough
+      const extraBody = extractExtraBody(body as Record<string, unknown>);
+
+      // Extract extra headers for passthrough
+      const extraHeaders = extractUpstreamHeaders(reqHeaders);
+
       const requestedModel = body.model;
-      const upstreamEndpoint = `${upstream.url}/chat/completions`;
-      body.model = upstream.upstreamModel ?? upstream.model;
+      const upstreamEndpoint = `${provider.baseUrl}/chat/completions`;
+      body.model = modelConfig.remoteId ?? modelConfig.systemName;
 
       const reqInit: RequestInit = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(upstream.apiKey === null
+          ...(provider.apiKey === null
             ? undefined
-            : { Authorization: `Bearer ${upstream.apiKey}` }),
+            : { Authorization: `Bearer ${provider.apiKey}` }),
+          // Forward extra headers to upstream
+          ...extraHeaders,
         },
       };
 
+      logger.debug("extra data", { extraBody, extraHeaders });
+
       const completion: Completion = {
         model: requestedModel,
-        upstreamId: upstream.id,
+        upstreamId: undefined,
+        modelId: modelConfig.id, // Reference to the ModelsTable
         prompt: {
           messages: body.messages.map((m) => {
             return {
@@ -73,6 +224,8 @@ export const completionsApi = new Elysia({
             };
           }),
           n: body.n,
+          extraBody,
+          extraHeaders,
         },
         promptTokens: -1,
         completion: [],
@@ -115,7 +268,9 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return status(500, "Failed to fetch upstream");
+            set.status = 500;
+            yield JSON.stringify({ error: "Failed to fetch upstream" });
+            return;
           }
           if (!resp.ok) {
             const msg = await resp.text();
@@ -136,7 +291,9 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return status(resp.status, msg);
+            set.status = resp.status;
+            yield msg;
+            return;
           }
           const respText = await resp.text();
           const respJson = JSON.parse(respText) as ChatCompletion;
@@ -160,15 +317,17 @@ export const completionsApi = new Elysia({
           });
           addCompletions(completion, bearer);
 
-          return respText;
+          yield respText;
+          return;
         }
 
         case true: {
           if (!!body.n && body.n > 1) {
-            return status(
-              400,
-              "Stream completions with n > 1 is not supported",
-            );
+            set.status = 400;
+            yield JSON.stringify({
+              error: "Stream completions with n > 1 is not supported",
+            });
+            return;
           }
 
           // always set include_usage to true
@@ -208,7 +367,9 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return status(500, "Failed to fetch upstream");
+            set.status = 500;
+            yield JSON.stringify({ error: "Failed to fetch upstream" });
+            return;
           }
           if (!resp.ok) {
             const msg = await resp.text();
@@ -229,7 +390,9 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return status(resp.status, msg);
+            set.status = resp.status;
+            yield msg;
+            return;
           }
           if (!resp.body) {
             logger.error("upstream error", {
@@ -249,7 +412,9 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return status(500, "No body");
+            set.status = 500;
+            yield JSON.stringify({ error: "No body" });
+            return;
           }
 
           logger.debug("parse stream completions response");
@@ -300,7 +465,9 @@ export const completionsApi = new Elysia({
                 msg: "Invalid JSON",
                 chunk,
               });
-              return status(500, "Invalid JSON");
+              set.status = 500;
+              yield JSON.stringify({ error: "Invalid JSON" });
+              return;
             }
             if (data.usage) {
               completion.promptTokens = data.usage.prompt_tokens;
@@ -360,7 +527,9 @@ export const completionsApi = new Elysia({
               continue;
             }
             // Unreachable, unless upstream returned a malformed response
-            return status(500, "Unexpected chunk");
+            set.status = 500;
+            yield JSON.stringify({ error: "Unexpected chunk" });
+            return;
           }
           if (isFirstChunk) {
             logger.error("upstream error: no chunk received");
@@ -377,7 +546,9 @@ export const completionsApi = new Elysia({
                 },
               },
             });
-            return status(500, "No chunk received");
+            set.status = 500;
+            yield JSON.stringify({ error: "No chunk received" });
+            return;
           }
         }
       }

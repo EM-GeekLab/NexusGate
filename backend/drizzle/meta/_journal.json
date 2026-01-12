@@ -43,6 +43,13 @@
       "when": 1768145852608,
       "tag": "0005_wandering_captain_cross",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1768245337752,
+      "tag": "0006_daily_sugar_man",
+      "breakpoints": true
     }
   ]
 }

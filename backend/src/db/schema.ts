@@ -62,6 +62,10 @@ export type CompletionsPromptType = {
     content: string;
   }[];
   n?: number;
+  // Extra body fields passed through to upstream
+  extraBody?: Record<string, unknown>;
+  // Extra headers passed through to upstream
+  extraHeaders?: Record<string, string>;
 };
 
 export type CompletionsCompletionType = {
@@ -84,6 +88,8 @@ export const CompletionsTable = pgTable("completions", {
   upstreamId: integer("upstream_id").references(
     (): AnyPgColumn => UpstreamTable.id,
   ),
+  // Reference to the new ModelsTable (for new architecture)
+  modelId: integer("model_id"),
   model: varchar("model").notNull(),
   prompt: jsonb("prompt").notNull().$type<CompletionsPromptType>(),
   promptTokens: integer("prompt_tokens").notNull(),

@@ -6,7 +6,7 @@ import { formatError } from '@/lib/error'
 import { AppErrorComponent } from '@/components/app/app-error'
 import { queryClient } from '@/components/app/query-provider'
 import i18n from '@/i18n'
-import { ProvidersDataTable } from '@/pages/settings/providers-data-table'
+import { ProvidersSettingsPage } from '@/pages/settings/providers-settings-page'
 
 const providersQueryOptions = () =>
   queryOptions({
@@ -18,7 +18,7 @@ const providersQueryOptions = () =>
     },
   })
 
-export const Route = createFileRoute('/providers/')({
+export const Route = createFileRoute('/settings/providers')({
   loader: () => queryClient.ensureQueryData(providersQueryOptions()),
   component: RouteComponent,
   errorComponent: AppErrorComponent,
@@ -27,11 +27,5 @@ export const Route = createFileRoute('/providers/')({
 function RouteComponent() {
   const { data } = useSuspenseQuery(providersQueryOptions())
 
-  return (
-    <main className="px-4">
-      <div className="mx-auto max-w-7xl">
-        <ProvidersDataTable data={data} />
-      </div>
-    </main>
-  )
+  return <ProvidersSettingsPage data={data} />
 }

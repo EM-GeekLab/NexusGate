@@ -9,7 +9,8 @@ import { findApiKey, insertCompletion, insertLog } from "@/db";
 
 export type Completion = {
   model: string;
-  upstreamId: number;
+  upstreamId?: number;
+  modelId?: number;
   prompt: CompletionsPromptType;
   promptTokens: number;
   completion: CompletionsCompletionType;

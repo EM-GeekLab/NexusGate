@@ -9,25 +9,27 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteRouteImport } from './routes/settings/route'
 import { Route as RequestsRouteRouteImport } from './routes/requests/route'
-import { Route as ProvidersRouteRouteImport } from './routes/providers/route'
 import { Route as EmbeddingsRouteRouteImport } from './routes/embeddings/route'
 import { Route as AppsRouteRouteImport } from './routes/apps/route'
 import { Route as DashboardRouteRouteImport } from './routes/_dashboard/route'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as RequestsIndexRouteImport } from './routes/requests/index'
-import { Route as ProvidersIndexRouteImport } from './routes/providers/index'
 import { Route as EmbeddingsIndexRouteImport } from './routes/embeddings/index'
 import { Route as AppsIndexRouteImport } from './routes/apps/index'
 import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
+import { Route as SettingsProvidersRouteImport } from './routes/settings/providers'
+import { Route as SettingsModelsRouteImport } from './routes/settings/models'
 
+const SettingsRouteRoute = SettingsRouteRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestsRouteRoute = RequestsRouteRouteImport.update({
   id: '/requests',
   path: '/requests',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProvidersRouteRoute = ProvidersRouteRouteImport.update({
-  id: '/providers',
-  path: '/providers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmbeddingsRouteRoute = EmbeddingsRouteRouteImport.update({
@@ -44,15 +46,15 @@ const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/_dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
 const RequestsIndexRoute = RequestsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => RequestsRouteRoute,
-} as any)
-const ProvidersIndexRoute = ProvidersIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ProvidersRouteRoute,
 } as any)
 const EmbeddingsIndexRoute = EmbeddingsIndexRouteImport.update({
   id: '/',
@@ -69,88 +71,115 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const SettingsProvidersRoute = SettingsProvidersRouteImport.update({
+  id: '/providers',
+  path: '/providers',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsModelsRoute = SettingsModelsRouteImport.update({
+  id: '/models',
+  path: '/models',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/apps': typeof AppsRouteRouteWithChildren
   '/embeddings': typeof EmbeddingsRouteRouteWithChildren
-  '/providers': typeof ProvidersRouteRouteWithChildren
   '/requests': typeof RequestsRouteRouteWithChildren
+  '/settings': typeof SettingsRouteRouteWithChildren
+  '/settings/models': typeof SettingsModelsRoute
+  '/settings/providers': typeof SettingsProvidersRoute
   '/': typeof DashboardIndexRoute
   '/apps/': typeof AppsIndexRoute
   '/embeddings/': typeof EmbeddingsIndexRoute
-  '/providers/': typeof ProvidersIndexRoute
   '/requests/': typeof RequestsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRoutesByTo {
+  '/settings/models': typeof SettingsModelsRoute
+  '/settings/providers': typeof SettingsProvidersRoute
   '/': typeof DashboardIndexRoute
   '/apps': typeof AppsIndexRoute
   '/embeddings': typeof EmbeddingsIndexRoute
-  '/providers': typeof ProvidersIndexRoute
   '/requests': typeof RequestsIndexRoute
+  '/settings': typeof SettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_dashboard': typeof DashboardRouteRouteWithChildren
   '/apps': typeof AppsRouteRouteWithChildren
   '/embeddings': typeof EmbeddingsRouteRouteWithChildren
-  '/providers': typeof ProvidersRouteRouteWithChildren
   '/requests': typeof RequestsRouteRouteWithChildren
+  '/settings': typeof SettingsRouteRouteWithChildren
+  '/settings/models': typeof SettingsModelsRoute
+  '/settings/providers': typeof SettingsProvidersRoute
   '/_dashboard/': typeof DashboardIndexRoute
   '/apps/': typeof AppsIndexRoute
   '/embeddings/': typeof EmbeddingsIndexRoute
-  '/providers/': typeof ProvidersIndexRoute
   '/requests/': typeof RequestsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/apps'
     | '/embeddings'
-    | '/providers'
     | '/requests'
+    | '/settings'
+    | '/settings/models'
+    | '/settings/providers'
     | '/'
     | '/apps/'
     | '/embeddings/'
-    | '/providers/'
     | '/requests/'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/apps' | '/embeddings' | '/providers' | '/requests'
+  to:
+    | '/settings/models'
+    | '/settings/providers'
+    | '/'
+    | '/apps'
+    | '/embeddings'
+    | '/requests'
+    | '/settings'
   id:
     | '__root__'
     | '/_dashboard'
     | '/apps'
     | '/embeddings'
-    | '/providers'
     | '/requests'
+    | '/settings'
+    | '/settings/models'
+    | '/settings/providers'
     | '/_dashboard/'
     | '/apps/'
     | '/embeddings/'
-    | '/providers/'
     | '/requests/'
+    | '/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   AppsRouteRoute: typeof AppsRouteRouteWithChildren
   EmbeddingsRouteRoute: typeof EmbeddingsRouteRouteWithChildren
-  ProvidersRouteRoute: typeof ProvidersRouteRouteWithChildren
   RequestsRouteRoute: typeof RequestsRouteRouteWithChildren
+  SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/requests': {
       id: '/requests'
       path: '/requests'
       fullPath: '/requests'
       preLoaderRoute: typeof RequestsRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/providers': {
-      id: '/providers'
-      path: '/providers'
-      fullPath: '/providers'
-      preLoaderRoute: typeof ProvidersRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/embeddings': {
@@ -174,19 +203,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/': {
+      id: '/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
     '/requests/': {
       id: '/requests/'
       path: '/'
       fullPath: '/requests/'
       preLoaderRoute: typeof RequestsIndexRouteImport
       parentRoute: typeof RequestsRouteRoute
-    }
-    '/providers/': {
-      id: '/providers/'
-      path: '/'
-      fullPath: '/providers/'
-      preLoaderRoute: typeof ProvidersIndexRouteImport
-      parentRoute: typeof ProvidersRouteRoute
     }
     '/embeddings/': {
       id: '/embeddings/'
@@ -208,6 +237,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
+    }
+    '/settings/providers': {
+      id: '/settings/providers'
+      path: '/providers'
+      fullPath: '/settings/providers'
+      preLoaderRoute: typeof SettingsProvidersRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/models': {
+      id: '/settings/models'
+      path: '/models'
+      fullPath: '/settings/models'
+      preLoaderRoute: typeof SettingsModelsRouteImport
+      parentRoute: typeof SettingsRouteRoute
     }
   }
 }
@@ -248,18 +291,6 @@ const EmbeddingsRouteRouteWithChildren = EmbeddingsRouteRoute._addFileChildren(
   EmbeddingsRouteRouteChildren,
 )
 
-interface ProvidersRouteRouteChildren {
-  ProvidersIndexRoute: typeof ProvidersIndexRoute
-}
-
-const ProvidersRouteRouteChildren: ProvidersRouteRouteChildren = {
-  ProvidersIndexRoute: ProvidersIndexRoute,
-}
-
-const ProvidersRouteRouteWithChildren = ProvidersRouteRoute._addFileChildren(
-  ProvidersRouteRouteChildren,
-)
-
 interface RequestsRouteRouteChildren {
   RequestsIndexRoute: typeof RequestsIndexRoute
 }
@@ -272,12 +303,28 @@ const RequestsRouteRouteWithChildren = RequestsRouteRoute._addFileChildren(
   RequestsRouteRouteChildren,
 )
 
+interface SettingsRouteRouteChildren {
+  SettingsModelsRoute: typeof SettingsModelsRoute
+  SettingsProvidersRoute: typeof SettingsProvidersRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+}
+
+const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
+  SettingsModelsRoute: SettingsModelsRoute,
+  SettingsProvidersRoute: SettingsProvidersRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+}
+
+const SettingsRouteRouteWithChildren = SettingsRouteRoute._addFileChildren(
+  SettingsRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   AppsRouteRoute: AppsRouteRouteWithChildren,
   EmbeddingsRouteRoute: EmbeddingsRouteRouteWithChildren,
-  ProvidersRouteRoute: ProvidersRouteRouteWithChildren,
   RequestsRouteRoute: RequestsRouteRouteWithChildren,
+  SettingsRouteRoute: SettingsRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

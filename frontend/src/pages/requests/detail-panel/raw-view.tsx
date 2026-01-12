@@ -10,6 +10,9 @@ export function MessagesRawView() {
 
   const data = useRequestDetailContext()
 
+  const hasExtraBody = data.prompt.extraBody && Object.keys(data.prompt.extraBody).length > 0
+  const hasExtraHeaders = data.prompt.extraHeaders && Object.keys(data.prompt.extraHeaders).length > 0
+
   return (
     <div className="flex flex-col gap-4 px-4">
       <MessagesCodePreview
@@ -26,6 +29,18 @@ export function MessagesRawView() {
         messages={data.completion}
         tokens={data.completionTokens}
       />
+      {hasExtraBody && (
+        <MessagesCodePreview
+          title={t('pages.requests.detail-panel.pretty-view.ExtraBody')}
+          messages={data.prompt.extraBody}
+        />
+      )}
+      {hasExtraHeaders && (
+        <MessagesCodePreview
+          title={t('pages.requests.detail-panel.pretty-view.ExtraHeaders')}
+          messages={data.prompt.extraHeaders}
+        />
+      )}
     </div>
   )
 }

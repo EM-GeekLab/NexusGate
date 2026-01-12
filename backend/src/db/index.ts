@@ -296,20 +296,25 @@ export async function sumCompletionTokenUsage(apiKeyId?: number) {
   return first ?? null;
 }
 
+// Type for completion with provider info
+export type CompletionWithProvider = Completion & {
+  providerName?: string | null;
+};
+
 /**
  * list completions in database
  * @param offset offset from first record
  * @param limit number of records to return
  * @param apiKeyId optional, filter by api key id
  * @param upstreamId optional, filter by upstream id
- * @returns list of completions
+ * @returns list of completions with provider info
  */
 export async function listCompletions(
   offset: number,
   limit: number,
   apiKeyId?: number,
   upstreamId?: number,
-): Promise<PartialList<Completion>> {
+): Promise<PartialList<CompletionWithProvider>> {
   const sq = db
     .select({
       id: schema.CompletionsTable.id,
@@ -331,9 +336,20 @@ export async function listCompletions(
     .limit(limit)
     .as("sq");
   const r = await db
-    .select()
+    .select({
+      completion: schema.CompletionsTable,
+      providerName: schema.ProvidersTable.name,
+    })
     .from(schema.CompletionsTable)
     .innerJoin(sq, eq(schema.CompletionsTable.id, sq.id))
+    .leftJoin(
+      schema.ModelsTable,
+      eq(schema.CompletionsTable.modelId, schema.ModelsTable.id),
+    )
+    .leftJoin(
+      schema.ProvidersTable,
+      eq(schema.ModelsTable.providerId, schema.ProvidersTable.id),
+    )
     .orderBy(desc(schema.CompletionsTable.id));
   const [total] = await db
     .select({
@@ -344,7 +360,10 @@ export async function listCompletions(
     throw new Error("total count failed");
   }
   return {
-    data: r.map((x) => x.completions),
+    data: r.map((x) => ({
+      ...x.completion,
+      providerName: x.providerName,
+    })),
     total: total.total,
     from: offset,
   };
@@ -368,13 +387,26 @@ export async function deleteCompletion(id: number) {
 /**
  * find completion in database by id
  * @param id completion id
- * @returns db record of completion, null if not found
+ * @returns db record of completion with provider info, null if not found
  */
-export async function findCompletion(id: number): Promise<Completion | null> {
+export async function findCompletion(
+  id: number,
+): Promise<CompletionWithProvider | null> {
   logger.debug("findCompletion", id);
   const r = await db
-    .select()
+    .select({
+      completion: schema.CompletionsTable,
+      providerName: schema.ProvidersTable.name,
+    })
     .from(schema.CompletionsTable)
+    .leftJoin(
+      schema.ModelsTable,
+      eq(schema.CompletionsTable.modelId, schema.ModelsTable.id),
+    )
+    .leftJoin(
+      schema.ProvidersTable,
+      eq(schema.ModelsTable.providerId, schema.ProvidersTable.id),
+    )
     .where(
       and(
         eq(schema.CompletionsTable.id, id),
@@ -382,7 +414,11 @@ export async function findCompletion(id: number): Promise<Completion | null> {
       ),
     );
   const [first] = r;
-  return first ?? null;
+  if (!first) return null;
+  return {
+    ...first.completion,
+    providerName: first.providerName,
+  };
 }
 
 /**

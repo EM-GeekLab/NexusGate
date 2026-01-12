@@ -19,11 +19,18 @@ export function AppSidebarFooter() {
   }
 
   const { isMobile, state } = useSidebar()
+  const isCollapsed = state === 'collapsed'
 
   return (
     <TooltipProvider>
-      <div className="flex w-[calc(var(--sidebar-width)-1rem)] items-center justify-between gap-2">
-        <div className="flex items-center">
+      <div
+        className={
+          isCollapsed
+            ? 'flex flex-col items-center gap-1'
+            : 'flex w-[calc(var(--sidebar-width)-1rem)] items-center justify-between gap-2'
+        }
+      >
+        <div className={isCollapsed ? 'flex flex-col-reverse items-center gap-1' : 'flex items-center'}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" className="text-muted-foreground size-8 p-0" asChild>

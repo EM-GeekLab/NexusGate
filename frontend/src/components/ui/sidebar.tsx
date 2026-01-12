@@ -15,7 +15,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 const SIDEBAR_STORAGE_NAME = 'sidebar-state'
 const SIDEBAR_WIDTH = '15rem'
 const SIDEBAR_WIDTH_MOBILE = '16rem'
-const SIDEBAR_WIDTH_ICON = '3rem'
+const SIDEBAR_WIDTH_ICON = '4rem'
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b'
 
 type SidebarContext = {

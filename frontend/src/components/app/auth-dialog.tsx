@@ -37,10 +37,17 @@ export function AuthDialog() {
     enabled: !!secret,
   })
 
-  // When authentication succeeds, invalidate all queries and refresh router
+  // When authentication succeeds, invalidate authenticated queries and refresh router
   useEffect(() => {
     if (prevCheckPassed.current === false && checkPassed === true) {
-      queryClient.invalidateQueries()
+      // Only invalidate queries that require authentication
+      // Exclude: 'check-secret' (auth itself), 'github-head' (public API)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0]
+          return typeof key === 'string' && !['check-secret', 'github-head'].includes(key)
+        },
+      })
       router.invalidate()
     }
     prevCheckPassed.current = checkPassed

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    "dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "nexus-gate-server#build": {
+      "outputs": ["out/**/*"],
+      "dependsOn": ["^build"]
+    },
+    "nexus-gate-web#build": {
+      "outputs": ["dist/**/*"]
+    },
+    "build": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {},
+    "check": {
+      "dependsOn": ["^check"]
+    },
+    "fmt": {}
+  }
+}

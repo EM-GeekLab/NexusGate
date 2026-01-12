@@ -3,10 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "VITE_COMMIT_SHA=$(git rev-parse HEAD) vite --port 3001",
+    "dev": "VITE_COMMIT_SHA=$(git rev-parse HEAD) vite --port 3001",
     "build": "vite build",
     "serve": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check": "tsc --noEmit",
+    "lint": "eslint",
+    "fmt": "prettier --write --list-different ."
   },
   "dependencies": {
     "@elysiajs/eden": "^1.4.6",

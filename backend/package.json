@@ -26,7 +26,7 @@
   "name": "nexus-gate-server",
   "private": true,
   "scripts": {
-    "build": "NODE_ENV=production bun build src/index.ts --target bun --outdir out/",
+    "build": "bun check && NODE_ENV=production COMMIT_SHA=$(git rev-parse HEAD) bun build src/index.ts --target bun --outdir out/",
     "check": "tsgo -p tsconfig.check.json",
     "dev": "COMMIT_SHA=$(git rev-parse HEAD) CONSOLA_LEVEL=9999 FRONTEND_DIR=../frontend/dist bun --watch --hot --no-clear-screen --inspect src/index.ts",
     "fmt": "oxfmt .",

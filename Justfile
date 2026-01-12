@@ -1,17 +1,7 @@
-deps:
-	bun install
-
-[working-directory: 'frontend']
-build-frontend: deps
+build:
 	bun run build
 
-[working-directory: 'backend']
-build-backend: deps
-	bun run build
-
-build-all: build-frontend build-backend
-
-dist: build-all
+dist: build
 	mkdir -p dist
 	cp -r backend/out/index.js dist/
 	cp -r backend/drizzle dist/

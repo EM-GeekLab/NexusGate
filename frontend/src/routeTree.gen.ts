@@ -8,159 +8,209 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as RequestsRouteRouteImport } from './routes/requests/route'
+import { Route as ProvidersRouteRouteImport } from './routes/providers/route'
+import { Route as EmbeddingsRouteRouteImport } from './routes/embeddings/route'
+import { Route as AppsRouteRouteImport } from './routes/apps/route'
+import { Route as DashboardRouteRouteImport } from './routes/_dashboard/route'
+import { Route as RequestsIndexRouteImport } from './routes/requests/index'
+import { Route as ProvidersIndexRouteImport } from './routes/providers/index'
+import { Route as EmbeddingsIndexRouteImport } from './routes/embeddings/index'
+import { Route as AppsIndexRouteImport } from './routes/apps/index'
+import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as RequestsRouteImport } from './routes/requests/route'
-import { Route as ProvidersRouteImport } from './routes/providers/route'
-import { Route as EmbeddingsRouteImport } from './routes/embeddings/route'
-import { Route as AppsRouteImport } from './routes/apps/route'
-import { Route as DashboardRouteImport } from './routes/_dashboard/route'
-import { Route as RequestsIndexImport } from './routes/requests/index'
-import { Route as ProvidersIndexImport } from './routes/providers/index'
-import { Route as EmbeddingsIndexImport } from './routes/embeddings/index'
-import { Route as AppsIndexImport } from './routes/apps/index'
-import { Route as DashboardIndexImport } from './routes/_dashboard/index'
-
-// Create/Update Routes
-
-const RequestsRouteRoute = RequestsRouteImport.update({
+const RequestsRouteRoute = RequestsRouteRouteImport.update({
   id: '/requests',
   path: '/requests',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const ProvidersRouteRoute = ProvidersRouteImport.update({
+const ProvidersRouteRoute = ProvidersRouteRouteImport.update({
   id: '/providers',
   path: '/providers',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const EmbeddingsRouteRoute = EmbeddingsRouteImport.update({
+const EmbeddingsRouteRoute = EmbeddingsRouteRouteImport.update({
   id: '/embeddings',
   path: '/embeddings',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const AppsRouteRoute = AppsRouteImport.update({
+const AppsRouteRoute = AppsRouteRouteImport.update({
   id: '/apps',
   path: '/apps',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const DashboardRouteRoute = DashboardRouteImport.update({
+const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/_dashboard',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const RequestsIndexRoute = RequestsIndexImport.update({
+const RequestsIndexRoute = RequestsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => RequestsRouteRoute,
 } as any)
-
-const ProvidersIndexRoute = ProvidersIndexImport.update({
+const ProvidersIndexRoute = ProvidersIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ProvidersRouteRoute,
 } as any)
-
-const EmbeddingsIndexRoute = EmbeddingsIndexImport.update({
+const EmbeddingsIndexRoute = EmbeddingsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => EmbeddingsRouteRoute,
 } as any)
-
-const AppsIndexRoute = AppsIndexImport.update({
+const AppsIndexRoute = AppsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppsRouteRoute,
 } as any)
-
-const DashboardIndexRoute = DashboardIndexImport.update({
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 
-// Populate the FileRoutesByPath interface
+export interface FileRoutesByFullPath {
+  '/apps': typeof AppsRouteRouteWithChildren
+  '/embeddings': typeof EmbeddingsRouteRouteWithChildren
+  '/providers': typeof ProvidersRouteRouteWithChildren
+  '/requests': typeof RequestsRouteRouteWithChildren
+  '/': typeof DashboardIndexRoute
+  '/apps/': typeof AppsIndexRoute
+  '/embeddings/': typeof EmbeddingsIndexRoute
+  '/providers/': typeof ProvidersIndexRoute
+  '/requests/': typeof RequestsIndexRoute
+}
+export interface FileRoutesByTo {
+  '/': typeof DashboardIndexRoute
+  '/apps': typeof AppsIndexRoute
+  '/embeddings': typeof EmbeddingsIndexRoute
+  '/providers': typeof ProvidersIndexRoute
+  '/requests': typeof RequestsIndexRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/_dashboard': typeof DashboardRouteRouteWithChildren
+  '/apps': typeof AppsRouteRouteWithChildren
+  '/embeddings': typeof EmbeddingsRouteRouteWithChildren
+  '/providers': typeof ProvidersRouteRouteWithChildren
+  '/requests': typeof RequestsRouteRouteWithChildren
+  '/_dashboard/': typeof DashboardIndexRoute
+  '/apps/': typeof AppsIndexRoute
+  '/embeddings/': typeof EmbeddingsIndexRoute
+  '/providers/': typeof ProvidersIndexRoute
+  '/requests/': typeof RequestsIndexRoute
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/apps'
+    | '/embeddings'
+    | '/providers'
+    | '/requests'
+    | '/'
+    | '/apps/'
+    | '/embeddings/'
+    | '/providers/'
+    | '/requests/'
+  fileRoutesByTo: FileRoutesByTo
+  to: '/' | '/apps' | '/embeddings' | '/providers' | '/requests'
+  id:
+    | '__root__'
+    | '/_dashboard'
+    | '/apps'
+    | '/embeddings'
+    | '/providers'
+    | '/requests'
+    | '/_dashboard/'
+    | '/apps/'
+    | '/embeddings/'
+    | '/providers/'
+    | '/requests/'
+  fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
+  AppsRouteRoute: typeof AppsRouteRouteWithChildren
+  EmbeddingsRouteRoute: typeof EmbeddingsRouteRouteWithChildren
+  ProvidersRouteRoute: typeof ProvidersRouteRouteWithChildren
+  RequestsRouteRoute: typeof RequestsRouteRouteWithChildren
+}
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_dashboard': {
-      id: '/_dashboard'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/apps': {
-      id: '/apps'
-      path: '/apps'
-      fullPath: '/apps'
-      preLoaderRoute: typeof AppsRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/embeddings': {
-      id: '/embeddings'
-      path: '/embeddings'
-      fullPath: '/embeddings'
-      preLoaderRoute: typeof EmbeddingsRouteImport
-      parentRoute: typeof rootRoute
+    '/requests': {
+      id: '/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof RequestsRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/providers': {
       id: '/providers'
       path: '/providers'
       fullPath: '/providers'
-      preLoaderRoute: typeof ProvidersRouteImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProvidersRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/requests': {
-      id: '/requests'
-      path: '/requests'
-      fullPath: '/requests'
-      preLoaderRoute: typeof RequestsRouteImport
-      parentRoute: typeof rootRoute
+    '/embeddings': {
+      id: '/embeddings'
+      path: '/embeddings'
+      fullPath: '/embeddings'
+      preLoaderRoute: typeof EmbeddingsRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_dashboard/': {
-      id: '/_dashboard/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof DashboardIndexImport
-      parentRoute: typeof DashboardRouteImport
+    '/apps': {
+      id: '/apps'
+      path: '/apps'
+      fullPath: '/apps'
+      preLoaderRoute: typeof AppsRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/apps/': {
-      id: '/apps/'
-      path: '/'
-      fullPath: '/apps/'
-      preLoaderRoute: typeof AppsIndexImport
-      parentRoute: typeof AppsRouteImport
-    }
-    '/embeddings/': {
-      id: '/embeddings/'
-      path: '/'
-      fullPath: '/embeddings/'
-      preLoaderRoute: typeof EmbeddingsIndexImport
-      parentRoute: typeof EmbeddingsRouteImport
-    }
-    '/providers/': {
-      id: '/providers/'
-      path: '/'
-      fullPath: '/providers/'
-      preLoaderRoute: typeof ProvidersIndexImport
-      parentRoute: typeof ProvidersRouteImport
+    '/_dashboard': {
+      id: '/_dashboard'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof DashboardRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/requests/': {
       id: '/requests/'
       path: '/'
       fullPath: '/requests/'
-      preLoaderRoute: typeof RequestsIndexImport
-      parentRoute: typeof RequestsRouteImport
+      preLoaderRoute: typeof RequestsIndexRouteImport
+      parentRoute: typeof RequestsRouteRoute
+    }
+    '/providers/': {
+      id: '/providers/'
+      path: '/'
+      fullPath: '/providers/'
+      preLoaderRoute: typeof ProvidersIndexRouteImport
+      parentRoute: typeof ProvidersRouteRoute
+    }
+    '/embeddings/': {
+      id: '/embeddings/'
+      path: '/'
+      fullPath: '/embeddings/'
+      preLoaderRoute: typeof EmbeddingsIndexRouteImport
+      parentRoute: typeof EmbeddingsRouteRoute
+    }
+    '/apps/': {
+      id: '/apps/'
+      path: '/'
+      fullPath: '/apps/'
+      preLoaderRoute: typeof AppsIndexRouteImport
+      parentRoute: typeof AppsRouteRoute
+    }
+    '/_dashboard/': {
+      id: '/_dashboard/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
   }
 }
-
-// Create and export the route tree
 
 interface DashboardRouteRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -222,79 +272,6 @@ const RequestsRouteRouteWithChildren = RequestsRouteRoute._addFileChildren(
   RequestsRouteRouteChildren,
 )
 
-export interface FileRoutesByFullPath {
-  '': typeof DashboardRouteRouteWithChildren
-  '/apps': typeof AppsRouteRouteWithChildren
-  '/embeddings': typeof EmbeddingsRouteRouteWithChildren
-  '/providers': typeof ProvidersRouteRouteWithChildren
-  '/requests': typeof RequestsRouteRouteWithChildren
-  '/': typeof DashboardIndexRoute
-  '/apps/': typeof AppsIndexRoute
-  '/embeddings/': typeof EmbeddingsIndexRoute
-  '/providers/': typeof ProvidersIndexRoute
-  '/requests/': typeof RequestsIndexRoute
-}
-
-export interface FileRoutesByTo {
-  '/': typeof DashboardIndexRoute
-  '/apps': typeof AppsIndexRoute
-  '/embeddings': typeof EmbeddingsIndexRoute
-  '/providers': typeof ProvidersIndexRoute
-  '/requests': typeof RequestsIndexRoute
-}
-
-export interface FileRoutesById {
-  __root__: typeof rootRoute
-  '/_dashboard': typeof DashboardRouteRouteWithChildren
-  '/apps': typeof AppsRouteRouteWithChildren
-  '/embeddings': typeof EmbeddingsRouteRouteWithChildren
-  '/providers': typeof ProvidersRouteRouteWithChildren
-  '/requests': typeof RequestsRouteRouteWithChildren
-  '/_dashboard/': typeof DashboardIndexRoute
-  '/apps/': typeof AppsIndexRoute
-  '/embeddings/': typeof EmbeddingsIndexRoute
-  '/providers/': typeof ProvidersIndexRoute
-  '/requests/': typeof RequestsIndexRoute
-}
-
-export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | ''
-    | '/apps'
-    | '/embeddings'
-    | '/providers'
-    | '/requests'
-    | '/'
-    | '/apps/'
-    | '/embeddings/'
-    | '/providers/'
-    | '/requests/'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/apps' | '/embeddings' | '/providers' | '/requests'
-  id:
-    | '__root__'
-    | '/_dashboard'
-    | '/apps'
-    | '/embeddings'
-    | '/providers'
-    | '/requests'
-    | '/_dashboard/'
-    | '/apps/'
-    | '/embeddings/'
-    | '/providers/'
-    | '/requests/'
-  fileRoutesById: FileRoutesById
-}
-
-export interface RootRouteChildren {
-  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
-  AppsRouteRoute: typeof AppsRouteRouteWithChildren
-  EmbeddingsRouteRoute: typeof EmbeddingsRouteRouteWithChildren
-  ProvidersRouteRoute: typeof ProvidersRouteRouteWithChildren
-  RequestsRouteRoute: typeof RequestsRouteRouteWithChildren
-}
-
 const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   AppsRouteRoute: AppsRouteRouteWithChildren,
@@ -302,74 +279,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProvidersRouteRoute: ProvidersRouteRouteWithChildren,
   RequestsRouteRoute: RequestsRouteRouteWithChildren,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/_dashboard",
-        "/apps",
-        "/embeddings",
-        "/providers",
-        "/requests"
-      ]
-    },
-    "/_dashboard": {
-      "filePath": "_dashboard/route.tsx",
-      "children": [
-        "/_dashboard/"
-      ]
-    },
-    "/apps": {
-      "filePath": "apps/route.tsx",
-      "children": [
-        "/apps/"
-      ]
-    },
-    "/embeddings": {
-      "filePath": "embeddings/route.tsx",
-      "children": [
-        "/embeddings/"
-      ]
-    },
-    "/providers": {
-      "filePath": "providers/route.tsx",
-      "children": [
-        "/providers/"
-      ]
-    },
-    "/requests": {
-      "filePath": "requests/route.tsx",
-      "children": [
-        "/requests/"
-      ]
-    },
-    "/_dashboard/": {
-      "filePath": "_dashboard/index.tsx",
-      "parent": "/_dashboard"
-    },
-    "/apps/": {
-      "filePath": "apps/index.tsx",
-      "parent": "/apps"
-    },
-    "/embeddings/": {
-      "filePath": "embeddings/index.tsx",
-      "parent": "/embeddings"
-    },
-    "/providers/": {
-      "filePath": "providers/index.tsx",
-      "parent": "/providers"
-    },
-    "/requests/": {
-      "filePath": "requests/index.tsx",
-      "parent": "/requests"
-    }
-  }
-}
-ROUTE_MANIFEST_END */

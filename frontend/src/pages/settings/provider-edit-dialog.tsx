@@ -6,6 +6,13 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { api } from '@/lib/api'
+import {
+  PROVIDER_TYPES,
+  PROVIDER_TYPE_LABELS,
+  requiresApiVersion,
+  getApiVersionPlaceholder,
+  type ProviderType,
+} from '@/constants/providers'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -20,8 +27,6 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import type { Provider } from './providers-columns'
-
-const PROVIDER_TYPES = ['openai', 'openai-responses', 'anthropic', 'azure', 'ollama'] as const
 
 const providerSchema = z.object({
   name: z.string().min(1).max(63).optional(),
@@ -47,7 +52,7 @@ export function ProviderEditDialog({ provider, open, onOpenChange }: ProviderEdi
     resolver: zodResolver(providerSchema),
     defaultValues: {
       name: provider.name,
-      type: provider.type as typeof PROVIDER_TYPES[number] | undefined,
+      type: provider.type as ProviderType | undefined,
       baseUrl: provider.baseUrl,
       apiKey: provider.apiKey ?? '',
       apiVersion: provider.apiVersion ?? '',
@@ -112,11 +117,11 @@ export function ProviderEditDialog({ provider, open, onOpenChange }: ProviderEdi
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="openai">OpenAI Chat API</SelectItem>
-                      <SelectItem value="openai-responses">OpenAI Response API</SelectItem>
-                      <SelectItem value="anthropic">Anthropic Claude</SelectItem>
-                      <SelectItem value="azure">Azure OpenAI</SelectItem>
-                      <SelectItem value="ollama">Ollama</SelectItem>
+                      {PROVIDER_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {PROVIDER_TYPE_LABELS[type]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormDescription>{t('pages.settings.providers.TypeDescription')}</FormDescription>
@@ -152,7 +157,7 @@ export function ProviderEditDialog({ provider, open, onOpenChange }: ProviderEdi
                 </FormItem>
               )}
             />
-            {(watchType === 'anthropic' || watchType === 'azure') && (
+            {requiresApiVersion(watchType) && (
               <FormField
                 control={form.control}
                 name="apiVersion"
@@ -161,7 +166,7 @@ export function ProviderEditDialog({ provider, open, onOpenChange }: ProviderEdi
                     <FormLabel>{t('pages.settings.providers.APIVersion')}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder={watchType === 'anthropic' ? '2023-06-01' : '2024-02-15-preview'}
+                        placeholder={getApiVersionPlaceholder(watchType)}
                         {...field}
                       />
                     </FormControl>

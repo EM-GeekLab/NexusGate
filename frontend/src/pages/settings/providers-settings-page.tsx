@@ -9,6 +9,12 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { api } from '@/lib/api'
+import {
+  PROVIDER_TYPES,
+  PROVIDER_TYPE_LABELS,
+  requiresApiVersion,
+  getApiVersionPlaceholder,
+} from '@/constants/providers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
@@ -17,8 +23,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { ManageModelsDialog } from './manage-models-dialog'
 import type { Provider } from './providers-columns'
-
-const PROVIDER_TYPES = ['openai', 'openai-responses', 'anthropic', 'azure', 'ollama'] as const
 
 const providerSchema = z.object({
   name: z.string().min(1).max(63),
@@ -137,11 +141,11 @@ export function ProvidersSettingsPage({ data }: { data: Provider[] }) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="openai">OpenAI Chat API</SelectItem>
-                          <SelectItem value="openai-responses">OpenAI Response API</SelectItem>
-                          <SelectItem value="anthropic">Anthropic Claude</SelectItem>
-                          <SelectItem value="azure">Azure OpenAI</SelectItem>
-                          <SelectItem value="ollama">Ollama</SelectItem>
+                          {PROVIDER_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {PROVIDER_TYPE_LABELS[type]}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </FormItem>
@@ -175,7 +179,7 @@ export function ProvidersSettingsPage({ data }: { data: Provider[] }) {
                 )}
               />
 
-              {(watchType === 'anthropic' || watchType === 'azure') && (
+              {requiresApiVersion(watchType) && (
                 <FormField
                   control={form.control}
                   name="apiVersion"
@@ -184,7 +188,7 @@ export function ProvidersSettingsPage({ data }: { data: Provider[] }) {
                       <FormLabel>{t('pages.settings.providers.APIVersion')}</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder={watchType === 'anthropic' ? '2023-06-01' : '2024-02-15-preview'}
+                          placeholder={getApiVersionPlaceholder(watchType)}
                           {...field}
                         />
                       </FormControl>

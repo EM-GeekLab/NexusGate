@@ -10,119 +10,93 @@ import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import { addCompletions, type Completion } from "@/utils/completions";
 import {
+  extractUpstreamHeaders,
+  selectModel,
+  extractContentText,
+  parseModelProvider,
+  PROVIDER_HEADER,
+} from "@/utils/api-helpers";
+import {
   getRequestAdapter,
   getResponseAdapter,
   getUpstreamAdapter,
 } from "@/adapters";
 import type {
-  InternalResponse,
   ModelWithProvider,
   ProviderConfig,
-  TextContentBlock,
-  ThinkingContentBlock,
 } from "@/adapters/types";
 
 const logger = consola.withTag("responsesApi");
 
-// OpenAI Response API request schema (loose validation)
+// =============================================================================
+// Request Schema
+// =============================================================================
+
+// Response API input item types
+const tResponseInputMessage = t.Object({
+  type: t.Literal("message"),
+  role: t.Union([t.Literal("user"), t.Literal("assistant"), t.Literal("system")]),
+  content: t.Union([
+    t.String(),
+    t.Array(t.Object({
+      type: t.String(),
+      text: t.Optional(t.String()),
+      image_url: t.Optional(t.Object({ url: t.String() })),
+    })),
+  ]),
+});
+
+const tResponseFunctionCallOutput = t.Object({
+  type: t.Literal("function_call_output"),
+  call_id: t.String(),
+  output: t.String(),
+});
+
+const tResponseInputItem = t.Union([
+  tResponseInputMessage,
+  tResponseFunctionCallOutput,
+]);
+
+// Response API tool definition
+const tResponseTool = t.Object({
+  type: t.Literal("function"),
+  name: t.String(),
+  description: t.Optional(t.String()),
+  parameters: t.Optional(t.Record(t.String(), t.Unknown())),
+  strict: t.Optional(t.Boolean()),
+});
+
+// Response API tool choice
+const tResponseToolChoice = t.Union([
+  t.Literal("auto"),
+  t.Literal("none"),
+  t.Literal("required"),
+  t.Object({ type: t.Literal("function"), name: t.String() }),
+]);
+
+// Response API metadata
+const tResponseMetadata = t.Record(t.String(), t.String());
+
+// OpenAI Response API request schema
 const tResponseApiCreate = t.Object(
   {
     model: t.String(),
-    input: t.Optional(t.Union([t.String(), t.Array(t.Unknown())])),
+    input: t.Optional(t.Union([t.String(), t.Array(tResponseInputItem)])),
     instructions: t.Optional(t.String()),
     modalities: t.Optional(t.Array(t.String())),
     max_output_tokens: t.Optional(t.Number()),
     temperature: t.Optional(t.Number()),
     top_p: t.Optional(t.Number()),
     stream: t.Optional(t.Boolean()),
-    tools: t.Optional(t.Array(t.Unknown())),
-    tool_choice: t.Optional(t.Unknown()),
+    tools: t.Optional(t.Array(tResponseTool)),
+    tool_choice: t.Optional(tResponseToolChoice),
     parallel_tool_calls: t.Optional(t.Boolean()),
     previous_response_id: t.Optional(t.String()),
     store: t.Optional(t.Boolean()),
-    metadata: t.Optional(t.Unknown()),
+    metadata: t.Optional(tResponseMetadata),
   },
   { additionalProperties: true },
 );
-
-// Header prefix for NexusGate-specific headers
-const NEXUSGATE_HEADER_PREFIX = "x-nexusgate-";
-// Header name for provider selection
-const PROVIDER_HEADER = "x-nexusgate-provider";
-
-// Headers that should NOT be forwarded to upstream
-const EXCLUDED_HEADERS = new Set([
-  "host",
-  "connection",
-  "content-length",
-  "content-type",
-  "authorization",
-  "accept",
-  "accept-encoding",
-  "accept-language",
-  "user-agent",
-  "origin",
-  "referer",
-  "cookie",
-  "sec-fetch-dest",
-  "sec-fetch-mode",
-  "sec-fetch-site",
-  "sec-ch-ua",
-  "sec-ch-ua-mobile",
-  "sec-ch-ua-platform",
-]);
-
-/**
- * Extract headers to be forwarded to upstream
- */
-function extractUpstreamHeaders(
-  headers: Headers,
-): Record<string, string> | undefined {
-  const extra: Record<string, string> = {};
-  let hasExtra = false;
-
-  headers.forEach((value, key) => {
-    const lowerKey = key.toLowerCase();
-    if (
-      lowerKey.startsWith(NEXUSGATE_HEADER_PREFIX) ||
-      EXCLUDED_HEADERS.has(lowerKey)
-    ) {
-      return;
-    }
-    extra[key] = value;
-    hasExtra = true;
-  });
-
-  return hasExtra ? extra : undefined;
-}
-
-/**
- * Select the best model/provider combination
- */
-function selectModel(
-  modelsWithProviders: ModelWithProvider[],
-  targetProvider?: string,
-): ModelWithProvider | null {
-  if (modelsWithProviders.length === 0) {
-    return null;
-  }
-
-  let candidates = modelsWithProviders;
-  if (targetProvider) {
-    const filtered = modelsWithProviders.filter(
-      (mp) => mp.provider.name === targetProvider,
-    );
-    if (filtered.length > 0) {
-      candidates = filtered;
-    } else {
-      logger.warn(
-        `Provider '${targetProvider}' does not offer requested model, falling back to available providers`,
-      );
-    }
-  }
-
-  return candidates[0] || null;
-}
 
 /**
  * Build completion record for logging
@@ -176,29 +150,6 @@ function buildCompletionRecord(
     ttft: -1,
     duration: -1,
   };
-}
-
-/**
- * Extract text content from internal response
- */
-function extractContentText(response: InternalResponse): string {
-  const parts: string[] = [];
-  const thinkingParts: string[] = [];
-
-  for (const block of response.content) {
-    if (block.type === "text") {
-      parts.push((block as TextContentBlock).text);
-    } else if (block.type === "thinking") {
-      thinkingParts.push((block as ThinkingContentBlock).thinking);
-    }
-  }
-
-  let result = "";
-  if (thinkingParts.length > 0) {
-    result += `<think>${thinkingParts.join("")}</think>\n`;
-  }
-  result += parts.join("");
-  return result;
 }
 
 /**
@@ -479,16 +430,11 @@ export const responsesApi = new Elysia({
 
       const reqHeaders = request.headers;
 
-      // Extract provider from header (X-NexusGate-Provider)
-      const rawProviderHeader = reqHeaders.get(PROVIDER_HEADER);
-      const providerFromHeader = rawProviderHeader
-        ? decodeURIComponent(rawProviderHeader)
-        : null;
-
-      // Parse model@provider format
-      const modelMatch = body.model.match(/^(\S+)@(\S+)$/);
-      const systemName = modelMatch ? modelMatch[1]! : body.model;
-      const targetProvider = providerFromHeader || modelMatch?.[2];
+      // Parse model@provider format and extract provider from header
+      const { systemName, targetProvider } = parseModelProvider(
+        body.model,
+        reqHeaders.get(PROVIDER_HEADER),
+      );
 
       // Find models with provider info
       const modelsWithProviders = await getModelsWithProviderBySystemName(

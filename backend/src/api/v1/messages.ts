@@ -10,21 +10,85 @@ import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import { addCompletions, type Completion } from "@/utils/completions";
 import {
+  extractUpstreamHeaders,
+  selectModel,
+  extractContentText,
+  parseModelProvider,
+  PROVIDER_HEADER,
+} from "@/utils/api-helpers";
+import {
   getRequestAdapter,
   getResponseAdapter,
   getUpstreamAdapter,
 } from "@/adapters";
 import type {
-  InternalResponse,
   ModelWithProvider,
   ProviderConfig,
-  TextContentBlock,
-  ThinkingContentBlock,
 } from "@/adapters/types";
 
 const logger = consola.withTag("messagesApi");
 
-// Anthropic Messages API request schema (loose validation)
+// =============================================================================
+// Request Schema
+// =============================================================================
+
+// Anthropic content block types
+const tAnthropicTextBlock = t.Object({
+  type: t.Literal("text"),
+  text: t.String(),
+});
+
+const tAnthropicImageBlock = t.Object({
+  type: t.Literal("image"),
+  source: t.Object({
+    type: t.String(),
+    media_type: t.Optional(t.String()),
+    data: t.Optional(t.String()),
+    url: t.Optional(t.String()),
+  }),
+});
+
+const tAnthropicToolUseBlock = t.Object({
+  type: t.Literal("tool_use"),
+  id: t.String(),
+  name: t.String(),
+  input: t.Record(t.String(), t.Unknown()),
+});
+
+const tAnthropicToolResultBlock = t.Object({
+  type: t.Literal("tool_result"),
+  tool_use_id: t.String(),
+  content: t.Optional(t.Union([t.String(), t.Array(t.Unknown())])),
+  is_error: t.Optional(t.Boolean()),
+});
+
+const tAnthropicContentBlock = t.Union([
+  tAnthropicTextBlock,
+  tAnthropicImageBlock,
+  tAnthropicToolUseBlock,
+  tAnthropicToolResultBlock,
+]);
+
+// Anthropic tool definition
+const tAnthropicTool = t.Object({
+  name: t.String(),
+  description: t.Optional(t.String()),
+  input_schema: t.Record(t.String(), t.Unknown()),
+});
+
+// Anthropic tool choice
+const tAnthropicToolChoice = t.Union([
+  t.Object({ type: t.Literal("auto") }),
+  t.Object({ type: t.Literal("any") }),
+  t.Object({ type: t.Literal("tool"), name: t.String() }),
+]);
+
+// Anthropic metadata
+const tAnthropicMetadata = t.Object({
+  user_id: t.Optional(t.String()),
+});
+
+// Anthropic Messages API request schema
 const tAnthropicMessageCreate = t.Object(
   {
     model: t.String(),
@@ -34,106 +98,25 @@ const tAnthropicMessageCreate = t.Object(
           role: t.String(),
           content: t.Union([
             t.String(),
-            t.Array(t.Unknown()),
+            t.Array(tAnthropicContentBlock),
           ]),
         },
         { additionalProperties: true },
       ),
     ),
     max_tokens: t.Number(),
-    system: t.Optional(t.Union([t.String(), t.Array(t.Unknown())])),
+    system: t.Optional(t.Union([t.String(), t.Array(tAnthropicTextBlock)])),
     stream: t.Optional(t.Boolean()),
     temperature: t.Optional(t.Number()),
     top_p: t.Optional(t.Number()),
     top_k: t.Optional(t.Number()),
     stop_sequences: t.Optional(t.Array(t.String())),
-    tools: t.Optional(t.Array(t.Unknown())),
-    tool_choice: t.Optional(t.Unknown()),
-    metadata: t.Optional(t.Unknown()),
+    tools: t.Optional(t.Array(tAnthropicTool)),
+    tool_choice: t.Optional(tAnthropicToolChoice),
+    metadata: t.Optional(tAnthropicMetadata),
   },
   { additionalProperties: true },
 );
-
-// Header prefix for NexusGate-specific headers
-const NEXUSGATE_HEADER_PREFIX = "x-nexusgate-";
-// Header name for provider selection
-const PROVIDER_HEADER = "x-nexusgate-provider";
-
-// Headers that should NOT be forwarded to upstream
-const EXCLUDED_HEADERS = new Set([
-  "host",
-  "connection",
-  "content-length",
-  "content-type",
-  "authorization",
-  "x-api-key",
-  "anthropic-version",
-  "accept",
-  "accept-encoding",
-  "accept-language",
-  "user-agent",
-  "origin",
-  "referer",
-  "cookie",
-  "sec-fetch-dest",
-  "sec-fetch-mode",
-  "sec-fetch-site",
-  "sec-ch-ua",
-  "sec-ch-ua-mobile",
-  "sec-ch-ua-platform",
-]);
-
-/**
- * Extract headers to be forwarded to upstream
- */
-function extractUpstreamHeaders(
-  headers: Headers,
-): Record<string, string> | undefined {
-  const extra: Record<string, string> = {};
-  let hasExtra = false;
-
-  headers.forEach((value, key) => {
-    const lowerKey = key.toLowerCase();
-    if (
-      lowerKey.startsWith(NEXUSGATE_HEADER_PREFIX) ||
-      EXCLUDED_HEADERS.has(lowerKey)
-    ) {
-      return;
-    }
-    extra[key] = value;
-    hasExtra = true;
-  });
-
-  return hasExtra ? extra : undefined;
-}
-
-/**
- * Select the best model/provider combination
- */
-function selectModel(
-  modelsWithProviders: ModelWithProvider[],
-  targetProvider?: string,
-): ModelWithProvider | null {
-  if (modelsWithProviders.length === 0) {
-    return null;
-  }
-
-  let candidates = modelsWithProviders;
-  if (targetProvider) {
-    const filtered = modelsWithProviders.filter(
-      (mp) => mp.provider.name === targetProvider,
-    );
-    if (filtered.length > 0) {
-      candidates = filtered;
-    } else {
-      logger.warn(
-        `Provider '${targetProvider}' does not offer requested model, falling back to available providers`,
-      );
-    }
-  }
-
-  return candidates[0] || null;
-}
 
 /**
  * Build completion record for logging
@@ -164,29 +147,6 @@ function buildCompletionRecord(
     ttft: -1,
     duration: -1,
   };
-}
-
-/**
- * Extract text content from internal response
- */
-function extractContentText(response: InternalResponse): string {
-  const parts: string[] = [];
-  const thinkingParts: string[] = [];
-
-  for (const block of response.content) {
-    if (block.type === "text") {
-      parts.push((block as TextContentBlock).text);
-    } else if (block.type === "thinking") {
-      thinkingParts.push((block as ThinkingContentBlock).thinking);
-    }
-  }
-
-  let result = "";
-  if (thinkingParts.length > 0) {
-    result += `<think>${thinkingParts.join("")}</think>\n`;
-  }
-  result += parts.join("");
-  return result;
 }
 
 /**
@@ -462,16 +422,11 @@ export const messagesApi = new Elysia({
 
       const reqHeaders = request.headers;
 
-      // Extract provider from header (X-NexusGate-Provider)
-      const rawProviderHeader = reqHeaders.get(PROVIDER_HEADER);
-      const providerFromHeader = rawProviderHeader
-        ? decodeURIComponent(rawProviderHeader)
-        : null;
-
-      // Parse model@provider format
-      const modelMatch = body.model.match(/^(\S+)@(\S+)$/);
-      const systemName = modelMatch ? modelMatch[1]! : body.model;
-      const targetProvider = providerFromHeader || modelMatch?.[2];
+      // Parse model@provider format and extract provider from header
+      const { systemName, targetProvider } = parseModelProvider(
+        body.model,
+        reqHeaders.get(PROVIDER_HEADER),
+      );
 
       // Find models with provider info
       const modelsWithProviders = await getModelsWithProviderBySystemName(

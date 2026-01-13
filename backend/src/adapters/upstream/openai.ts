@@ -295,6 +295,7 @@ async function* parseOpenAISse(
   body: ReadableStream<Uint8Array>
 ): AsyncGenerator<string, void, unknown> {
   const decoder = new TextDecoderStream();
+  // @ts-expect-error: TypeScript's TextDecoderStream type is incompatible with pipeThrough, but works at runtime
   const reader = body.pipeThrough(decoder).getReader();
   let buffer = "";
 

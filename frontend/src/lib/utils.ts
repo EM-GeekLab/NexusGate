@@ -13,7 +13,6 @@ const formatter = (() => {
   try {
     return new Intl.NumberFormat('zh-CN', {
       style: 'decimal',
-      // @ts-expect-error: 'min2' option is in ES2023, our target is ES2022
       useGrouping: 'min2',
     })
   } catch (e) {

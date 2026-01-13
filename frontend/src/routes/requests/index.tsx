@@ -17,20 +17,21 @@ const requestsSearchSchema = z.object({
   pageSize: z.number().catch(20),
   apiKeyId: z.number().optional(),
   upstreamId: z.number().optional(),
+  model: z.string().optional(),
   selectedRequestId: z.number().optional(),
 })
 
 type RequestsSearchSchema = z.infer<typeof requestsSearchSchema>
 
-const requestsQueryOptions = ({ page, pageSize, apiKeyId, upstreamId }: RequestsSearchSchema) =>
+const requestsQueryOptions = ({ page, pageSize, apiKeyId, upstreamId, model }: RequestsSearchSchema) =>
   queryOptions({
-    queryKey: ['requests', { page, pageSize, apiKeyId, upstreamId }],
+    queryKey: ['requests', { page, pageSize, apiKeyId, upstreamId, model }],
     queryFn: async () => {
       const { data: rawData, error } = await api.admin.completions.get({
         query: {
           offset: (page - 1) * pageSize,
           limit: pageSize,
-          ...removeUndefinedFields({ apiKeyId, upstreamId }),
+          ...removeUndefinedFields({ apiKeyId, upstreamId, model }),
         },
       })
       if (error) throw formatError(error, i18n.t('routes.requests.index.FetchError'))
@@ -41,17 +42,17 @@ const requestsQueryOptions = ({ page, pageSize, apiKeyId, upstreamId }: Requests
 
 export const Route = createFileRoute('/requests/')({
   validateSearch: zodValidator(requestsSearchSchema),
-  loaderDeps: ({ search: { page, pageSize, apiKeyId, upstreamId } }) => ({ page, pageSize, apiKeyId, upstreamId }),
+  loaderDeps: ({ search: { page, pageSize, apiKeyId, upstreamId, model } }) => ({ page, pageSize, apiKeyId, upstreamId, model }),
   loader: ({ deps }) => queryClient.ensureQueryData(requestsQueryOptions(deps)),
   component: RouteComponent,
   errorComponent: AppErrorComponent,
 })
 
 function RouteComponent() {
-  const { page, pageSize, apiKeyId, upstreamId } = Route.useSearch()
+  const { page, pageSize, apiKeyId, upstreamId, model } = Route.useSearch()
   const {
     data: { data, total },
-  } = useSuspenseQuery(requestsQueryOptions({ page, pageSize, apiKeyId, upstreamId }))
+  } = useSuspenseQuery(requestsQueryOptions({ page, pageSize, apiKeyId, upstreamId, model }))
 
   return (
     <main className="flex h-[calc(100svh-3rem)] items-stretch">

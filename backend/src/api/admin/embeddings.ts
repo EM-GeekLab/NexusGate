@@ -11,12 +11,13 @@ export const adminEmbeddings = new Elysia({ prefix: "/embeddings" })
   .get(
     "/",
     async ({ query }) => {
-      const { offset, limit, apiKeyId, modelId } = query;
+      const { offset, limit, apiKeyId, modelId, model } = query;
       const result = await listEmbeddings(
         offset ?? 0,
         limit ?? 20,
         apiKeyId,
         modelId,
+        model,
       );
       return result;
     },
@@ -26,6 +27,7 @@ export const adminEmbeddings = new Elysia({ prefix: "/embeddings" })
         limit: t.Optional(t.Numeric()),
         apiKeyId: t.Optional(t.Numeric()),
         modelId: t.Optional(t.Numeric()),
+        model: t.Optional(t.String()),
       }),
       detail: {
         description: "List embedding requests (paginated)",

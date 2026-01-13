@@ -85,7 +85,11 @@ function ModelRow({ systemName }: { systemName: string }) {
 
   const handleHistoryClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    navigate({ to: '/requests', search: { model: systemName } })
+    if (modelType === 'embedding') {
+      navigate({ to: '/embeddings', search: { model: systemName } })
+    } else {
+      navigate({ to: '/requests', search: { model: systemName } })
+    }
   }
 
   return (

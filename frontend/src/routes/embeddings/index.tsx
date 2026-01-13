@@ -17,20 +17,21 @@ const embeddingsSearchSchema = z.object({
   pageSize: z.number().catch(20),
   apiKeyId: z.number().optional(),
   modelId: z.number().optional(),
+  model: z.string().optional(),
   selectedEmbeddingId: z.number().optional(),
 })
 
 type EmbeddingsSearchSchema = z.infer<typeof embeddingsSearchSchema>
 
-const embeddingsQueryOptions = ({ page, pageSize, apiKeyId, modelId }: EmbeddingsSearchSchema) =>
+const embeddingsQueryOptions = ({ page, pageSize, apiKeyId, modelId, model }: EmbeddingsSearchSchema) =>
   queryOptions({
-    queryKey: ['embeddings', { page, pageSize, apiKeyId, modelId }],
+    queryKey: ['embeddings', { page, pageSize, apiKeyId, modelId, model }],
     queryFn: async () => {
       const { data: rawData, error } = await api.admin.embeddings.get({
         query: {
           offset: (page - 1) * pageSize,
           limit: pageSize,
-          ...removeUndefinedFields({ apiKeyId, modelId }),
+          ...removeUndefinedFields({ apiKeyId, modelId, model }),
         },
       })
       if (error) throw formatError(error, i18n.t('routes.embeddings.index.FetchError'))
@@ -41,17 +42,17 @@ const embeddingsQueryOptions = ({ page, pageSize, apiKeyId, modelId }: Embedding
 
 export const Route = createFileRoute('/embeddings/')({
   validateSearch: zodValidator(embeddingsSearchSchema),
-  loaderDeps: ({ search: { page, pageSize, apiKeyId, modelId } }) => ({ page, pageSize, apiKeyId, modelId }),
+  loaderDeps: ({ search: { page, pageSize, apiKeyId, modelId, model } }) => ({ page, pageSize, apiKeyId, modelId, model }),
   loader: ({ deps }) => queryClient.ensureQueryData(embeddingsQueryOptions(deps)),
   component: RouteComponent,
   errorComponent: AppErrorComponent,
 })
 
 function RouteComponent() {
-  const { page, pageSize, apiKeyId, modelId } = Route.useSearch()
+  const { page, pageSize, apiKeyId, modelId, model } = Route.useSearch()
   const {
     data: { data, total },
-  } = useSuspenseQuery(embeddingsQueryOptions({ page, pageSize, apiKeyId, modelId }))
+  } = useSuspenseQuery(embeddingsQueryOptions({ page, pageSize, apiKeyId, modelId, model }))
 
   return (
     <main className="flex h-[calc(100svh-3rem)] items-stretch">

@@ -930,8 +930,9 @@ export async function listEmbeddings(
   limit: number,
   apiKeyId?: number,
   modelId?: number,
+  model?: string,
 ): Promise<PartialList<Embedding>> {
-  logger.debug("listEmbeddings", offset, limit, apiKeyId, modelId);
+  logger.debug("listEmbeddings", offset, limit, apiKeyId, modelId, model);
   const sq = db
     .select({ id: schema.EmbeddingsTable.id })
     .from(schema.EmbeddingsTable)
@@ -940,6 +941,7 @@ export async function listEmbeddings(
         not(schema.EmbeddingsTable.deleted),
         apiKeyId ? eq(schema.EmbeddingsTable.apiKeyId, apiKeyId) : undefined,
         modelId ? eq(schema.EmbeddingsTable.modelId, modelId) : undefined,
+        model ? like(schema.EmbeddingsTable.model, `${model}%`) : undefined,
       ),
     )
     .orderBy(desc(schema.EmbeddingsTable.id))
@@ -961,6 +963,7 @@ export async function listEmbeddings(
         not(schema.EmbeddingsTable.deleted),
         apiKeyId ? eq(schema.EmbeddingsTable.apiKeyId, apiKeyId) : undefined,
         modelId ? eq(schema.EmbeddingsTable.modelId, modelId) : undefined,
+        model ? like(schema.EmbeddingsTable.model, `${model}%`) : undefined,
       ),
     );
 

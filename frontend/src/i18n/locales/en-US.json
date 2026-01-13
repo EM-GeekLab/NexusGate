@@ -292,6 +292,8 @@
   "pages.models.registry.ProvidersAndRemoteId": "Provider & Remote ID | Weight",
   "pages.models.registry.Context": "Context",
   "pages.models.registry.WeightConfiguration": "Weight Configuration",
+  "pages.models.registry.History": "History",
+  "pages.models.registry.ViewHistory": "View request history",
   "routes.settings.Title": "Models",
   "routes.settings.Description": "Configure model providers and global model integration.",
   "routes.settings.nav.Providers": "Model Providers",

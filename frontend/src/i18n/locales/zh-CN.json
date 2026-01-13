@@ -293,6 +293,8 @@
   "pages.models.registry.ProvidersAndRemoteId": "供应商 & 远程 ID | 权重",
   "pages.models.registry.Context": "上下文",
   "pages.models.registry.WeightConfiguration": "权重配置",
+  "pages.models.registry.History": "历史",
+  "pages.models.registry.ViewHistory": "查看请求历史",
   "routes.settings.Title": "模型",
   "routes.settings.Description": "配置模型供应商和全局模型集成。",
   "routes.settings.nav.Providers": "模型供应商",

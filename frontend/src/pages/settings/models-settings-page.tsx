@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CpuIcon } from 'lucide-react'
+import { CpuIcon, HistoryIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 
 import { api } from '@/lib/api'
@@ -40,7 +41,9 @@ export function ModelsSettingsPage({ systemNames }: { systemNames: string[] }) {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[250px]">{t('pages.models.registry.SystemName')}</TableHead>
+                  <TableHead className="w-[100px]">{t('pages.models.registry.ModelType')}</TableHead>
                   <TableHead>{t('pages.models.registry.ProvidersAndRemoteId')}</TableHead>
+                  <TableHead className="w-[100px] text-center">{t('pages.models.registry.History')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -62,6 +65,7 @@ export function ModelsSettingsPage({ systemNames }: { systemNames: string[] }) {
 
 function ModelRow({ systemName }: { systemName: string }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [showDialog, setShowDialog] = useState(false)
 
   const { data: models = [], isLoading } = useQuery({
@@ -73,21 +77,47 @@ function ModelRow({ systemName }: { systemName: string }) {
     },
   })
 
+  // Check if model has no providers (unavailable)
+  const isUnavailable = !isLoading && models.length === 0
+
+  // Get model type from first model (all models with same systemName should have same type)
+  const modelType = models.length > 0 ? models[0].model.modelType : null
+
+  const handleHistoryClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigate({ to: '/requests', search: { model: systemName } })
+  }
+
   return (
     <>
       <TableRow
-        className="cursor-pointer hover:bg-muted/50"
-        onClick={() => setShowDialog(true)}
+        className={`cursor-pointer hover:bg-muted/50 ${isUnavailable ? 'opacity-50' : ''}`}
+        onClick={() => !isUnavailable && setShowDialog(true)}
       >
         <TableCell>
           <div className="flex items-center gap-3">
-            <CpuIcon className="text-muted-foreground size-5" />
-            <span className="font-mono text-sm font-medium">{systemName}</span>
+            <CpuIcon className={`size-5 ${isUnavailable ? 'text-muted-foreground/50' : 'text-muted-foreground'}`} />
+            <span className={`font-mono text-sm font-medium ${isUnavailable ? 'text-muted-foreground line-through' : ''}`}>
+              {systemName}
+            </span>
           </div>
         </TableCell>
         <TableCell>
           {isLoading ? (
+            <span className="text-muted-foreground text-sm">-</span>
+          ) : modelType ? (
+            <Badge variant={modelType === 'chat' ? 'default' : 'secondary'} className="text-xs">
+              {modelType === 'chat' ? t('pages.settings.models.columns.Chat') : t('pages.settings.models.columns.Embedding')}
+            </Badge>
+          ) : (
+            <span className="text-muted-foreground text-sm">-</span>
+          )}
+        </TableCell>
+        <TableCell>
+          {isLoading ? (
             <span className="text-muted-foreground text-sm">{t('pages.models.registry.Loading')}</span>
+          ) : isUnavailable ? (
+            <span className="text-muted-foreground text-sm italic">{t('pages.models.registry.NoProviders')}</span>
           ) : (
             <div className="flex flex-wrap gap-2">
               {models.map((m) => (
@@ -102,6 +132,17 @@ function ModelRow({ systemName }: { systemName: string }) {
               ))}
             </div>
           )}
+        </TableCell>
+        <TableCell className="text-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="size-8 p-0"
+            onClick={handleHistoryClick}
+            title={t('pages.models.registry.ViewHistory')}
+          >
+            <HistoryIcon className="size-4" />
+          </Button>
         </TableCell>
       </TableRow>
 

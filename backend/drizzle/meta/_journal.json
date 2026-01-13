@@ -50,6 +50,13 @@
       "when": 1768245337752,
       "tag": "0006_daily_sugar_man",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1768308852981,
+      "tag": "0007_opposite_mephistopheles",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 /**
- * OpenAI Chat Completions API endpoint
- * Refactored to use adapter pattern for multi-API format support
+ * OpenAI Response API endpoint
+ * Provides OpenAI Response API format for clients (agent/agentic interactions)
  */
 
 import { consola } from "consola";
@@ -26,30 +26,74 @@ import type {
   ProviderConfig,
 } from "@/adapters/types";
 
-const logger = consola.withTag("completionsApi");
+const logger = consola.withTag("responsesApi");
 
 // =============================================================================
 // Request Schema
 // =============================================================================
 
-// Stream options schema for OpenAI Chat API
-const tStreamOptions = t.Object({
-  include_usage: t.Optional(t.Boolean()),
+// Response API input item types
+const tResponseInputMessage = t.Object({
+  type: t.Literal("message"),
+  role: t.Union([t.Literal("user"), t.Literal("assistant"), t.Literal("system")]),
+  content: t.Union([
+    t.String(),
+    t.Array(t.Object({
+      type: t.String(),
+      text: t.Optional(t.String()),
+      image_url: t.Optional(t.Object({ url: t.String() })),
+    })),
+  ]),
 });
 
-// loose validation, only check required fields
-const tChatCompletionCreate = t.Object(
+const tResponseFunctionCallOutput = t.Object({
+  type: t.Literal("function_call_output"),
+  call_id: t.String(),
+  output: t.String(),
+});
+
+const tResponseInputItem = t.Union([
+  tResponseInputMessage,
+  tResponseFunctionCallOutput,
+]);
+
+// Response API tool definition
+const tResponseTool = t.Object({
+  type: t.Literal("function"),
+  name: t.String(),
+  description: t.Optional(t.String()),
+  parameters: t.Optional(t.Record(t.String(), t.Unknown())),
+  strict: t.Optional(t.Boolean()),
+});
+
+// Response API tool choice
+const tResponseToolChoice = t.Union([
+  t.Literal("auto"),
+  t.Literal("none"),
+  t.Literal("required"),
+  t.Object({ type: t.Literal("function"), name: t.String() }),
+]);
+
+// Response API metadata
+const tResponseMetadata = t.Record(t.String(), t.String());
+
+// OpenAI Response API request schema
+const tResponseApiCreate = t.Object(
   {
-    messages: t.Array(
-      t.Object({
-        role: t.String(),
-        content: t.String(),
-      }),
-    ),
     model: t.String(),
-    n: t.Optional(t.Number()),
+    input: t.Optional(t.Union([t.String(), t.Array(tResponseInputItem)])),
+    instructions: t.Optional(t.String()),
+    modalities: t.Optional(t.Array(t.String())),
+    max_output_tokens: t.Optional(t.Number()),
+    temperature: t.Optional(t.Number()),
+    top_p: t.Optional(t.Number()),
     stream: t.Optional(t.Boolean()),
-    stream_options: t.Optional(tStreamOptions),
+    tools: t.Optional(t.Array(tResponseTool)),
+    tool_choice: t.Optional(tResponseToolChoice),
+    parallel_tool_calls: t.Optional(t.Boolean()),
+    previous_response_id: t.Optional(t.String()),
+    store: t.Optional(t.Boolean()),
+    metadata: t.Optional(tResponseMetadata),
   },
   { additionalProperties: true },
 );
@@ -60,19 +104,42 @@ const tChatCompletionCreate = t.Object(
 function buildCompletionRecord(
   requestedModel: string,
   modelId: number,
-  messages: Array<{ role: string; content: string }>,
+  input: unknown,
   extraBody?: Record<string, unknown>,
   extraHeaders?: Record<string, string>,
 ): Completion {
+  // Convert input to messages format for storage
+  const messages: Array<{ role: string; content: string }> = [];
+  if (typeof input === "string") {
+    messages.push({ role: "user", content: input });
+  } else if (Array.isArray(input)) {
+    for (const item of input) {
+      if (typeof item === "object" && item !== null) {
+        const obj = item as Record<string, unknown>;
+        if (obj.type === "message") {
+          messages.push({
+            role: (obj.role as string) || "user",
+            content:
+              typeof obj.content === "string"
+                ? obj.content
+                : JSON.stringify(obj.content),
+          });
+        } else if (obj.type === "function_call_output") {
+          messages.push({
+            role: "tool",
+            content: (obj.output as string) || "",
+          });
+        }
+      }
+    }
+  }
+
   return {
     model: requestedModel,
     upstreamId: undefined,
     modelId,
     prompt: {
-      messages: messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      messages,
       extraBody,
       extraHeaders,
     },
@@ -86,7 +153,7 @@ function buildCompletionRecord(
 }
 
 /**
- * Handle non-streaming completion request
+ * Handle non-streaming response request
  */
 async function handleNonStreamingRequest(
   upstreamUrl: string,
@@ -98,7 +165,7 @@ async function handleNonStreamingRequest(
 ): Promise<string> {
   const begin = Date.now();
 
-  logger.debug("proxying completions request to upstream", {
+  logger.debug("proxying responses request to upstream", {
     bearer,
     upstreamUrl,
     providerType,
@@ -123,7 +190,10 @@ async function handleNonStreamingRequest(
       },
     });
     set.status = 500;
-    return JSON.stringify({ error: "Failed to fetch upstream" });
+    return JSON.stringify({
+      object: "error",
+      error: { type: "server_error", message: "Failed to fetch upstream" },
+    });
   }
 
   if (!resp.ok) {
@@ -146,8 +216,8 @@ async function handleNonStreamingRequest(
   const upstreamAdapter = getUpstreamAdapter(providerType);
   const internalResponse = await upstreamAdapter.parseResponse(resp);
 
-  // Convert to OpenAI format for response
-  const responseAdapter = getResponseAdapter("openai-chat");
+  // Convert to Response API format
+  const responseAdapter = getResponseAdapter("openai-responses");
   const serialized = responseAdapter.serialize(internalResponse);
 
   // Update completion record
@@ -168,7 +238,7 @@ async function handleNonStreamingRequest(
 }
 
 /**
- * Handle streaming completion request
+ * Handle streaming response request
  */
 async function* handleStreamingRequest(
   upstreamUrl: string,
@@ -180,7 +250,7 @@ async function* handleStreamingRequest(
 ): AsyncGenerator<string, void, unknown> {
   const begin = Date.now();
 
-  logger.debug("proxying stream completions request to upstream", {
+  logger.debug("proxying stream responses request to upstream", {
     userKey: bearer,
     upstreamUrl,
     providerType,
@@ -206,7 +276,7 @@ async function* handleStreamingRequest(
       },
     });
     set.status = 500;
-    yield JSON.stringify({ error: "Failed to fetch upstream" });
+    yield `data: ${JSON.stringify({ type: "error", error: { type: "server_error", message: "Failed to fetch upstream" } })}\n\n`;
     return;
   }
 
@@ -239,15 +309,15 @@ async function* handleStreamingRequest(
       },
     });
     set.status = 500;
-    yield JSON.stringify({ error: "No body" });
+    yield `data: ${JSON.stringify({ type: "error", error: { type: "server_error", message: "No body" } })}\n\n`;
     return;
   }
 
   // Get adapters
   const upstreamAdapter = getUpstreamAdapter(providerType);
-  const responseAdapter = getResponseAdapter("openai-chat");
+  const responseAdapter = getResponseAdapter("openai-responses");
 
-  logger.debug("parse stream completions response");
+  logger.debug("parse stream responses");
 
   let ttft = -1;
   let isFirstChunk = true;
@@ -280,7 +350,7 @@ async function* handleStreamingRequest(
         outputTokens = chunk.usage.outputTokens;
       }
 
-      // Convert to OpenAI format and yield
+      // Convert to Response API format and yield
       const serialized = responseAdapter.serializeStreamChunk(chunk);
       if (serialized) {
         yield serialized;
@@ -309,7 +379,6 @@ async function* handleStreamingRequest(
     completion.duration = Date.now() - begin;
     addCompletions(completion, bearer);
 
-    // Handle case where no chunks were received
     if (isFirstChunk) {
       logger.error("upstream error: no chunk received");
       completion.status = "failed";
@@ -322,7 +391,7 @@ async function* handleStreamingRequest(
         },
       });
       set.status = 500;
-      yield JSON.stringify({ error: "No chunk received" });
+      yield `data: ${JSON.stringify({ type: "error", error: { type: "server_error", message: "No chunk received" } })}\n\n`;
     }
   } catch (error) {
     logger.error("Stream processing error", error);
@@ -336,12 +405,11 @@ async function* handleStreamingRequest(
       },
     });
     set.status = 500;
-    yield JSON.stringify({ error: "Stream processing error" });
+    yield `data: ${JSON.stringify({ type: "error", error: { type: "server_error", message: "Stream processing error" } })}\n\n`;
   }
 }
 
-export const completionsApi = new Elysia({
-  prefix: "/chat",
+export const responsesApi = new Elysia({
   detail: {
     security: [{ apiKey: [] }],
   },
@@ -349,11 +417,14 @@ export const completionsApi = new Elysia({
   .use(apiKeyPlugin)
   .use(rateLimitPlugin)
   .post(
-    "/completions",
+    "/responses",
     async function* ({ body, set, bearer, request }) {
       if (bearer === undefined) {
         set.status = 500;
-        yield JSON.stringify({ error: "Internal server error" });
+        yield JSON.stringify({
+          object: "error",
+          error: { type: "server_error", message: "Internal server error" },
+        });
         return;
       }
 
@@ -365,7 +436,7 @@ export const completionsApi = new Elysia({
         reqHeaders.get(PROVIDER_HEADER),
       );
 
-      // Find models with provider info using the new architecture
+      // Find models with provider info
       const modelsWithProviders = await getModelsWithProviderBySystemName(
         systemName,
         "chat",
@@ -375,10 +446,10 @@ export const completionsApi = new Elysia({
       if (modelsWithProviders.length === 0) {
         set.status = 404;
         yield JSON.stringify({
+          object: "error",
           error: {
-            message: `Model '${systemName}' not found`,
             type: "invalid_request_error",
-            code: "model_not_found",
+            message: `Model '${systemName}' not found`,
           },
         });
         return;
@@ -392,10 +463,10 @@ export const completionsApi = new Elysia({
       if (!selected) {
         set.status = 404;
         yield JSON.stringify({
+          object: "error",
           error: {
-            message: `No available provider for model '${systemName}'`,
             type: "invalid_request_error",
-            code: "no_provider",
+            message: `No available provider for model '${systemName}'`,
           },
         });
         return;
@@ -406,8 +477,8 @@ export const completionsApi = new Elysia({
       // Extract extra headers for passthrough
       const extraHeaders = extractUpstreamHeaders(reqHeaders);
 
-      // Parse request using adapter
-      const requestAdapter = getRequestAdapter("openai-chat");
+      // Parse request using Response API adapter
+      const requestAdapter = getRequestAdapter("openai-responses");
       const internalRequest = requestAdapter.parse(body as Record<string, unknown>);
 
       // Update model in internal request to use remote ID
@@ -435,21 +506,13 @@ export const completionsApi = new Elysia({
       const completion = buildCompletionRecord(
         body.model,
         modelConfig.id,
-        body.messages,
+        body.input,
         internalRequest.extraParams,
         extraHeaders,
       );
 
       // Handle streaming vs non-streaming
       if (internalRequest.stream) {
-        if (body.n && body.n > 1) {
-          set.status = 400;
-          yield JSON.stringify({
-            error: "Stream completions with n > 1 is not supported",
-          });
-          return;
-        }
-
         yield* handleStreamingRequest(
           upstreamUrl,
           upstreamInit,
@@ -471,7 +534,7 @@ export const completionsApi = new Elysia({
       }
     },
     {
-      body: tChatCompletionCreate,
+      body: tResponseApiCreate,
       checkApiKey: true,
       rateLimit: {
         identifier: (body: unknown) => (body as { model: string }).model,

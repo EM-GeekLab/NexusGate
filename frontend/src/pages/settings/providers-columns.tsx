@@ -14,6 +14,7 @@ export interface Provider {
   type: string
   baseUrl: string
   apiKey: string | null
+  apiVersion: string | null
   deleted: boolean
   createdAt: string
   updatedAt: string

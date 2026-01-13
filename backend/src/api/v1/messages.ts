@@ -1,6 +1,6 @@
 /**
- * OpenAI Chat Completions API endpoint
- * Refactored to use adapter pattern for multi-API format support
+ * Anthropic Messages API endpoint
+ * Provides Anthropic-compatible API format for clients
  */
 
 import { consola } from "consola";
@@ -26,30 +26,94 @@ import type {
   ProviderConfig,
 } from "@/adapters/types";
 
-const logger = consola.withTag("completionsApi");
+const logger = consola.withTag("messagesApi");
 
 // =============================================================================
 // Request Schema
 // =============================================================================
 
-// Stream options schema for OpenAI Chat API
-const tStreamOptions = t.Object({
-  include_usage: t.Optional(t.Boolean()),
+// Anthropic content block types
+const tAnthropicTextBlock = t.Object({
+  type: t.Literal("text"),
+  text: t.String(),
 });
 
-// loose validation, only check required fields
-const tChatCompletionCreate = t.Object(
+const tAnthropicImageBlock = t.Object({
+  type: t.Literal("image"),
+  source: t.Object({
+    type: t.String(),
+    media_type: t.Optional(t.String()),
+    data: t.Optional(t.String()),
+    url: t.Optional(t.String()),
+  }),
+});
+
+const tAnthropicToolUseBlock = t.Object({
+  type: t.Literal("tool_use"),
+  id: t.String(),
+  name: t.String(),
+  input: t.Record(t.String(), t.Unknown()),
+});
+
+const tAnthropicToolResultBlock = t.Object({
+  type: t.Literal("tool_result"),
+  tool_use_id: t.String(),
+  content: t.Optional(t.Union([t.String(), t.Array(t.Unknown())])),
+  is_error: t.Optional(t.Boolean()),
+});
+
+const tAnthropicContentBlock = t.Union([
+  tAnthropicTextBlock,
+  tAnthropicImageBlock,
+  tAnthropicToolUseBlock,
+  tAnthropicToolResultBlock,
+]);
+
+// Anthropic tool definition
+const tAnthropicTool = t.Object({
+  name: t.String(),
+  description: t.Optional(t.String()),
+  input_schema: t.Record(t.String(), t.Unknown()),
+});
+
+// Anthropic tool choice
+const tAnthropicToolChoice = t.Union([
+  t.Object({ type: t.Literal("auto") }),
+  t.Object({ type: t.Literal("any") }),
+  t.Object({ type: t.Literal("tool"), name: t.String() }),
+]);
+
+// Anthropic metadata
+const tAnthropicMetadata = t.Object({
+  user_id: t.Optional(t.String()),
+});
+
+// Anthropic Messages API request schema
+const tAnthropicMessageCreate = t.Object(
   {
-    messages: t.Array(
-      t.Object({
-        role: t.String(),
-        content: t.String(),
-      }),
-    ),
     model: t.String(),
-    n: t.Optional(t.Number()),
+    messages: t.Array(
+      t.Object(
+        {
+          role: t.String(),
+          content: t.Union([
+            t.String(),
+            t.Array(tAnthropicContentBlock),
+          ]),
+        },
+        { additionalProperties: true },
+      ),
+    ),
+    max_tokens: t.Number(),
+    system: t.Optional(t.Union([t.String(), t.Array(tAnthropicTextBlock)])),
     stream: t.Optional(t.Boolean()),
-    stream_options: t.Optional(tStreamOptions),
+    temperature: t.Optional(t.Number()),
+    top_p: t.Optional(t.Number()),
+    top_k: t.Optional(t.Number()),
+    stop_sequences: t.Optional(t.Array(t.String())),
+    tools: t.Optional(t.Array(tAnthropicTool)),
+    tool_choice: t.Optional(tAnthropicToolChoice),
+    metadata: t.Optional(tAnthropicMetadata),
   },
   { additionalProperties: true },
 );
@@ -60,7 +124,7 @@ const tChatCompletionCreate = t.Object(
 function buildCompletionRecord(
   requestedModel: string,
   modelId: number,
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: unknown }>,
   extraBody?: Record<string, unknown>,
   extraHeaders?: Record<string, string>,
 ): Completion {
@@ -71,7 +135,7 @@ function buildCompletionRecord(
     prompt: {
       messages: messages.map((m) => ({
         role: m.role,
-        content: m.content,
+        content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
       })),
       extraBody,
       extraHeaders,
@@ -86,7 +150,7 @@ function buildCompletionRecord(
 }
 
 /**
- * Handle non-streaming completion request
+ * Handle non-streaming message request
  */
 async function handleNonStreamingRequest(
   upstreamUrl: string,
@@ -98,7 +162,7 @@ async function handleNonStreamingRequest(
 ): Promise<string> {
   const begin = Date.now();
 
-  logger.debug("proxying completions request to upstream", {
+  logger.debug("proxying messages request to upstream", {
     bearer,
     upstreamUrl,
     providerType,
@@ -123,7 +187,10 @@ async function handleNonStreamingRequest(
       },
     });
     set.status = 500;
-    return JSON.stringify({ error: "Failed to fetch upstream" });
+    return JSON.stringify({
+      type: "error",
+      error: { type: "api_error", message: "Failed to fetch upstream" },
+    });
   }
 
   if (!resp.ok) {
@@ -146,8 +213,8 @@ async function handleNonStreamingRequest(
   const upstreamAdapter = getUpstreamAdapter(providerType);
   const internalResponse = await upstreamAdapter.parseResponse(resp);
 
-  // Convert to OpenAI format for response
-  const responseAdapter = getResponseAdapter("openai-chat");
+  // Convert to Anthropic format for response
+  const responseAdapter = getResponseAdapter("anthropic");
   const serialized = responseAdapter.serialize(internalResponse);
 
   // Update completion record
@@ -168,7 +235,7 @@ async function handleNonStreamingRequest(
 }
 
 /**
- * Handle streaming completion request
+ * Handle streaming message request
  */
 async function* handleStreamingRequest(
   upstreamUrl: string,
@@ -180,7 +247,7 @@ async function* handleStreamingRequest(
 ): AsyncGenerator<string, void, unknown> {
   const begin = Date.now();
 
-  logger.debug("proxying stream completions request to upstream", {
+  logger.debug("proxying stream messages request to upstream", {
     userKey: bearer,
     upstreamUrl,
     providerType,
@@ -206,7 +273,7 @@ async function* handleStreamingRequest(
       },
     });
     set.status = 500;
-    yield JSON.stringify({ error: "Failed to fetch upstream" });
+    yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "Failed to fetch upstream" } })}\n\n`;
     return;
   }
 
@@ -239,15 +306,15 @@ async function* handleStreamingRequest(
       },
     });
     set.status = 500;
-    yield JSON.stringify({ error: "No body" });
+    yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "No body" } })}\n\n`;
     return;
   }
 
   // Get adapters
   const upstreamAdapter = getUpstreamAdapter(providerType);
-  const responseAdapter = getResponseAdapter("openai-chat");
+  const responseAdapter = getResponseAdapter("anthropic");
 
-  logger.debug("parse stream completions response");
+  logger.debug("parse stream messages response");
 
   let ttft = -1;
   let isFirstChunk = true;
@@ -280,15 +347,10 @@ async function* handleStreamingRequest(
         outputTokens = chunk.usage.outputTokens;
       }
 
-      // Convert to OpenAI format and yield
+      // Convert to Anthropic format and yield
       const serialized = responseAdapter.serializeStreamChunk(chunk);
       if (serialized) {
         yield serialized;
-      }
-
-      // Handle message_stop
-      if (chunk.type === "message_stop") {
-        yield responseAdapter.getDoneMarker();
       }
     }
 
@@ -309,7 +371,6 @@ async function* handleStreamingRequest(
     completion.duration = Date.now() - begin;
     addCompletions(completion, bearer);
 
-    // Handle case where no chunks were received
     if (isFirstChunk) {
       logger.error("upstream error: no chunk received");
       completion.status = "failed";
@@ -322,7 +383,7 @@ async function* handleStreamingRequest(
         },
       });
       set.status = 500;
-      yield JSON.stringify({ error: "No chunk received" });
+      yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "No chunk received" } })}\n\n`;
     }
   } catch (error) {
     logger.error("Stream processing error", error);
@@ -336,12 +397,11 @@ async function* handleStreamingRequest(
       },
     });
     set.status = 500;
-    yield JSON.stringify({ error: "Stream processing error" });
+    yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "Stream processing error" } })}\n\n`;
   }
 }
 
-export const completionsApi = new Elysia({
-  prefix: "/chat",
+export const messagesApi = new Elysia({
   detail: {
     security: [{ apiKey: [] }],
   },
@@ -349,11 +409,14 @@ export const completionsApi = new Elysia({
   .use(apiKeyPlugin)
   .use(rateLimitPlugin)
   .post(
-    "/completions",
+    "/messages",
     async function* ({ body, set, bearer, request }) {
       if (bearer === undefined) {
         set.status = 500;
-        yield JSON.stringify({ error: "Internal server error" });
+        yield JSON.stringify({
+          type: "error",
+          error: { type: "api_error", message: "Internal server error" },
+        });
         return;
       }
 
@@ -365,7 +428,7 @@ export const completionsApi = new Elysia({
         reqHeaders.get(PROVIDER_HEADER),
       );
 
-      // Find models with provider info using the new architecture
+      // Find models with provider info
       const modelsWithProviders = await getModelsWithProviderBySystemName(
         systemName,
         "chat",
@@ -375,10 +438,10 @@ export const completionsApi = new Elysia({
       if (modelsWithProviders.length === 0) {
         set.status = 404;
         yield JSON.stringify({
+          type: "error",
           error: {
+            type: "not_found_error",
             message: `Model '${systemName}' not found`,
-            type: "invalid_request_error",
-            code: "model_not_found",
           },
         });
         return;
@@ -392,10 +455,10 @@ export const completionsApi = new Elysia({
       if (!selected) {
         set.status = 404;
         yield JSON.stringify({
+          type: "error",
           error: {
+            type: "not_found_error",
             message: `No available provider for model '${systemName}'`,
-            type: "invalid_request_error",
-            code: "no_provider",
           },
         });
         return;
@@ -406,8 +469,8 @@ export const completionsApi = new Elysia({
       // Extract extra headers for passthrough
       const extraHeaders = extractUpstreamHeaders(reqHeaders);
 
-      // Parse request using adapter
-      const requestAdapter = getRequestAdapter("openai-chat");
+      // Parse request using Anthropic adapter
+      const requestAdapter = getRequestAdapter("anthropic");
       const internalRequest = requestAdapter.parse(body as Record<string, unknown>);
 
       // Update model in internal request to use remote ID
@@ -442,14 +505,6 @@ export const completionsApi = new Elysia({
 
       // Handle streaming vs non-streaming
       if (internalRequest.stream) {
-        if (body.n && body.n > 1) {
-          set.status = 400;
-          yield JSON.stringify({
-            error: "Stream completions with n > 1 is not supported",
-          });
-          return;
-        }
-
         yield* handleStreamingRequest(
           upstreamUrl,
           upstreamInit,
@@ -471,7 +526,7 @@ export const completionsApi = new Elysia({
       }
     },
     {
-      body: tChatCompletionCreate,
+      body: tAnthropicMessageCreate,
       checkApiKey: true,
       rateLimit: {
         identifier: (body: unknown) => (body as { model: string }).model,

@@ -8,6 +8,12 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { api } from '@/lib/api'
+import {
+  PROVIDER_TYPES,
+  PROVIDER_TYPE_LABELS,
+  requiresApiVersion,
+  getApiVersionPlaceholder,
+} from '@/constants/providers'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -24,9 +30,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const providerSchema = z.object({
   name: z.string().min(1).max(63),
-  type: z.string().max(31).default('openai'),
+  type: z.enum(PROVIDER_TYPES).default('openai'),
   baseUrl: z.string().min(1).max(255).url(),
   apiKey: z.string().max(255).optional(),
+  apiVersion: z.string().max(31).optional(),
 })
 
 type ProviderFormValues = z.infer<typeof providerSchema>
@@ -43,8 +50,11 @@ export function ProviderAddButton({ size = 'default', ...props }: ComponentProps
       type: 'openai',
       baseUrl: '',
       apiKey: '',
+      apiVersion: '',
     },
   })
+
+  const watchType = form.watch('type')
 
   const mutation = useMutation({
     mutationFn: async (values: ProviderFormValues) => {
@@ -109,11 +119,11 @@ export function ProviderAddButton({ size = 'default', ...props }: ComponentProps
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem value="azure">Azure OpenAI</SelectItem>
-                      <SelectItem value="anthropic">Anthropic</SelectItem>
-                      <SelectItem value="ollama">Ollama</SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
+                      {PROVIDER_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {PROVIDER_TYPE_LABELS[type]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormDescription>{t('pages.settings.providers.TypeDescription')}</FormDescription>
@@ -149,6 +159,25 @@ export function ProviderAddButton({ size = 'default', ...props }: ComponentProps
                 </FormItem>
               )}
             />
+            {requiresApiVersion(watchType) && (
+              <FormField
+                control={form.control}
+                name="apiVersion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('pages.settings.providers.APIVersion')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={getApiVersionPlaceholder(watchType)}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>{t('pages.settings.providers.APIVersionDescription')}</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 {t('pages.settings.providers.Cancel')}

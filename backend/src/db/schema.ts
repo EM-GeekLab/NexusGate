@@ -151,14 +151,29 @@ export const SettingsTable = pgTable("settings", {
 // ============================================
 
 /**
+ * Provider type enum - defines supported API formats for upstream providers
+ */
+export const ProviderTypeEnum = pgEnum("provider_type", [
+  "openai",           // OpenAI Chat Completion API
+  "openai-responses", // OpenAI Response API (new agent format)
+  "anthropic",        // Anthropic Messages API
+  "azure",            // Azure OpenAI (uses OpenAI format)
+  "ollama",           // Ollama (uses OpenAI format)
+]);
+export type ProviderTypeEnumType = (typeof ProviderTypeEnum.enumValues)[number];
+
+/**
  * Providers table - represents an LLM service provider (e.g., OpenAI, Azure, local vLLM)
  */
 export const ProvidersTable = pgTable("providers", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: varchar("name", { length: 63 }).notNull().unique(),
-  type: varchar("type", { length: 31 }).notNull().default("openai"),
+  // Provider type determines which upstream adapter to use
+  type: ProviderTypeEnum("type").notNull().default("openai"),
   baseUrl: varchar("base_url", { length: 255 }).notNull(),
   apiKey: varchar("api_key", { length: 255 }),
+  // API version header (required for Anthropic: anthropic-version)
+  apiVersion: varchar("api_version", { length: 31 }),
   comment: varchar("comment"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

@@ -21,5 +21,8 @@
     "check": "turbo run check",
     "fmt": "turbo run fmt"
   },
-  "packageManager": "bun@1.2.23"
+  "packageManager": "bun@1.2.23",
+  "devDependencies": {
+    "eslint-plugin-react-hooks": "^7.0.1"
+  }
 }

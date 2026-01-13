@@ -1,15 +1,26 @@
-import type {
-  ChatCompletion,
-  ChatCompletionChunk,
-  ChatCompletionMessage,
-} from "openai/resources";
+/**
+ * OpenAI Chat Completions API endpoint
+ * Refactored to use adapter pattern for multi-API format support
+ */
+
 import { consola } from "consola";
 import { Elysia, t } from "elysia";
 import { getModelsWithProviderBySystemName } from "@/db";
 import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import { addCompletions, type Completion } from "@/utils/completions";
-import { parseSse } from "@/utils/sse";
+import {
+  getRequestAdapter,
+  getResponseAdapter,
+  getUpstreamAdapter,
+} from "@/adapters";
+import type {
+  InternalResponse,
+  ModelWithProvider,
+  ProviderConfig,
+  TextContentBlock,
+  ThinkingContentBlock,
+} from "@/adapters/types";
 
 const logger = consola.withTag("completionsApi");
 
@@ -34,32 +45,6 @@ const tChatCompletionCreate = t.Object(
 const NEXUSGATE_HEADER_PREFIX = "x-nexusgate-";
 // Header name for provider selection
 const PROVIDER_HEADER = "x-nexusgate-provider";
-
-/**
- * Extract extra body fields (any fields not in the known schema)
- */
-function extractExtraBody(
-  body: Record<string, unknown>,
-): Record<string, unknown> | undefined {
-  const knownFields = new Set([
-    "messages",
-    "model",
-    "n",
-    "stream",
-    "stream_options",
-  ]);
-  const extra: Record<string, unknown> = {};
-  let hasExtra = false;
-
-  for (const [key, value] of Object.entries(body)) {
-    if (!knownFields.has(key)) {
-      extra[key] = value;
-      hasExtra = true;
-    }
-  }
-
-  return hasExtra ? extra : undefined;
-}
 
 // Headers that should NOT be forwarded to upstream
 const EXCLUDED_HEADERS = new Set([
@@ -112,6 +97,345 @@ function extractUpstreamHeaders(
   return hasExtra ? extra : undefined;
 }
 
+/**
+ * Select the best model/provider combination based on target provider and weights
+ */
+function selectModel(
+  modelsWithProviders: ModelWithProvider[],
+  targetProvider?: string,
+): ModelWithProvider | null {
+  if (modelsWithProviders.length === 0) {
+    return null;
+  }
+
+  // Filter by target provider if specified
+  let candidates = modelsWithProviders;
+  if (targetProvider) {
+    const filtered = modelsWithProviders.filter(
+      (mp) => mp.provider.name === targetProvider,
+    );
+    if (filtered.length > 0) {
+      candidates = filtered;
+    } else {
+      logger.warn(
+        `Provider '${targetProvider}' does not offer requested model, falling back to available providers`,
+      );
+    }
+  }
+
+  // TODO: implement weighted load balancing
+  return candidates[0] || null;
+}
+
+/**
+ * Build completion record for logging
+ */
+function buildCompletionRecord(
+  requestedModel: string,
+  modelId: number,
+  messages: Array<{ role: string; content: string }>,
+  extraBody?: Record<string, unknown>,
+  extraHeaders?: Record<string, string>,
+): Completion {
+  return {
+    model: requestedModel,
+    upstreamId: undefined,
+    modelId,
+    prompt: {
+      messages: messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+      extraBody,
+      extraHeaders,
+    },
+    promptTokens: -1,
+    completion: [],
+    completionTokens: -1,
+    status: "pending",
+    ttft: -1,
+    duration: -1,
+  };
+}
+
+/**
+ * Extract text content from internal response
+ */
+function extractContentText(response: InternalResponse): string {
+  const parts: string[] = [];
+  const thinkingParts: string[] = [];
+
+  for (const block of response.content) {
+    if (block.type === "text") {
+      parts.push((block as TextContentBlock).text);
+    } else if (block.type === "thinking") {
+      thinkingParts.push((block as ThinkingContentBlock).thinking);
+    }
+  }
+
+  let result = "";
+  if (thinkingParts.length > 0) {
+    result += `<think>${thinkingParts.join("")}</think>\n`;
+  }
+  result += parts.join("");
+  return result;
+}
+
+/**
+ * Handle non-streaming completion request
+ */
+async function handleNonStreamingRequest(
+  upstreamUrl: string,
+  upstreamInit: RequestInit,
+  completion: Completion,
+  bearer: string,
+  set: { status?: number | string },
+  providerType: string,
+): Promise<string> {
+  const begin = Date.now();
+
+  logger.debug("proxying completions request to upstream", {
+    bearer,
+    upstreamUrl,
+    providerType,
+  });
+
+  const [resp, err] = await fetch(upstreamUrl, upstreamInit)
+    .then((r) => [r, null] as [Response, null])
+    .catch((error) => {
+      logger.error("fetch error", error);
+      return [null, error] as [null, Error];
+    });
+
+  if (!resp) {
+    logger.error("upstream error", { status: 500, msg: "Failed to fetch upstream" });
+    completion.status = "failed";
+    addCompletions(completion, bearer, {
+      level: "error",
+      message: `Failed to fetch upstream. ${err.toString()}`,
+      details: {
+        type: "completionError",
+        data: { type: "fetchError", msg: err.toString() },
+      },
+    });
+    set.status = 500;
+    return JSON.stringify({ error: "Failed to fetch upstream" });
+  }
+
+  if (!resp.ok) {
+    const msg = await resp.text();
+    logger.error("upstream error", { status: resp.status, msg });
+    completion.status = "failed";
+    addCompletions(completion, bearer, {
+      level: "error",
+      message: `Upstream error: ${msg}`,
+      details: {
+        type: "completionError",
+        data: { type: "upstreamError", status: resp.status, msg },
+      },
+    });
+    set.status = resp.status;
+    return msg;
+  }
+
+  // Parse response using upstream adapter
+  const upstreamAdapter = getUpstreamAdapter(providerType);
+  const internalResponse = await upstreamAdapter.parseResponse(resp);
+
+  // Convert to OpenAI format for response
+  const responseAdapter = getResponseAdapter("openai-chat");
+  const serialized = responseAdapter.serialize(internalResponse);
+
+  // Update completion record
+  completion.promptTokens = internalResponse.usage.inputTokens;
+  completion.completionTokens = internalResponse.usage.outputTokens;
+  completion.status = "completed";
+  completion.ttft = Date.now() - begin;
+  completion.duration = Date.now() - begin;
+  completion.completion = [
+    {
+      role: "assistant",
+      content: extractContentText(internalResponse),
+    },
+  ];
+  addCompletions(completion, bearer);
+
+  return JSON.stringify(serialized);
+}
+
+/**
+ * Handle streaming completion request
+ */
+async function* handleStreamingRequest(
+  upstreamUrl: string,
+  upstreamInit: RequestInit,
+  completion: Completion,
+  bearer: string,
+  set: { status?: number | string },
+  providerType: string,
+): AsyncGenerator<string, void, unknown> {
+  const begin = Date.now();
+
+  logger.debug("proxying stream completions request to upstream", {
+    userKey: bearer,
+    upstreamUrl,
+    providerType,
+    stream: true,
+  });
+
+  const [resp, err] = await fetch(upstreamUrl, upstreamInit)
+    .then((r) => [r, null] as [Response, null])
+    .catch((error) => {
+      logger.error("fetch error", error);
+      return [null, error] as [null, Error];
+    });
+
+  if (!resp) {
+    logger.error("upstream error", { status: 500, msg: "Failed to fetch upstream" });
+    completion.status = "failed";
+    addCompletions(completion, bearer, {
+      level: "error",
+      message: `Failed to fetch upstream. ${err.toString()}`,
+      details: {
+        type: "completionError",
+        data: { type: "fetchError", msg: err.toString() },
+      },
+    });
+    set.status = 500;
+    yield JSON.stringify({ error: "Failed to fetch upstream" });
+    return;
+  }
+
+  if (!resp.ok) {
+    const msg = await resp.text();
+    logger.error("upstream error", { status: resp.status, msg });
+    completion.status = "failed";
+    addCompletions(completion, bearer, {
+      level: "error",
+      message: `Upstream error: ${msg}`,
+      details: {
+        type: "completionError",
+        data: { type: "upstreamError", status: resp.status, msg },
+      },
+    });
+    set.status = resp.status;
+    yield msg;
+    return;
+  }
+
+  if (!resp.body) {
+    logger.error("upstream error", { status: resp.status, msg: "No body" });
+    completion.status = "failed";
+    addCompletions(completion, bearer, {
+      level: "error",
+      message: "No body",
+      details: {
+        type: "completionError",
+        data: { type: "upstreamError", status: resp.status, msg: "No body" },
+      },
+    });
+    set.status = 500;
+    yield JSON.stringify({ error: "No body" });
+    return;
+  }
+
+  // Get adapters
+  const upstreamAdapter = getUpstreamAdapter(providerType);
+  const responseAdapter = getResponseAdapter("openai-chat");
+
+  logger.debug("parse stream completions response");
+
+  let ttft = -1;
+  let isFirstChunk = true;
+  const textParts: string[] = [];
+  const thinkingParts: string[] = [];
+  let inputTokens = -1;
+  let outputTokens = -1;
+
+  try {
+    const chunks = upstreamAdapter.parseStreamResponse(resp);
+
+    for await (const chunk of chunks) {
+      if (isFirstChunk) {
+        isFirstChunk = false;
+        ttft = Date.now() - begin;
+      }
+
+      // Collect content for completion record
+      if (chunk.type === "content_block_delta") {
+        if (chunk.delta?.type === "text_delta" && chunk.delta.text) {
+          textParts.push(chunk.delta.text);
+        } else if (chunk.delta?.type === "thinking_delta" && chunk.delta.thinking) {
+          thinkingParts.push(chunk.delta.thinking);
+        }
+      }
+
+      // Collect usage info
+      if (chunk.usage) {
+        inputTokens = chunk.usage.inputTokens;
+        outputTokens = chunk.usage.outputTokens;
+      }
+
+      // Convert to OpenAI format and yield
+      const serialized = responseAdapter.serializeStreamChunk(chunk);
+      if (serialized) {
+        yield serialized;
+      }
+
+      // Handle message_stop
+      if (chunk.type === "message_stop") {
+        yield responseAdapter.getDoneMarker();
+      }
+    }
+
+    // Finalize completion record
+    completion.completion = [
+      {
+        role: undefined,
+        content:
+          (thinkingParts.length > 0
+            ? `<think>${thinkingParts.join("")}</think>\n`
+            : "") + textParts.join(""),
+      },
+    ];
+    completion.promptTokens = inputTokens;
+    completion.completionTokens = outputTokens;
+    completion.status = "completed";
+    completion.ttft = ttft;
+    completion.duration = Date.now() - begin;
+    addCompletions(completion, bearer);
+
+    // Handle case where no chunks were received
+    if (isFirstChunk) {
+      logger.error("upstream error: no chunk received");
+      completion.status = "failed";
+      addCompletions(completion, bearer, {
+        level: "error",
+        message: "No chunk received",
+        details: {
+          type: "completionError",
+          data: { type: "upstreamError", status: 500, msg: "No chunk received" },
+        },
+      });
+      set.status = 500;
+      yield JSON.stringify({ error: "No chunk received" });
+    }
+  } catch (error) {
+    logger.error("Stream processing error", error);
+    completion.status = "failed";
+    addCompletions(completion, bearer, {
+      level: "error",
+      message: `Stream processing error: ${String(error)}`,
+      details: {
+        type: "completionError",
+        data: { type: "streamError", msg: String(error) },
+      },
+    });
+    set.status = 500;
+    yield JSON.stringify({ error: "Stream processing error" });
+  }
+}
+
 export const completionsApi = new Elysia({
   prefix: "/chat",
   detail: {
@@ -143,7 +467,6 @@ export const completionsApi = new Elysia({
       const systemName = modelMatch ? modelMatch[1]! : body.model;
 
       // Determine target provider: header takes precedence over model@provider format
-      // Note: empty string should be treated as no provider specified
       const targetProvider = providerFromHeader || modelMatch?.[2];
 
       // Find models with provider info using the new architecture
@@ -152,10 +475,8 @@ export const completionsApi = new Elysia({
         "chat",
       );
 
-      // First check if the model exists at all
+      // Check if model exists
       if (modelsWithProviders.length === 0) {
-        // Model doesn't exist - return 404 error
-        // In async generator, use set.status to set HTTP status code
         set.status = 404;
         yield JSON.stringify({
           error: {
@@ -167,390 +488,90 @@ export const completionsApi = new Elysia({
         return;
       }
 
-      // If specific provider requested, try to filter to that provider
-      // If the provider doesn't offer this model, fall back to any available provider
-      let candidates = modelsWithProviders;
-      if (targetProvider) {
-        const filtered = modelsWithProviders.filter(
-          (mp) => mp.provider.name === targetProvider,
-        );
-        if (filtered.length > 0) {
-          candidates = filtered;
-        } else {
-          // Provider doesn't offer this model, ignore the provider header and use any available
-          logger.warn(
-            `Provider '${targetProvider}' does not offer model '${systemName}', falling back to available providers`,
-          );
-        }
+      // Select model/provider
+      const selected = selectModel(
+        modelsWithProviders as ModelWithProvider[],
+        targetProvider,
+      );
+      if (!selected) {
+        set.status = 404;
+        yield JSON.stringify({
+          error: {
+            message: `No available provider for model '${systemName}'`,
+            type: "invalid_request_error",
+            code: "no_provider",
+          },
+        });
+        return;
       }
 
-      // TODO: implement load balancing
-      const selected = candidates[0]!;
       const { model: modelConfig, provider } = selected;
-
-      // Extract extra body fields for passthrough
-      const extraBody = extractExtraBody(body as Record<string, unknown>);
 
       // Extract extra headers for passthrough
       const extraHeaders = extractUpstreamHeaders(reqHeaders);
 
-      const requestedModel = body.model;
-      const upstreamEndpoint = `${provider.baseUrl}/chat/completions`;
-      body.model = modelConfig.remoteId ?? modelConfig.systemName;
+      // Parse request using adapter
+      const requestAdapter = getRequestAdapter("openai-chat");
+      const internalRequest = requestAdapter.parse(body as Record<string, unknown>);
 
-      const reqInit: RequestInit = {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(provider.apiKey === null
-            ? undefined
-            : { Authorization: `Bearer ${provider.apiKey}` }),
-          // Forward extra headers to upstream
+      // Update model in internal request to use remote ID
+      internalRequest.model = modelConfig.remoteId ?? modelConfig.systemName;
+
+      // Add extra headers
+      if (extraHeaders) {
+        internalRequest.extraHeaders = {
+          ...internalRequest.extraHeaders,
           ...extraHeaders,
-        },
-      };
+        };
+      }
 
-      logger.debug("extra data", { extraBody, extraHeaders });
+      // Get provider type (default to openai for compatibility)
+      const providerType = (provider as ProviderConfig).type || "openai";
 
-      const completion: Completion = {
-        model: requestedModel,
-        upstreamId: undefined,
-        modelId: modelConfig.id, // Reference to the ModelsTable
-        prompt: {
-          messages: body.messages.map((m) => {
-            return {
-              role: m.role as string,
-              content: m.content as string,
-            };
-          }),
-          n: body.n,
-          extraBody,
-          extraHeaders,
-        },
-        promptTokens: -1,
-        completion: [],
-        completionTokens: -1,
-        status: "pending",
-        ttft: -1,
-        duration: -1,
-      };
+      // Build upstream request using adapter
+      const upstreamAdapter = getUpstreamAdapter(providerType);
+      const { url: upstreamUrl, init: upstreamInit } = upstreamAdapter.buildRequest(
+        internalRequest,
+        provider as ProviderConfig,
+      );
 
-      switch (!!body.stream) {
-        case false: {
-          logger.debug("proxying completions request to upstream", {
-            bearer,
-            upstreamEndpoint,
+      // Build completion record for logging
+      const completion = buildCompletionRecord(
+        body.model,
+        modelConfig.id,
+        body.messages,
+        internalRequest.extraParams,
+        extraHeaders,
+      );
+
+      // Handle streaming vs non-streaming
+      if (internalRequest.stream) {
+        if (body.n && body.n > 1) {
+          set.status = 400;
+          yield JSON.stringify({
+            error: "Stream completions with n > 1 is not supported",
           });
-          const begin = Date.now();
-          const [resp, err] = await fetch(upstreamEndpoint, {
-            body: JSON.stringify(body),
-            ...reqInit,
-          })
-            .then((r) => [r, null] as [Response, null])
-            .catch((err) => {
-              logger.error("fetch error", err);
-              return [null, err] as [null, Error];
-            });
-          if (!resp) {
-            logger.error("upstream error", {
-              status: 500,
-              msg: "Failed to fetch upstream",
-            });
-            completion.status = "failed";
-            addCompletions(completion, bearer, {
-              level: "error",
-              message: `Failed to fetch upstream. ${err.toString()}`,
-              details: {
-                type: "completionError",
-                data: {
-                  type: "fetchError",
-                  msg: err.toString(),
-                },
-              },
-            });
-            set.status = 500;
-            yield JSON.stringify({ error: "Failed to fetch upstream" });
-            return;
-          }
-          if (!resp.ok) {
-            const msg = await resp.text();
-            logger.error("upstream error", {
-              status: resp.status,
-              msg,
-            });
-            completion.status = "failed";
-            addCompletions(completion, bearer, {
-              level: "error",
-              message: `Upstream error: ${msg}`,
-              details: {
-                type: "completionError",
-                data: {
-                  type: "upstreamError",
-                  status: resp.status,
-                  msg,
-                },
-              },
-            });
-            set.status = resp.status;
-            yield msg;
-            return;
-          }
-          const respText = await resp.text();
-          const respJson = JSON.parse(respText) as ChatCompletion;
-
-          completion.promptTokens = respJson.usage?.prompt_tokens ?? -1;
-          completion.completionTokens = respJson.usage?.completion_tokens ?? -1;
-          completion.status = "completed";
-          completion.ttft = Date.now() - begin;
-          completion.duration = Date.now() - begin;
-          completion.completion = respJson.choices.map((c) => {
-            const msg = c.message as ChatCompletionMessage & {
-              reasoning_content?: string;
-            };
-            return {
-              role: c.message.role as string,
-              content:
-                (msg.reasoning_content
-                  ? `<think>${msg.reasoning_content}</think>\n`
-                  : "") + (msg.content ?? undefined),
-            };
-          });
-          addCompletions(completion, bearer);
-
-          yield respText;
           return;
         }
 
-        case true: {
-          if (!!body.n && body.n > 1) {
-            set.status = 400;
-            yield JSON.stringify({
-              error: "Stream completions with n > 1 is not supported",
-            });
-            return;
-          }
-
-          // always set include_usage to true
-          body.stream_options = {
-            include_usage: true,
-          };
-
-          logger.debug("proxying stream completions request to upstream", {
-            userKey: bearer,
-            upstreamEndpoint,
-            stream: true,
-          });
-          const begin = Date.now();
-          const [resp, err] = await fetch(upstreamEndpoint, {
-            body: JSON.stringify(body),
-            ...reqInit,
-          })
-            .then((r) => [r, null] as [Response, null])
-            .catch((err) => {
-              logger.error("fetch error", err);
-              return [null, err] as [null, Error];
-            });
-          if (!resp) {
-            logger.error("upstream error", {
-              status: 500,
-              msg: "Failed to fetch upstream",
-            });
-            completion.status = "failed";
-            addCompletions(completion, bearer, {
-              level: "error",
-              message: `Failed to fetch upstream. ${err.toString()}`,
-              details: {
-                type: "completionError",
-                data: {
-                  type: "fetchError",
-                  msg: err.toString(),
-                },
-              },
-            });
-            set.status = 500;
-            yield JSON.stringify({ error: "Failed to fetch upstream" });
-            return;
-          }
-          if (!resp.ok) {
-            const msg = await resp.text();
-            logger.error("upstream error", {
-              status: resp.status,
-              msg,
-            });
-            completion.status = "failed";
-            addCompletions(completion, bearer, {
-              level: "error",
-              message: `Upstream error: ${msg}`,
-              details: {
-                type: "completionError",
-                data: {
-                  type: "upstreamError",
-                  status: resp.status,
-                  msg,
-                },
-              },
-            });
-            set.status = resp.status;
-            yield msg;
-            return;
-          }
-          if (!resp.body) {
-            logger.error("upstream error", {
-              status: resp.status,
-              msg: "No body",
-            });
-            completion.status = "failed";
-            addCompletions(completion, bearer, {
-              level: "error",
-              message: "No body",
-              details: {
-                type: "completionError",
-                data: {
-                  type: "upstreamError",
-                  status: resp.status,
-                  msg: "No body",
-                },
-              },
-            });
-            set.status = 500;
-            yield JSON.stringify({ error: "No body" });
-            return;
-          }
-
-          logger.debug("parse stream completions response");
-          const chunks: AsyncGenerator<string> = parseSse(resp.body);
-
-          let ttft = -1;
-          let isFirstChunk = true;
-          const partials: string[] = [];
-          const extendedTags: { think?: string[] } = {};
-          let finished = false;
-          for await (const chunk of chunks) {
-            if (isFirstChunk) {
-              // log the time to first chunk as ttft
-              isFirstChunk = false;
-              ttft = Date.now() - begin;
-            }
-            if (chunk.startsWith("[DONE]")) {
-              // Workaround: In most cases, upstream will return a message that is a valid json, and has length of choices = 0,
-              //   which will be handled in below. However, in some cases, the last message is '[DONE]', and no usage is returned.
-              //   In this case, we will end this completion.
-              completion.completion = [
-                {
-                  role: undefined,
-                  content:
-                    (extendedTags.think
-                      ? `<think>${extendedTags.think.join("")}</think>\n`
-                      : "") + partials.join(""),
-                },
-              ];
-              completion.status = "completed";
-              completion.ttft = ttft;
-              completion.duration = Date.now() - begin;
-              addCompletions(completion, bearer);
-              yield `data: ${chunk}\n\n`;
-              break;
-            }
-
-            let data: ChatCompletionChunk | undefined = undefined;
-            try {
-              data = JSON.parse(chunk) as ChatCompletionChunk;
-            } catch (e) {
-              logger.error("Error occured when parsing json", e);
-            }
-            if (data === undefined) {
-              // Unreachable, unless json parsing failed indicating a malformed response
-              logger.error("upstream error", {
-                status: resp.status,
-                msg: "Invalid JSON",
-                chunk,
-              });
-              set.status = 500;
-              yield JSON.stringify({ error: "Invalid JSON" });
-              return;
-            }
-            if (data.usage) {
-              completion.promptTokens = data.usage.prompt_tokens;
-              completion.completionTokens = data.usage.completion_tokens;
-            }
-            if (finished) {
-              yield `data: ${chunk}\n\n`;
-              continue;
-            }
-            if (
-              data.choices.length === 1 &&
-              data.choices[0]!.finish_reason !== "stop"
-            ) {
-              // If there is only one choice, regular chunk
-              const delta = data.choices[0]!.delta;
-              const content = delta.content;
-              if (content) {
-                partials.push(content);
-              } else {
-                const delta_ = delta as unknown as {
-                  reasoning_content?: string;
-                };
-                if (delta_.reasoning_content) {
-                  // workaround: api.deepseek.com returns reasoning_content in delta
-                  if (extendedTags.think === undefined) {
-                    extendedTags.think = [];
-                  }
-                  extendedTags.think.push(delta_.reasoning_content);
-                }
-              }
-              yield `data: ${chunk}\n\n`;
-              continue;
-            }
-            // work around: api.deepseek.com returns choices with empty content and finish_reason = "stop" in usage response
-            if (
-              data.choices.length === 0 ||
-              (data.choices.length === 1 &&
-                data.choices[0]!.finish_reason === "stop")
-            ) {
-              // Assuse that is the last chunk
-              console.log(data.usage);
-              completion.completion = [
-                {
-                  role: undefined,
-                  content:
-                    (extendedTags.think
-                      ? `<think>${extendedTags.think.join("")}</think>\n`
-                      : "") + partials.join(""),
-                },
-              ];
-              completion.status = "completed";
-              completion.ttft = ttft;
-              completion.duration = Date.now() - begin;
-              // addCompletions(completion, bearer);
-              yield `data: ${chunk}\n\n`;
-              finished = true;
-              continue;
-            }
-            // Unreachable, unless upstream returned a malformed response
-            set.status = 500;
-            yield JSON.stringify({ error: "Unexpected chunk" });
-            return;
-          }
-          if (isFirstChunk) {
-            logger.error("upstream error: no chunk received");
-            completion.status = "failed";
-            addCompletions(completion, bearer, {
-              level: "error",
-              message: "No chunk received",
-              details: {
-                type: "completionError",
-                data: {
-                  type: "upstreamError",
-                  status: 500,
-                  msg: "No chunk received",
-                },
-              },
-            });
-            set.status = 500;
-            yield JSON.stringify({ error: "No chunk received" });
-            return;
-          }
-        }
+        yield* handleStreamingRequest(
+          upstreamUrl,
+          upstreamInit,
+          completion,
+          bearer,
+          set,
+          providerType,
+        );
+      } else {
+        const response = await handleNonStreamingRequest(
+          upstreamUrl,
+          upstreamInit,
+          completion,
+          bearer,
+          set,
+          providerType,
+        );
+        yield response;
       }
     },
     {

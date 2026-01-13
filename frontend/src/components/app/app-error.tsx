@@ -12,7 +12,8 @@ export function AppErrorComponent({ error }: ErrorComponentProps) {
 
   useEffect(() => {
     queryErrorResetBoundary.reset()
-  }, [queryErrorResetBoundary])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset 只需要在组件挂载时调用一次
+  }, [])
 
   return (
     <div className="flex flex-col items-center px-4 py-10">

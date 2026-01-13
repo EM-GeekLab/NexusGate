@@ -20,3 +20,6 @@ out/
 coverage
 
 .turbo
+
+# Python test code (local testing only)
+python_test_code/

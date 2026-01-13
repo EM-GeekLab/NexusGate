@@ -8,6 +8,16 @@ import {
   updateProvider,
   listModelsByProvider,
 } from "@/db";
+import type { ProviderTypeEnumType } from "@/db/schema";
+
+// Valid provider types
+const PROVIDER_TYPES: ProviderTypeEnumType[] = [
+  "openai",
+  "openai-responses",
+  "anthropic",
+  "azure",
+  "ollama",
+];
 
 export const adminProviders = new Elysia({ prefix: "/providers" })
   // List all providers
@@ -57,9 +67,18 @@ export const adminProviders = new Elysia({ prefix: "/providers" })
     {
       body: t.Object({
         name: t.String({ minLength: 1, maxLength: 63 }),
-        type: t.Optional(t.String({ maxLength: 31, default: "openai" })),
+        type: t.Optional(
+          t.Union([
+            t.Literal("openai"),
+            t.Literal("openai-responses"),
+            t.Literal("anthropic"),
+            t.Literal("azure"),
+            t.Literal("ollama"),
+          ]),
+        ),
         baseUrl: t.String({ minLength: 1, maxLength: 255 }),
         apiKey: t.Optional(t.String({ maxLength: 255 })),
+        apiVersion: t.Optional(t.String({ maxLength: 31 })),
         comment: t.Optional(t.String()),
       }),
       detail: {
@@ -85,9 +104,18 @@ export const adminProviders = new Elysia({ prefix: "/providers" })
       }),
       body: t.Object({
         name: t.Optional(t.String({ minLength: 1, maxLength: 63 })),
-        type: t.Optional(t.String({ maxLength: 31 })),
+        type: t.Optional(
+          t.Union([
+            t.Literal("openai"),
+            t.Literal("openai-responses"),
+            t.Literal("anthropic"),
+            t.Literal("azure"),
+            t.Literal("ollama"),
+          ]),
+        ),
         baseUrl: t.Optional(t.String({ minLength: 1, maxLength: 255 })),
         apiKey: t.Optional(t.String({ maxLength: 255 })),
+        apiVersion: t.Optional(t.String({ maxLength: 31 })),
         comment: t.Optional(t.String()),
       }),
       detail: {

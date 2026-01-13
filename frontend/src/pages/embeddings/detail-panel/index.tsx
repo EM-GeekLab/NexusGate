@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { CheckIcon, CopyIcon, XIcon } from 'lucide-react'
@@ -9,6 +9,28 @@ import { formatNumber } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
 import { useEmbeddingDetail } from '../embedding-detail-provider'
+
+/**
+ * Decode base64-encoded embedding to number array
+ * Base64 embeddings are little-endian float32 arrays
+ */
+function decodeBase64Embedding(base64: string): number[] {
+  const binaryString = atob(base64)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
+  }
+  const floatArray = new Float32Array(bytes.buffer)
+  return Array.from(floatArray)
+}
+
+/**
+ * Normalize embedding data - handles both float arrays and base64 strings
+ * This is needed for backwards compatibility with data stored before base64 decoding was added
+ */
+function normalizeEmbeddings(embeddings: (number[] | string)[]): number[][] {
+  return embeddings.map((vec) => (typeof vec === 'string' ? decodeBase64Embedding(vec) : vec))
+}
 
 export function DetailPanel() {
   const { t } = useTranslation()
@@ -24,6 +46,15 @@ export function DetailPanel() {
     },
     enabled: !!selectedEmbeddingId,
   })
+
+  // Normalize embeddings to handle both float arrays and base64 strings (legacy data)
+  const normalizedEmbeddings = useMemo(() => {
+    if (!embedding?.embedding) return []
+    return normalizeEmbeddings(embedding.embedding as (number[] | string)[])
+  }, [embedding?.embedding])
+
+  // Calculate actual dimensions from normalized data
+  const actualDimensions = normalizedEmbeddings.length > 0 ? normalizedEmbeddings[0].length : embedding?.dimensions ?? 0
 
   if (!isSelectedEmbedding) return null
 
@@ -56,7 +87,7 @@ export function DetailPanel() {
               </div>
               <div className="space-y-1">
                 <div className="text-muted-foreground text-sm">{t('pages.embeddings.detail-panel.Dimensions')}</div>
-                <div className="font-mono text-sm">{formatNumber(embedding.dimensions)}</div>
+                <div className="font-mono text-sm">{formatNumber(actualDimensions)}</div>
               </div>
               <div className="space-y-1">
                 <div className="text-muted-foreground text-sm">{t('pages.embeddings.detail-panel.Duration')}</div>
@@ -89,14 +120,14 @@ export function DetailPanel() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-muted-foreground text-sm">
-                  {t('pages.embeddings.detail-panel.EmbeddingVector')} ({embedding.dimensions}{' '}
+                  {t('pages.embeddings.detail-panel.EmbeddingVector')} ({actualDimensions}{' '}
                   {t('pages.embeddings.detail-panel.Dims')})
                 </div>
-                <CopyButton text={JSON.stringify(embedding.embedding)} />
+                <CopyButton text={JSON.stringify(normalizedEmbeddings)} />
               </div>
               <div className="bg-muted/50 max-h-[300px] overflow-auto rounded-md border p-3">
                 <pre className="font-mono text-xs">
-                  {embedding.embedding.map((vec: number[], i: number) => (
+                  {normalizedEmbeddings.map((vec, i) => (
                     <div key={i} className="mb-2 last:mb-0">
                       {Array.isArray(embedding.input) && embedding.input.length > 1 && (
                         <div className="text-muted-foreground mb-1">[{i + 1}]</div>
@@ -104,7 +135,7 @@ export function DetailPanel() {
                       [
                       {vec
                         .slice(0, 10)
-                        .map((v: number) => v.toFixed(6))
+                        .map((v) => v.toFixed(6))
                         .join(', ')}
                       {vec.length > 10 && `, ... (${vec.length - 10} more)`}]
                     </div>

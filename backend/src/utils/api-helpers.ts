@@ -147,7 +147,7 @@ export function extractContentText(response: InternalResponse): string {
 // =============================================================================
 
 /**
- * Parse model@provider format from model string
+ * Parse model string with optional provider suffix (e.g., "gpt-4@openai")
  * Returns the system name and optional target provider
  */
 export function parseModelProvider(

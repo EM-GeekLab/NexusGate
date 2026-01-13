@@ -6,6 +6,30 @@ import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import { addEmbedding, type EmbeddingRecord } from "@/utils/embeddings";
 import { selectModel, buildUpstreamUrl, getRemoteModelId } from "@/utils/model";
 
+/**
+ * Decode base64-encoded embedding to number array
+ * Base64 embeddings are little-endian float32 arrays
+ */
+function decodeBase64Embedding(base64: string): number[] {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  const floatArray = new Float32Array(bytes.buffer);
+  return Array.from(floatArray);
+}
+
+/**
+ * Check if embedding is base64-encoded (string) or float array
+ */
+function normalizeEmbedding(embedding: number[] | string): number[] {
+  if (typeof embedding === "string") {
+    return decodeBase64Embedding(embedding);
+  }
+  return embedding;
+}
+
 const logger = consola.withTag("embeddingsApi");
 
 // OpenAI-compatible embeddings request schema
@@ -166,9 +190,12 @@ export const embeddingsApi = new Elysia({
         return status(500, "Failed to parse upstream response");
       }
 
-      // Extract embeddings and record
-      const embeddings = respJson.data.map((d) => d.embedding as number[]);
-      const dimensions = embeddings.length > 0 ? embeddings[0]!.length : 0;
+      // Extract embeddings and record (normalize base64 to float array if needed)
+      const embeddings = respJson.data.map((d) =>
+        normalizeEmbedding(d.embedding as number[] | string),
+      );
+      const firstEmbedding = embeddings[0];
+      const dimensions = firstEmbedding ? firstEmbedding.length : 0;
 
       embeddingRecord.inputTokens = respJson.usage?.prompt_tokens ?? -1;
       embeddingRecord.embedding = embeddings;
@@ -176,7 +203,7 @@ export const embeddingsApi = new Elysia({
       embeddingRecord.status = "completed";
       embeddingRecord.duration = Date.now() - begin;
 
-      addEmbedding(embeddingRecord, bearer);
+      void addEmbedding(embeddingRecord, bearer);
 
       logger.debug("embeddings request completed", {
         inputTokens: embeddingRecord.inputTokens,

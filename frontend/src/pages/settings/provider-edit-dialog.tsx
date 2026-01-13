@@ -21,11 +21,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import type { Provider } from './providers-columns'
 
+const PROVIDER_TYPES = ['openai', 'openai-responses', 'anthropic', 'azure', 'ollama'] as const
+
 const providerSchema = z.object({
   name: z.string().min(1).max(63).optional(),
-  type: z.string().max(31).optional(),
+  type: z.enum(PROVIDER_TYPES).optional(),
   baseUrl: z.string().min(1).max(255).url().optional(),
   apiKey: z.string().max(255).optional(),
+  apiVersion: z.string().max(31).optional(),
 })
 
 type ProviderFormValues = z.infer<typeof providerSchema>
@@ -44,11 +47,14 @@ export function ProviderEditDialog({ provider, open, onOpenChange }: ProviderEdi
     resolver: zodResolver(providerSchema),
     defaultValues: {
       name: provider.name,
-      type: provider.type,
+      type: provider.type as typeof PROVIDER_TYPES[number] | undefined,
       baseUrl: provider.baseUrl,
       apiKey: provider.apiKey ?? '',
+      apiVersion: provider.apiVersion ?? '',
     },
   })
+
+  const watchType = form.watch('type')
 
   const mutation = useMutation({
     mutationFn: async (values: ProviderFormValues) => {
@@ -106,11 +112,11 @@ export function ProviderEditDialog({ provider, open, onOpenChange }: ProviderEdi
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="openai">OpenAI</SelectItem>
+                      <SelectItem value="openai">OpenAI Chat API</SelectItem>
+                      <SelectItem value="openai-responses">OpenAI Response API</SelectItem>
+                      <SelectItem value="anthropic">Anthropic Claude</SelectItem>
                       <SelectItem value="azure">Azure OpenAI</SelectItem>
-                      <SelectItem value="anthropic">Anthropic</SelectItem>
                       <SelectItem value="ollama">Ollama</SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>{t('pages.settings.providers.TypeDescription')}</FormDescription>
@@ -146,6 +152,25 @@ export function ProviderEditDialog({ provider, open, onOpenChange }: ProviderEdi
                 </FormItem>
               )}
             />
+            {(watchType === 'anthropic' || watchType === 'azure') && (
+              <FormField
+                control={form.control}
+                name="apiVersion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('pages.settings.providers.APIVersion')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={watchType === 'anthropic' ? '2023-06-01' : '2024-02-15-preview'}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>{t('pages.settings.providers.APIVersionDescription')}</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 {t('pages.settings.providers.Cancel')}

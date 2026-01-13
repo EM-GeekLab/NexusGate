@@ -213,6 +213,8 @@
   "pages.settings.providers.APIKey": "API 密钥",
   "pages.settings.providers.APIKeyPlaceholder": "输入 API 密钥",
   "pages.settings.providers.APIKeyDescription": "用于认证的 API 密钥（可选）",
+  "pages.settings.providers.APIVersion": "API 版本",
+  "pages.settings.providers.APIVersionDescription": "用于认证的 API 版本（Anthropic 和 Azure 必需）",
   "pages.settings.providers.Cancel": "取消",
   "pages.settings.providers.Save": "保存",
   "pages.settings.providers.OpenMenu": "打开菜单",

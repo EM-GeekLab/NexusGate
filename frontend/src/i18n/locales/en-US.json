@@ -212,6 +212,8 @@
   "pages.settings.providers.APIKey": "API Key",
   "pages.settings.providers.APIKeyPlaceholder": "Enter API key",
   "pages.settings.providers.APIKeyDescription": "API key for authentication (optional)",
+  "pages.settings.providers.APIVersion": "API Version",
+  "pages.settings.providers.APIVersionDescription": "API version for authentication (required for Anthropic and Azure)",
   "pages.settings.providers.Cancel": "Cancel",
   "pages.settings.providers.Save": "Save",
   "pages.settings.providers.OpenMenu": "Open menu",

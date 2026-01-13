@@ -18,11 +18,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ManageModelsDialog } from './manage-models-dialog'
 import type { Provider } from './providers-columns'
 
+const PROVIDER_TYPES = ['openai', 'openai-responses', 'anthropic', 'azure', 'ollama'] as const
+
 const providerSchema = z.object({
   name: z.string().min(1).max(63),
-  type: z.string().max(31).default('openai'),
+  type: z.enum(PROVIDER_TYPES).default('openai'),
   baseUrl: z.string().min(1).max(255).url(),
   apiKey: z.string().max(255).optional(),
+  apiVersion: z.string().max(31).optional(),
 })
 
 type ProviderFormValues = z.infer<typeof providerSchema>
@@ -38,8 +41,11 @@ export function ProvidersSettingsPage({ data }: { data: Provider[] }) {
       type: 'openai',
       baseUrl: '',
       apiKey: '',
+      apiVersion: '',
     },
   })
+
+  const watchType = form.watch('type')
 
   const createMutation = useMutation({
     mutationFn: async (values: ProviderFormValues) => {
@@ -131,10 +137,11 @@ export function ProvidersSettingsPage({ data }: { data: Provider[] }) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="openai">OPENAI</SelectItem>
-                          <SelectItem value="azure">AZURE</SelectItem>
-                          <SelectItem value="anthropic">ANTHROPIC</SelectItem>
-                          <SelectItem value="ollama">OLLAMA</SelectItem>
+                          <SelectItem value="openai">OpenAI Chat API</SelectItem>
+                          <SelectItem value="openai-responses">OpenAI Response API</SelectItem>
+                          <SelectItem value="anthropic">Anthropic Claude</SelectItem>
+                          <SelectItem value="azure">Azure OpenAI</SelectItem>
+                          <SelectItem value="ollama">Ollama</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormItem>
@@ -167,6 +174,24 @@ export function ProvidersSettingsPage({ data }: { data: Provider[] }) {
                   </FormItem>
                 )}
               />
+
+              {(watchType === 'anthropic' || watchType === 'azure') && (
+                <FormField
+                  control={form.control}
+                  name="apiVersion"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('pages.settings.providers.APIVersion')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={watchType === 'anthropic' ? '2023-06-01' : '2024-02-15-preview'}
+                          {...field}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <div className="flex justify-end pt-2">
                 <Button type="submit" disabled={createMutation.isPending}>

@@ -10,6 +10,7 @@ export const adminCompletions = new Elysia()
         query.limit ?? 100,
         query.apiKeyId,
         query.upstreamId,
+        query.model,
       );
       // 如果 model 字段存在且包含 '@'，则截断
       result.data.forEach((completion) => {
@@ -25,6 +26,7 @@ export const adminCompletions = new Elysia()
         limit: t.Optional(t.Integer()),
         apiKeyId: t.Optional(t.Integer()),
         upstreamId: t.Optional(t.Integer()),
+        model: t.Optional(t.String()),
       }),
     },
   )

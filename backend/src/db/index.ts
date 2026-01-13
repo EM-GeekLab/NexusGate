@@ -1,5 +1,5 @@
 import { consola } from "consola";
-import { and, asc, count, desc, eq, not, sql, sum } from "drizzle-orm";
+import { and, asc, count, desc, eq, like, not, sql, sum } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sql";
 import { migrate } from "drizzle-orm/bun-sql/migrator";
 import { DATABASE_URL } from "@/utils/config";
@@ -314,6 +314,7 @@ export async function listCompletions(
   limit: number,
   apiKeyId?: number,
   upstreamId?: number,
+  model?: string,
 ): Promise<PartialList<CompletionWithProvider>> {
   const sq = db
     .select({
@@ -328,6 +329,9 @@ export async function listCompletions(
           : undefined,
         upstreamId !== undefined
           ? eq(schema.CompletionsTable.upstreamId, upstreamId)
+          : undefined,
+        model !== undefined
+          ? like(schema.CompletionsTable.model, `${model}%`)
           : undefined,
       ),
     )

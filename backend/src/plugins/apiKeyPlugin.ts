@@ -4,17 +4,25 @@ import { ADMIN_SUPER_SECRET } from "@/utils/config.ts";
 
 export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
   .derive({ as: "global" }, ({ headers }) => {
-    if (!headers.authorization) {
-      return;
-    }
-    const [method, key] = headers.authorization.split(" ");
-    if (method !== "Bearer") {
-      return;
+    // Support Authorization: Bearer header (OpenAI style)
+    if (headers.authorization) {
+      const [method, key] = headers.authorization.split(" ");
+      if (method === "Bearer" && key) {
+        return {
+          bearer: key,
+        };
+      }
     }
 
-    return {
-      bearer: key,
-    };
+    // Support x-api-key header (Anthropic style)
+    const xApiKey = headers["x-api-key"];
+    if (xApiKey) {
+      return {
+        bearer: xApiKey,
+      };
+    }
+
+    return;
   })
   .macro({
     checkApiKey: {

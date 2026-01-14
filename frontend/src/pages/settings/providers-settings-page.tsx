@@ -246,24 +246,24 @@ function ProviderCard({ provider, onTest, onDelete, isTestPending, isDeletePendi
   return (
     <>
       <Card>
-        <CardContent className="flex items-center justify-between py-5 px-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
+        <CardContent className="flex items-center justify-between gap-4 py-5 px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
+            <div className="bg-muted flex size-12 shrink-0 items-center justify-center rounded-lg">
               <BoxesIcon className="text-muted-foreground size-6" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-3">
-                <span className="text-base font-medium">{provider.name}</span>
-                <span className="bg-muted rounded px-2 py-0.5 text-xs uppercase">{provider.type}</span>
+                <span className="truncate text-base font-medium">{provider.name}</span>
+                <span className="bg-muted shrink-0 rounded px-2 py-0.5 text-xs uppercase">{provider.type}</span>
               </div>
-              <div className="text-muted-foreground mt-1 text-sm">
+              <div className="text-muted-foreground mt-1 truncate text-sm">
                 {provider.baseUrl}
                 <span className="mx-2">·</span>
                 {t('routes.settings.providers.CreatedAt')} {formatDistanceToNow(new Date(provider.createdAt), { addSuffix: true })}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <Button variant="outline" size="sm" onClick={() => setShowModelsDialog(true)}>
               <BoxesIcon className="mr-2 size-4" />
               {t('routes.settings.providers.Models')}

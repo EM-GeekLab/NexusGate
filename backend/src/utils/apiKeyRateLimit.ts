@@ -187,16 +187,21 @@ export async function getRateLimitStatus(
     const rpmCapacity = config.rpmLimit * BURST_MULTIPLIER;
     const tpmCapacity = config.tpmLimit * BURST_MULTIPLIER;
 
+    // Calculate usage relative to base limit for clearer display
+    // remaining is capped at limit (not burst capacity) for UI simplicity
+    const rpmUsed = Math.max(0, rpmCapacity - rpmTokens);
+    const tpmUsed = Math.max(0, tpmCapacity - tpmTokens);
+
     return {
       rpm: {
-        current: Math.floor(rpmCapacity - rpmTokens),
+        current: Math.floor(rpmUsed),
         limit: config.rpmLimit,
-        remaining: Math.floor(rpmTokens),
+        remaining: Math.max(0, Math.floor(Math.min(rpmTokens, config.rpmLimit))),
       },
       tpm: {
-        current: Math.floor(tpmCapacity - tpmTokens),
+        current: Math.floor(tpmUsed),
         limit: config.tpmLimit,
-        remaining: Math.floor(tpmTokens),
+        remaining: Math.max(0, Math.floor(Math.min(tpmTokens, config.tpmLimit))),
       },
     };
   } catch (error) {

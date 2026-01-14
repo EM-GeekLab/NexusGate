@@ -17,15 +17,17 @@ function RouteComponent() {
   const { t } = useTranslation()
 
   return (
-    <>
-      <AppHeader>
+    <div className="flex h-svh flex-col">
+      <AppHeader className="border-b">
         <AppHeaderPart>
           <AppSidebarTrigger />
           <AppSidebarSeparator />
           <AppHeaderTitle>{t('routes.dashboard.route.Overview')}</AppHeaderTitle>
         </AppHeaderPart>
       </AppHeader>
-      <Outlet />
-    </>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <Outlet />
+      </div>
+    </div>
   )
 }

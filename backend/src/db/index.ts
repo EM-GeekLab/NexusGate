@@ -1026,3 +1026,191 @@ export async function sumEmbeddingTokenUsage(apiKeyId?: number) {
   const [first] = r;
   return first ?? null;
 }
+
+// ============================================
+// Overview Statistics Operations
+// ============================================
+
+/**
+ * Get completions statistics for a time range
+ */
+export async function getCompletionsStats(startTime: Date, endTime: Date) {
+  logger.debug("getCompletionsStats", startTime, endTime);
+  const r = await db
+    .select({
+      total: count(schema.CompletionsTable.id),
+      completed: sql<number>`SUM(CASE WHEN ${schema.CompletionsTable.status} = 'completed' THEN 1 ELSE 0 END)::int`,
+      failed: sql<number>`SUM(CASE WHEN ${schema.CompletionsTable.status} = 'failed' THEN 1 ELSE 0 END)::int`,
+      avgDuration: sql<number>`COALESCE(AVG(CASE WHEN ${schema.CompletionsTable.duration} > 0 THEN ${schema.CompletionsTable.duration} END), 0)`,
+      avgTTFT: sql<number>`COALESCE(AVG(CASE WHEN ${schema.CompletionsTable.status} = 'completed' AND ${schema.CompletionsTable.ttft} > 0 THEN ${schema.CompletionsTable.ttft} END), 0)`,
+      totalPromptTokens: sql<number>`COALESCE(SUM(CASE WHEN ${schema.CompletionsTable.promptTokens} > 0 THEN ${schema.CompletionsTable.promptTokens} ELSE 0 END), 0)::bigint`,
+      totalCompletionTokens: sql<number>`COALESCE(SUM(CASE WHEN ${schema.CompletionsTable.completionTokens} > 0 THEN ${schema.CompletionsTable.completionTokens} ELSE 0 END), 0)::bigint`,
+    })
+    .from(schema.CompletionsTable)
+    .where(
+      and(
+        not(schema.CompletionsTable.deleted),
+        sql`${schema.CompletionsTable.createdAt} >= ${startTime}`,
+        sql`${schema.CompletionsTable.createdAt} < ${endTime}`,
+      ),
+    );
+  const [first] = r;
+  return first ?? {
+    total: 0,
+    completed: 0,
+    failed: 0,
+    avgDuration: 0,
+    avgTTFT: 0,
+    totalPromptTokens: 0,
+    totalCompletionTokens: 0,
+  };
+}
+
+/**
+ * Get embeddings statistics for a time range
+ */
+export async function getEmbeddingsStats(startTime: Date, endTime: Date) {
+  logger.debug("getEmbeddingsStats", startTime, endTime);
+  const r = await db
+    .select({
+      total: count(schema.EmbeddingsTable.id),
+      completed: sql<number>`SUM(CASE WHEN ${schema.EmbeddingsTable.status} = 'completed' THEN 1 ELSE 0 END)::int`,
+      failed: sql<number>`SUM(CASE WHEN ${schema.EmbeddingsTable.status} = 'failed' THEN 1 ELSE 0 END)::int`,
+      avgDuration: sql<number>`COALESCE(AVG(CASE WHEN ${schema.EmbeddingsTable.duration} > 0 THEN ${schema.EmbeddingsTable.duration} END), 0)`,
+      totalInputTokens: sql<number>`COALESCE(SUM(CASE WHEN ${schema.EmbeddingsTable.inputTokens} > 0 THEN ${schema.EmbeddingsTable.inputTokens} ELSE 0 END), 0)::bigint`,
+    })
+    .from(schema.EmbeddingsTable)
+    .where(
+      and(
+        not(schema.EmbeddingsTable.deleted),
+        sql`${schema.EmbeddingsTable.createdAt} >= ${startTime}`,
+        sql`${schema.EmbeddingsTable.createdAt} < ${endTime}`,
+      ),
+    );
+  const [first] = r;
+  return first ?? {
+    total: 0,
+    completed: 0,
+    failed: 0,
+    avgDuration: 0,
+    totalInputTokens: 0,
+  };
+}
+
+/**
+ * Get completions model distribution for a time range
+ */
+export async function getCompletionsModelDistribution(
+  startTime: Date,
+  endTime: Date,
+) {
+  logger.debug("getCompletionsModelDistribution", startTime, endTime);
+  return await db
+    .select({
+      model: schema.CompletionsTable.model,
+      count: count(schema.CompletionsTable.id),
+    })
+    .from(schema.CompletionsTable)
+    .where(
+      and(
+        not(schema.CompletionsTable.deleted),
+        sql`${schema.CompletionsTable.createdAt} >= ${startTime}`,
+        sql`${schema.CompletionsTable.createdAt} < ${endTime}`,
+      ),
+    )
+    .groupBy(schema.CompletionsTable.model)
+    .orderBy(desc(count(schema.CompletionsTable.id)))
+    .limit(10);
+}
+
+/**
+ * Get embeddings model distribution for a time range
+ */
+export async function getEmbeddingsModelDistribution(
+  startTime: Date,
+  endTime: Date,
+) {
+  logger.debug("getEmbeddingsModelDistribution", startTime, endTime);
+  return await db
+    .select({
+      model: schema.EmbeddingsTable.model,
+      count: count(schema.EmbeddingsTable.id),
+    })
+    .from(schema.EmbeddingsTable)
+    .where(
+      and(
+        not(schema.EmbeddingsTable.deleted),
+        sql`${schema.EmbeddingsTable.createdAt} >= ${startTime}`,
+        sql`${schema.EmbeddingsTable.createdAt} < ${endTime}`,
+      ),
+    )
+    .groupBy(schema.EmbeddingsTable.model)
+    .orderBy(desc(count(schema.EmbeddingsTable.id)))
+    .limit(10);
+}
+
+/**
+ * Get completions time series data for a time range
+ */
+export async function getCompletionsTimeSeries(
+  startTime: Date,
+  endTime: Date,
+  bucketSeconds: number,
+) {
+  logger.debug("getCompletionsTimeSeries", startTime, endTime, bucketSeconds);
+  const result = await db.execute(sql`
+    SELECT
+      to_timestamp(floor(extract(epoch from created_at) / ${bucketSeconds}) * ${bucketSeconds}) AS bucket,
+      COUNT(*) AS total,
+      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
+      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
+      COALESCE(AVG(CASE WHEN duration > 0 THEN duration END), 0) AS avg_duration,
+      COALESCE(AVG(CASE WHEN status = 'completed' AND ttft > 0 THEN ttft END), 0) AS avg_ttft
+    FROM completions
+    WHERE deleted = false
+      AND created_at >= ${startTime}
+      AND created_at < ${endTime}
+    GROUP BY bucket
+    ORDER BY bucket ASC
+  `);
+  return result as unknown as {
+    bucket: Date;
+    total: string;
+    completed: string;
+    failed: string;
+    avg_duration: string;
+    avg_ttft: string;
+  }[];
+}
+
+/**
+ * Get embeddings time series data for a time range
+ */
+export async function getEmbeddingsTimeSeries(
+  startTime: Date,
+  endTime: Date,
+  bucketSeconds: number,
+) {
+  logger.debug("getEmbeddingsTimeSeries", startTime, endTime, bucketSeconds);
+  const result = await db.execute(sql`
+    SELECT
+      to_timestamp(floor(extract(epoch from created_at) / ${bucketSeconds}) * ${bucketSeconds}) AS bucket,
+      COUNT(*) AS total,
+      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
+      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
+      COALESCE(AVG(CASE WHEN duration > 0 THEN duration END), 0) AS avg_duration
+    FROM embeddings
+    WHERE deleted = false
+      AND created_at >= ${startTime}
+      AND created_at < ${endTime}
+    GROUP BY bucket
+    ORDER BY bucket ASC
+  `);
+  return result as unknown as {
+    bucket: Date;
+    total: string;
+    completed: string;
+    failed: string;
+    avg_duration: string;
+  }[];
+}

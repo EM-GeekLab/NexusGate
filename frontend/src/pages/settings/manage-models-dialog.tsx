@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckIcon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
+import { AlertCircleIcon, CheckIcon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -13,6 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import type { Model } from './models-columns'
 import type { Provider } from './providers-columns'
+
+// Provider types that don't support automatic model listing
+const UNSUPPORTED_REMOTE_MODEL_TYPES = ['anthropic'] as const
 
 interface ManageModelsDialogProps {
   open: boolean
@@ -31,6 +34,11 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
   const [activeTab, setActiveTab] = useState<'saved' | 'remote'>('saved')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Check if this provider type supports remote model listing
+  const supportsRemoteModels = !UNSUPPORTED_REMOTE_MODEL_TYPES.includes(
+    provider.type as (typeof UNSUPPORTED_REMOTE_MODEL_TYPES)[number]
+  )
+
   // Fetch saved models for this provider
   const { data: savedModels = [], isLoading: isLoadingSaved } = useQuery({
     queryKey: ['provider-models', provider.id],
@@ -44,20 +52,25 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
 
   // Fetch remote models from provider
   const {
-    data: remoteModels = [],
+    data: remoteModelsData,
     isLoading: isLoadingRemote,
     refetch: refetchRemote,
+    error: remoteModelsError,
   } = useQuery({
     queryKey: ['provider-remote-models', provider.id],
     queryFn: async () => {
       const { data, error } = await api.admin.providers({ id: provider.id }).test.post()
       if (error) throw error
-      // API returns { success: true, models: [...] }
-      const response = data as { success: boolean; models: RemoteModel[] }
-      return response.models || []
+      // API returns { success: true, models: [...] } or { success: true, message: "..." }
+      const response = data as { success: boolean; models?: RemoteModel[]; message?: string }
+      return response
     },
-    enabled: open && activeTab === 'remote',
+    enabled: open && activeTab === 'remote' && supportsRemoteModels,
+    retry: false, // Don't retry if provider doesn't support it
   })
+
+  const remoteModels = remoteModelsData?.models || []
+  const remoteModelsMessage = remoteModelsData?.message
 
   // Create model mutation
   const createMutation = useMutation({
@@ -184,39 +197,71 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
           </TabsContent>
 
           <TabsContent value="remote" className="mt-0 flex-1 overflow-auto px-6 pb-6">
-            <p className="text-muted-foreground mb-4 text-sm">
-              {t('pages.settings.manageModels.ClickToAddHint')}
-            </p>
-            <div className="max-h-[400px] space-y-3 overflow-y-auto pr-2">
-              {isLoadingRemote ? (
-                <div className="text-muted-foreground py-8 text-center text-sm">
-                  {t('pages.settings.models.Loading')}
+            {!supportsRemoteModels ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <AlertCircleIcon className="text-muted-foreground mb-3 size-10" />
+                <p className="text-muted-foreground text-sm">
+                  {t('pages.settings.manageModels.RemoteModelsUnsupported')}
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {t('pages.settings.manageModels.UseManualAdd')}
+                </p>
+              </div>
+            ) : remoteModelsMessage ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <AlertCircleIcon className="text-muted-foreground mb-3 size-10" />
+                <p className="text-muted-foreground text-sm">{remoteModelsMessage}</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {t('pages.settings.manageModels.UseManualAdd')}
+                </p>
+              </div>
+            ) : remoteModelsError ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <AlertCircleIcon className="text-destructive mb-3 size-10" />
+                <p className="text-muted-foreground text-sm">
+                  {t('pages.settings.manageModels.FetchRemoteFailed')}
+                </p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => refetchRemote()}>
+                  {t('pages.settings.manageModels.Retry')}
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="text-muted-foreground mb-4 text-sm">
+                  {t('pages.settings.manageModels.ClickToAddHint')}
+                </p>
+                <div className="max-h-[400px] space-y-3 overflow-y-auto pr-2">
+                  {isLoadingRemote ? (
+                    <div className="text-muted-foreground py-8 text-center text-sm">
+                      {t('pages.settings.models.Loading')}
+                    </div>
+                  ) : filteredRemoteModels.length === 0 ? (
+                    <div className="text-muted-foreground py-8 text-center text-sm">
+                      {t('pages.settings.manageModels.NoRemoteModels')}
+                    </div>
+                  ) : (
+                    filteredRemoteModels.map((model) => (
+                      <RemoteModelItem
+                        key={model.id}
+                        model={model}
+                        isAdded={savedModelNames.has(model.id)}
+                        onAdd={(systemName, modelType, contextLength, inputPrice, outputPrice) =>
+                          createMutation.mutate({
+                            systemName,
+                            remoteId: model.id,
+                            modelType,
+                            contextLength,
+                            inputPrice,
+                            outputPrice,
+                          })
+                        }
+                        isPending={createMutation.isPending}
+                      />
+                    ))
+                  )}
                 </div>
-              ) : filteredRemoteModels.length === 0 ? (
-                <div className="text-muted-foreground py-8 text-center text-sm">
-                  {t('pages.settings.manageModels.NoRemoteModels')}
-                </div>
-              ) : (
-                filteredRemoteModels.map((model) => (
-                  <RemoteModelItem
-                    key={model.id}
-                    model={model}
-                    isAdded={savedModelNames.has(model.id)}
-                    onAdd={(systemName, modelType, contextLength, inputPrice, outputPrice) =>
-                      createMutation.mutate({
-                        systemName,
-                        remoteId: model.id,
-                        modelType,
-                        contextLength,
-                        inputPrice,
-                        outputPrice,
-                      })
-                    }
-                    isPending={createMutation.isPending}
-                  />
-                ))
-              )}
-            </div>
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

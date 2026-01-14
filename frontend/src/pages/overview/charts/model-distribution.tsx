@@ -31,7 +31,10 @@ export function ModelDistributionChart({ data }: ModelDistributionChartProps) {
     )
   }
 
-  const chartData = data.map((item: OverviewStats['modelDistribution'][number]) => ({
+  type ChartDataItem = { name: string | null; value: number; type: 'chat' | 'embedding' }
+  type ModelDistributionItem = OverviewStats['modelDistribution'][number]
+
+  const chartData: ChartDataItem[] = data.map((item: ModelDistributionItem) => ({
     name: item.model,
     value: item.count,
     type: item.type,
@@ -53,7 +56,7 @@ export function ModelDistributionChart({ data }: ModelDistributionChartProps) {
             `${name ?? ''} (${((percent ?? 0) * 100).toFixed(0)}%)`
           }
         >
-          {chartData.map((_: unknown, index: number) => (
+          {chartData.map((_entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>

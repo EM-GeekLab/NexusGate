@@ -1173,6 +1173,10 @@ export async function getCompletionsTimeSeries(
     GROUP BY bucket
     ORDER BY bucket ASC
   `);
+  // Drizzle's db.execute() returns QueryResult with unknown row type for raw SQL queries.
+  // We use type assertion here because the SQL query structure is well-defined and
+  // the returned columns match the expected interface. PostgreSQL aggregate functions
+  // return numeric values as strings to preserve precision.
   return result as unknown as {
     bucket: Date;
     total: string;
@@ -1206,6 +1210,10 @@ export async function getEmbeddingsTimeSeries(
     GROUP BY bucket
     ORDER BY bucket ASC
   `);
+  // Drizzle's db.execute() returns QueryResult with unknown row type for raw SQL queries.
+  // We use type assertion here because the SQL query structure is well-defined and
+  // the returned columns match the expected interface. PostgreSQL aggregate functions
+  // return numeric values as strings to preserve precision.
   return result as unknown as {
     bucket: Date;
     total: string;

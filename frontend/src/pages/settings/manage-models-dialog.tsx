@@ -69,7 +69,8 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
     retry: false, // Don't retry if provider doesn't support it
   })
 
-  const remoteModels = remoteModelsData?.models || []
+  // Memoize remoteModels to avoid creating new array reference on every render
+  const remoteModels = useMemo(() => remoteModelsData?.models ?? [], [remoteModelsData?.models])
   const remoteModelsMessage = remoteModelsData?.message
 
   // Create model mutation

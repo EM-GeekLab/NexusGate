@@ -65,7 +65,7 @@ function zObject<TSchema extends z.ZodSchema>(
     .transform((v) => {
       try {
         if (v) {
-          return JSON.parse(v) as z.infer<TSchema>;
+          return JSON.parse(v); // oxlint-disable-line no-unsafe-return
         }
       } catch (e) {
         console.error("Failed to parse init config json", e);

@@ -63,7 +63,8 @@ export async function selectModel(
 
   // If only one candidate, return it
   if (filtered.length === 1) {
-    return filtered[0]!;
+    // oxlint-disable-next-line no-unnecessary-type-assertion
+    return filtered[0]!; // conflicting with tsc
   }
 
   // Weighted random selection for load balancing

@@ -121,9 +121,9 @@ function extractTextContent(content: InternalContentBlock[]): string {
 
   for (const block of content) {
     if (block.type === "text") {
-      textParts.push((block ).text);
+      textParts.push(block.text);
     } else if (block.type === "thinking") {
-      thinkingParts.push((block ).thinking);
+      thinkingParts.push(block.thinking);
     }
   }
 
@@ -143,9 +143,7 @@ function extractTextContent(content: InternalContentBlock[]): string {
 function convertToolCalls(
   content: InternalContentBlock[],
 ): OpenAIToolCall[] | undefined {
-  const toolUseBlocks = content.filter(
-    (b) => b.type === "tool_use",
-  ) ;
+  const toolUseBlocks = content.filter((b) => b.type === "tool_use");
 
   if (toolUseBlocks.length === 0) {
     return undefined;
@@ -289,8 +287,10 @@ export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> =
               ],
             };
             // Add reasoning_content to delta
+            // oxlint-disable-next-line no-unnecessary-type-assertion
             (
               data.choices[0]!.delta as OpenAIChatDelta & {
+                // conflicting with tsc
                 reasoning_content?: string;
               }
             ).reasoning_content = chunk.delta.thinking;

@@ -151,7 +151,8 @@ export function parseModelProvider(
 ): { systemName: string; targetProvider: string | undefined } {
   // Parse model@provider format
   const modelMatch = model.match(/^(\S+)@(\S+)$/);
-  const systemName = modelMatch ? modelMatch[1]! : model;
+  // oxlint-disable-next-line no-unnecessary-type-assertion
+  const systemName = modelMatch ? modelMatch[1]! : model; // conflicting with tsc
 
   // Determine target provider: header takes precedence over model@provider format
   const targetProvider = providerHeader

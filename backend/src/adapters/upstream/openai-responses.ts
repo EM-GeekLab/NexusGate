@@ -193,7 +193,9 @@ function convertResponse(resp: ResponseApiResponse): InternalResponse {
         type: "tool_use",
         id: output.call_id || output.id || "",
         name: output.name || "",
-        input: output.arguments ? JSON.parse(output.arguments) : {},
+        input: output.arguments
+          ? (JSON.parse(output.arguments) as Record<string, unknown>)
+          : {},
       } as ToolUseContentBlock);
     }
   }

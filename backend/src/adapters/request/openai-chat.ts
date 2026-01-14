@@ -10,7 +10,6 @@ import type {
   InternalToolDefinition,
   JsonSchema,
   RequestAdapter,
-  TextContentBlock,
   ToolResultContentBlock,
   ToolUseContentBlock,
 } from "../types";
@@ -131,9 +130,14 @@ function convertContent(
     }
     // Skip image_url parts for now (not supported in MVP)
   }
-  return blocks.length === 1 && blocks[0]!.type === "text"
-    ? (blocks[0]).text
-    : blocks;
+
+  const [firstBlock] = blocks;
+  if (firstBlock && firstBlock.type === "text" && blocks.length === 1) {
+    // Additional check for length, to ensure exactly one block
+    return firstBlock.text;
+  }
+
+  return blocks;
 }
 
 /**

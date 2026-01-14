@@ -163,9 +163,10 @@ function convertContent(
     }
   }
 
-  // Simplify single text block to string
-  if (blocks.length === 1 && blocks[0]!.type === "text") {
-    return (blocks[0]).text;
+  const [firstBlock] = blocks;
+  if (firstBlock && firstBlock.type === "text" && blocks.length === 1) {
+    // Additional check for length, to ensure exactly one block
+    return firstBlock.text;
   }
 
   return blocks;
@@ -180,9 +181,7 @@ function convertMessage(msg: AnthropicMessage): InternalMessage {
   // Extract tool calls from assistant messages
   let toolCalls: ToolUseContentBlock[] | undefined;
   if (msg.role === "assistant" && Array.isArray(content)) {
-    toolCalls = content.filter(
-      (b) => b.type === "tool_use",
-    );
+    toolCalls = content.filter((b) => b.type === "tool_use");
     if (toolCalls.length === 0) {
       toolCalls = undefined;
     }

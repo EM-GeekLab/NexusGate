@@ -16,9 +16,8 @@ export async function selectUpstream(model: string) {
     // TODO: implement load balancing
     return availables;
   }
-  if (m.length !== 3) {
-    return undefined;
-  }
-  const [availables] = await findUpstreams(m[1]!, m[2]!);
+
+  const [, model_, upstream] = m;
+  const [availables] = await findUpstreams(model_, upstream);
   return availables;
 }

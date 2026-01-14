@@ -9,14 +9,12 @@ const logger = consola.withTag("redisClient");
  */
 class RedisClient {
   private client: Redis;
-  private _isConnected = false;
 
   constructor() {
     this.client = new Redis(REDIS_URL);
 
     // Set up event listeners
     this.client.on("connect", () => {
-      this._isConnected = true;
       logger.success(`Connected to Redis at ${REDIS_URL}`);
     });
 
@@ -25,7 +23,6 @@ class RedisClient {
     });
 
     this.client.on("close", () => {
-      this._isConnected = false;
       logger.warn("Redis connection closed");
     });
 

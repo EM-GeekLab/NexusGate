@@ -1,6 +1,10 @@
 import { Elysia } from "elysia";
-import { checkApiKey } from "@/utils/apiKey.ts";
+import { validateApiKey } from "@/utils/apiKey.ts";
 import { ADMIN_SUPER_SECRET } from "@/utils/config.ts";
+import type { ApiKey } from "@/db";
+
+// Re-export ApiKey type for consumers
+export type { ApiKey } from "@/db";
 
 export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
   .derive({ as: "global" }, ({ headers }) => {
@@ -24,12 +28,21 @@ export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
 
     return;
   })
+  .state("apiKeyRecord", null as ApiKey | null)
   .macro({
     checkApiKey: {
-      async beforeHandle({ status, bearer }) {
-        if (!bearer || !(await checkApiKey(bearer))) {
+      async resolve({ status, bearer, store }) {
+        if (!bearer) {
           return status(401, "Invalid API key");
         }
+
+        const apiKeyRecord = await validateApiKey(bearer);
+        if (!apiKeyRecord) {
+          return status(401, "Invalid API key");
+        }
+
+        // Store API key record for rate limiting and other uses
+        store.apiKeyRecord = apiKeyRecord;
       },
     },
     checkAdminApiKey: {

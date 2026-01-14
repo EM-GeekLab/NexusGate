@@ -12,12 +12,14 @@ function env<TSchema extends z.ZodSchema, TValue = z.infer<TSchema>>(
   const parsed = schema.safeParse(envValue);
   if (parsed.success) {
     if (!PRODUCTION) {
-      console.log(`Environment variable ${envName} = ${parsed.data}`);
+      console.log(
+        `Environment variable ${envName} = ${JSON.stringify(parsed.data)}`,
+      );
     }
-    return parsed.data;
+    return parsed.data as TValue;
   }
   throw new Error(
-    `Environment variable ${envName} is not valid: ${parsed.error}`,
+    `Environment variable ${envName} is not valid: ${JSON.stringify(parsed.error)}`,
   );
 }
 
@@ -63,7 +65,7 @@ function zObject<TSchema extends z.ZodSchema>(
     .transform((v) => {
       try {
         if (v) {
-          return JSON.parse(v);
+          return JSON.parse(v) as z.infer<TSchema>;
         }
       } catch (e) {
         console.error("Failed to parse init config json", e);

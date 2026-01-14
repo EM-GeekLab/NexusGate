@@ -92,7 +92,9 @@ const KNOWN_FIELDS = new Set([
 /**
  * Convert Anthropic content block to internal format
  */
-function convertContentBlock(block: AnthropicContentBlock): InternalContentBlock | null {
+function convertContentBlock(
+  block: AnthropicContentBlock,
+): InternalContentBlock | null {
   switch (block.type) {
     case "text":
       return {
@@ -147,7 +149,7 @@ function convertContentBlock(block: AnthropicContentBlock): InternalContentBlock
  * Convert Anthropic message content to internal content blocks
  */
 function convertContent(
-  content: string | AnthropicContentBlock[]
+  content: string | AnthropicContentBlock[],
 ): string | InternalContentBlock[] {
   if (typeof content === "string") {
     return content;
@@ -163,7 +165,7 @@ function convertContent(
 
   // Simplify single text block to string
   if (blocks.length === 1 && blocks[0]!.type === "text") {
-    return (blocks[0] as TextContentBlock).text;
+    return (blocks[0]).text;
   }
 
   return blocks;
@@ -178,7 +180,9 @@ function convertMessage(msg: AnthropicMessage): InternalMessage {
   // Extract tool calls from assistant messages
   let toolCalls: ToolUseContentBlock[] | undefined;
   if (msg.role === "assistant" && Array.isArray(content)) {
-    toolCalls = content.filter((b) => b.type === "tool_use") as ToolUseContentBlock[];
+    toolCalls = content.filter(
+      (b) => b.type === "tool_use",
+    );
     if (toolCalls.length === 0) {
       toolCalls = undefined;
     }
@@ -195,7 +199,7 @@ function convertMessage(msg: AnthropicMessage): InternalMessage {
  * Convert Anthropic system prompt to string
  */
 function convertSystemPrompt(
-  system?: string | AnthropicContentBlock[]
+  system?: string | AnthropicContentBlock[],
 ): string | undefined {
   if (!system) {
     return undefined;
@@ -213,7 +217,9 @@ function convertSystemPrompt(
 /**
  * Convert Anthropic tools to internal tool definitions
  */
-function convertTools(tools?: AnthropicTool[]): InternalToolDefinition[] | undefined {
+function convertTools(
+  tools?: AnthropicTool[],
+): InternalToolDefinition[] | undefined {
   if (!tools || tools.length === 0) {
     return undefined;
   }
@@ -228,7 +234,7 @@ function convertTools(tools?: AnthropicTool[]): InternalToolDefinition[] | undef
  * Convert Anthropic tool choice to internal format
  */
 function convertToolChoice(
-  toolChoice?: AnthropicRequest["tool_choice"]
+  toolChoice?: AnthropicRequest["tool_choice"],
 ): InternalRequest["toolChoice"] {
   if (!toolChoice) {
     return undefined;
@@ -305,7 +311,9 @@ export const anthropicRequestAdapter: RequestAdapter<AnthropicRequest> = {
     };
   },
 
-  extractExtraBody(body: Record<string, unknown>): Record<string, unknown> | undefined {
+  extractExtraBody(
+    body: Record<string, unknown>,
+  ): Record<string, unknown> | undefined {
     const extra: Record<string, unknown> = {};
     let hasExtra = false;
 

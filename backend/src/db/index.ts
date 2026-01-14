@@ -364,10 +364,9 @@ export async function listCompletions(
     throw new Error("total count failed");
   }
   return {
-    data: r.map((x) => ({
-      ...x.completion,
-      providerName: x.providerName,
-    })),
+    data: r.map((x) =>
+      Object.assign(x.completion, { providerName: x.providerName }),
+    ),
     total: total.total,
     from: offset,
   };
@@ -418,7 +417,9 @@ export async function findCompletion(
       ),
     );
   const [first] = r;
-  if (!first) return null;
+  if (!first) {
+    return null;
+  }
   return {
     ...first.completion,
     providerName: first.providerName,

@@ -33,7 +33,7 @@ export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
       },
     },
     checkAdminApiKey: {
-      async beforeHandle({ status, bearer }) {
+      beforeHandle({ status, bearer }) {
         if (!bearer || !(bearer === ADMIN_SUPER_SECRET)) {
           return status(401, "Invalid admin secret");
         }

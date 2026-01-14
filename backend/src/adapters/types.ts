@@ -240,7 +240,9 @@ export interface RequestAdapter<T = unknown> {
   /** Parse external request to internal format */
   parse(request: T): InternalRequest;
   /** Extract extra body fields that should be passed through */
-  extractExtraBody?(body: Record<string, unknown>): Record<string, unknown> | undefined;
+  extractExtraBody?(
+    body: Record<string, unknown>,
+  ): Record<string, unknown> | undefined;
 }
 
 /**
@@ -266,7 +268,7 @@ export interface UpstreamAdapter {
   /** Build upstream request from internal format */
   buildRequest(
     request: InternalRequest,
-    provider: ProviderConfig
+    provider: ProviderConfig,
   ): {
     url: string;
     init: RequestInit;
@@ -275,7 +277,7 @@ export interface UpstreamAdapter {
   parseResponse(response: Response): Promise<InternalResponse>;
   /** Parse upstream stream response, yielding internal stream chunks */
   parseStreamResponse(
-    response: Response
+    response: Response,
   ): AsyncGenerator<InternalStreamChunk, void, unknown>;
   /** Build error response in internal format */
   buildErrorResponse?(error: unknown, statusCode: number): InternalResponse;
@@ -325,4 +327,9 @@ export type ApiFormat = "openai-chat" | "openai-responses" | "anthropic";
 /**
  * Supported provider types
  */
-export type ProviderType = "openai" | "openai-responses" | "anthropic" | "azure" | "ollama";
+export type ProviderType =
+  | "openai"
+  | "openai-responses"
+  | "anthropic"
+  | "azure"
+  | "ollama";

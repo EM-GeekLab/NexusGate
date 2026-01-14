@@ -118,7 +118,7 @@ export const embeddingsApi = new Elysia({
       // Make request to upstream
       const [resp, fetchError] = await fetch(upstreamEndpoint, reqInit)
         .then((r) => [r, null] as [Response, null])
-        .catch((err) => {
+        .catch((err: unknown) => {
           logger.error("fetch error", err);
           return [null, err] as [null, Error];
         });
@@ -140,6 +140,8 @@ export const embeddingsApi = new Elysia({
               msg: fetchError.toString(),
             },
           },
+        }).catch(() => {
+          logger.error("Failed to log embedding after fetch failure");
         });
         return status(500, "Failed to fetch upstream");
       }
@@ -163,6 +165,8 @@ export const embeddingsApi = new Elysia({
               msg,
             },
           },
+        }).catch(() => {
+          logger.error("Failed to log embedding after upstream error");
         });
         return status(resp.status, msg);
       }
@@ -186,6 +190,8 @@ export const embeddingsApi = new Elysia({
               msg: e instanceof Error ? e.message : "Unknown parse error",
             },
           },
+        }).catch(() => {
+          logger.error("Failed to log embedding after parse failure");
         });
         return status(500, "Failed to parse upstream response");
       }

@@ -13,7 +13,6 @@ import type {
   ProviderConfig,
   StopReason,
   TextContentBlock,
-  ToolResultContentBlock,
   ToolUseContentBlock,
   UpstreamAdapter,
 } from "../types";
@@ -118,7 +117,7 @@ function convertMessage(msg: InternalMessage): ResponseApiInputItem | null {
         ? msg.content
         : msg.content
             .filter((b) => b.type === "tool_result")
-            .map((b) => (b as ToolResultContentBlock).content)
+            .map((b) => b.content)
             .join("\n");
     return {
       type: "function_call_output",
@@ -133,12 +132,12 @@ function convertMessage(msg: InternalMessage): ResponseApiInputItem | null {
       ? msg.content
       : msg.content
           .filter((b) => b.type === "text")
-          .map((b) => (b as TextContentBlock).text)
+          .map((b) => b.text)
           .join("");
 
   return {
     type: "message",
-    role: msg.role as "user" | "assistant",
+    role: msg.role,
     content,
   };
 }
@@ -146,7 +145,9 @@ function convertMessage(msg: InternalMessage): ResponseApiInputItem | null {
 /**
  * Convert internal tools to Response API format
  */
-function convertTools(tools?: InternalToolDefinition[]): ResponseApiTool[] | undefined {
+function convertTools(
+  tools?: InternalToolDefinition[],
+): ResponseApiTool[] | undefined {
   if (!tools || tools.length === 0) {
     return undefined;
   }
@@ -215,7 +216,7 @@ function convertResponse(resp: ResponseApiResponse): InternalResponse {
 // =============================================================================
 
 async function* parseResponseApiSse(
-  body: ReadableStream<Uint8Array>
+  body: ReadableStream<Uint8Array>,
 ): AsyncGenerator<ResponseApiStreamEvent, void, unknown> {
   const decoder = new TextDecoderStream();
   const reader = body.pipeThrough(decoder).getReader();
@@ -223,8 +224,12 @@ async function* parseResponseApiSse(
 
   while (true) {
     const { value, done } = await reader.read();
-    if (done) break;
-    if (!value) continue;
+    if (done) {
+      break;
+    }
+    if (!value) {
+      continue;
+    }
 
     buffer += value;
     const lines = buffer.split("\n");
@@ -259,7 +264,7 @@ export const openaiResponsesUpstreamAdapter: UpstreamAdapter = {
 
   buildRequest(
     request: InternalRequest,
-    provider: ProviderConfig
+    provider: ProviderConfig,
   ): { url: string; init: RequestInit } {
     // Build input array
     const input: ResponseApiInputItem[] = [];
@@ -277,7 +282,9 @@ export const openaiResponsesUpstreamAdapter: UpstreamAdapter = {
       input: input.length > 0 ? input : undefined,
       ...(request.systemPrompt && { instructions: request.systemPrompt }),
       ...(request.maxTokens && { max_output_tokens: request.maxTokens }),
-      ...(request.temperature !== undefined && { temperature: request.temperature }),
+      ...(request.temperature !== undefined && {
+        temperature: request.temperature,
+      }),
       ...(request.topP !== undefined && { top_p: request.topP }),
       ...(request.stream !== undefined && { stream: request.stream }),
       ...(request.tools && { tools: convertTools(request.tools) }),
@@ -318,7 +325,7 @@ export const openaiResponsesUpstreamAdapter: UpstreamAdapter = {
   },
 
   async *parseStreamResponse(
-    response: Response
+    response: Response,
   ): AsyncGenerator<InternalStreamChunk, void, unknown> {
     if (!response.body) {
       throw new Error("Response body is null");

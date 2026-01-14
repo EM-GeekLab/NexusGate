@@ -72,7 +72,11 @@ interface OpenAIChatRequest {
   };
   stop?: string | string[];
   tools?: OpenAITool[];
-  tool_choice?: "auto" | "none" | "required" | { type: "function"; function: { name: string } };
+  tool_choice?:
+    | "auto"
+    | "none"
+    | "required"
+    | { type: "function"; function: { name: string } };
   [key: string]: unknown;
 }
 
@@ -110,7 +114,9 @@ const KNOWN_FIELDS = new Set([
 /**
  * Convert OpenAI message content to internal content blocks
  */
-function convertContent(content: string | OpenAIContentPart[] | null): string | InternalContentBlock[] {
+function convertContent(
+  content: string | OpenAIContentPart[] | null,
+): string | InternalContentBlock[] {
   if (content === null) {
     return "";
   }
@@ -126,14 +132,16 @@ function convertContent(content: string | OpenAIContentPart[] | null): string | 
     // Skip image_url parts for now (not supported in MVP)
   }
   return blocks.length === 1 && blocks[0]!.type === "text"
-    ? (blocks[0] as TextContentBlock).text
+    ? (blocks[0]).text
     : blocks;
 }
 
 /**
  * Convert OpenAI tool calls to internal format
  */
-function convertToolCalls(toolCalls?: OpenAIToolCall[]): ToolUseContentBlock[] | undefined {
+function convertToolCalls(
+  toolCalls?: OpenAIToolCall[],
+): ToolUseContentBlock[] | undefined {
   if (!toolCalls || toolCalls.length === 0) {
     return undefined;
   }
@@ -156,7 +164,10 @@ function convertMessage(msg: OpenAIChatMessage): InternalMessage {
     const toolResult: ToolResultContentBlock = {
       type: "tool_result",
       toolUseId: msg.tool_call_id || "",
-      content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+      content:
+        typeof msg.content === "string"
+          ? msg.content
+          : JSON.stringify(msg.content),
     };
     return {
       role: "tool",
@@ -176,7 +187,10 @@ function convertMessage(msg: OpenAIChatMessage): InternalMessage {
               type: "tool_use" as const,
               id: "legacy_function_call",
               name: msg.function_call.name,
-              input: JSON.parse(msg.function_call.arguments) as Record<string, unknown>,
+              input: JSON.parse(msg.function_call.arguments) as Record<
+                string,
+                unknown
+              >,
             },
           ]
         : undefined;
@@ -198,7 +212,9 @@ function convertMessage(msg: OpenAIChatMessage): InternalMessage {
 /**
  * Convert OpenAI tools to internal tool definitions
  */
-function convertTools(tools?: OpenAITool[]): InternalToolDefinition[] | undefined {
+function convertTools(
+  tools?: OpenAITool[],
+): InternalToolDefinition[] | undefined {
   if (!tools || tools.length === 0) {
     return undefined;
   }
@@ -213,7 +229,7 @@ function convertTools(tools?: OpenAITool[]): InternalToolDefinition[] | undefine
  * Convert OpenAI tool choice to internal format
  */
 function convertToolChoice(
-  toolChoice?: OpenAIChatRequest["tool_choice"]
+  toolChoice?: OpenAIChatRequest["tool_choice"],
 ): InternalRequest["toolChoice"] {
   if (!toolChoice) {
     return undefined;
@@ -277,7 +293,9 @@ export const openaiChatRequestAdapter: RequestAdapter<OpenAIChatRequest> = {
     };
   },
 
-  extractExtraBody(body: Record<string, unknown>): Record<string, unknown> | undefined {
+  extractExtraBody(
+    body: Record<string, unknown>,
+  ): Record<string, unknown> | undefined {
     const extra: Record<string, unknown> = {};
     let hasExtra = false;
 

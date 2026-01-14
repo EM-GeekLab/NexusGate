@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import OpenAI from "openai";
+import { OpenAI } from "openai";
 import {
   deleteProvider,
   findProvider,
@@ -8,16 +8,6 @@ import {
   updateProvider,
   listModelsByProvider,
 } from "@/db";
-import type { ProviderTypeEnumType } from "@/db/schema";
-
-// Valid provider types
-const PROVIDER_TYPES: ProviderTypeEnumType[] = [
-  "openai",
-  "openai-responses",
-  "anthropic",
-  "azure",
-  "ollama",
-];
 
 export const adminProviders = new Elysia({ prefix: "/providers" })
   // List all providers

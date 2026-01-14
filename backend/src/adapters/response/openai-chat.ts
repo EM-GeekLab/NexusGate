@@ -9,9 +9,6 @@ import type {
   InternalStreamChunk,
   ResponseAdapter,
   StopReason,
-  TextContentBlock,
-  ThinkingContentBlock,
-  ToolUseContentBlock,
 } from "../types";
 
 // =============================================================================
@@ -124,9 +121,9 @@ function extractTextContent(content: InternalContentBlock[]): string {
 
   for (const block of content) {
     if (block.type === "text") {
-      textParts.push((block as TextContentBlock).text);
+      textParts.push((block ).text);
     } else if (block.type === "thinking") {
-      thinkingParts.push((block as ThinkingContentBlock).thinking);
+      thinkingParts.push((block ).thinking);
     }
   }
 
@@ -143,10 +140,12 @@ function extractTextContent(content: InternalContentBlock[]): string {
 /**
  * Convert internal tool use blocks to OpenAI tool calls
  */
-function convertToolCalls(content: InternalContentBlock[]): OpenAIToolCall[] | undefined {
+function convertToolCalls(
+  content: InternalContentBlock[],
+): OpenAIToolCall[] | undefined {
   const toolUseBlocks = content.filter(
-    (b) => b.type === "tool_use"
-  ) as ToolUseContentBlock[];
+    (b) => b.type === "tool_use",
+  ) ;
 
   if (toolUseBlocks.length === 0) {
     return undefined;
@@ -166,197 +165,210 @@ function convertToolCalls(content: InternalContentBlock[]): OpenAIToolCall[] | u
 // Response Adapter Implementation
 // =============================================================================
 
-export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> = {
-  format: "openai-chat",
+export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> =
+  {
+    format: "openai-chat",
 
-  serialize(response: InternalResponse): OpenAIChatCompletion {
-    const content = extractTextContent(response.content);
-    const toolCalls = convertToolCalls(response.content);
+    serialize(response: InternalResponse): OpenAIChatCompletion {
+      const content = extractTextContent(response.content);
+      const toolCalls = convertToolCalls(response.content);
 
-    return {
-      id: response.id,
-      object: "chat.completion",
-      created: response.createdAt || Math.floor(Date.now() / 1000),
-      model: response.model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: "assistant",
-            content: content || null,
-            tool_calls: toolCalls,
+      return {
+        id: response.id,
+        object: "chat.completion",
+        created: response.createdAt || Math.floor(Date.now() / 1000),
+        model: response.model,
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: content || null,
+              tool_calls: toolCalls,
+            },
+            finish_reason: convertStopReason(response.stopReason),
           },
-          finish_reason: convertStopReason(response.stopReason),
+        ],
+        usage: {
+          prompt_tokens: response.usage.inputTokens,
+          completion_tokens: response.usage.outputTokens,
+          total_tokens:
+            response.usage.inputTokens + response.usage.outputTokens,
         },
-      ],
-      usage: {
-        prompt_tokens: response.usage.inputTokens,
-        completion_tokens: response.usage.outputTokens,
-        total_tokens: response.usage.inputTokens + response.usage.outputTokens,
-      },
-    };
-  },
+      };
+    },
 
-  serializeStreamChunk(chunk: InternalStreamChunk): string {
-    const timestamp = Math.floor(Date.now() / 1000);
+    serializeStreamChunk(chunk: InternalStreamChunk): string {
+      const timestamp = Math.floor(Date.now() / 1000);
 
-    switch (chunk.type) {
-      case "message_start": {
-        // Send initial chunk with role
-        const data: OpenAIChatCompletionChunk = {
-          id: chunk.message?.id || `chatcmpl-${Date.now()}`,
-          object: "chat.completion.chunk",
-          created: timestamp,
-          model: chunk.message?.model || "",
-          choices: [
-            {
-              index: 0,
-              delta: { role: "assistant" },
-              finish_reason: null,
-            },
-          ],
-        };
-        return `data: ${JSON.stringify(data)}\n\n`;
-      }
-
-      case "content_block_start": {
-        // For tool use blocks, send tool_calls delta
-        if (chunk.contentBlock?.type === "tool_use") {
-          const toolBlock = chunk.contentBlock as ToolUseContentBlock;
+      switch (chunk.type) {
+        case "message_start": {
+          // Send initial chunk with role
           const data: OpenAIChatCompletionChunk = {
-            id: `chatcmpl-${Date.now()}`,
+            id: chunk.message?.id || `chatcmpl-${Date.now()}`,
             object: "chat.completion.chunk",
             created: timestamp,
-            model: "",
+            model: chunk.message?.model || "",
             choices: [
               {
                 index: 0,
-                delta: {
-                  tool_calls: [
-                    {
-                      index: chunk.index || 0,
-                      id: toolBlock.id,
-                      type: "function",
-                      function: {
-                        name: toolBlock.name,
-                        arguments: "",
+                delta: { role: "assistant" },
+                finish_reason: null,
+              },
+            ],
+          };
+          return `data: ${JSON.stringify(data)}\n\n`;
+        }
+
+        case "content_block_start": {
+          // For tool use blocks, send tool_calls delta
+          if (chunk.contentBlock?.type === "tool_use") {
+            const toolBlock = chunk.contentBlock;
+            const data: OpenAIChatCompletionChunk = {
+              id: `chatcmpl-${Date.now()}`,
+              object: "chat.completion.chunk",
+              created: timestamp,
+              model: "",
+              choices: [
+                {
+                  index: 0,
+                  delta: {
+                    tool_calls: [
+                      {
+                        index: chunk.index || 0,
+                        id: toolBlock.id,
+                        type: "function",
+                        function: {
+                          name: toolBlock.name,
+                          arguments: "",
+                        },
                       },
-                    },
-                  ],
+                    ],
+                  },
+                  finish_reason: null,
                 },
-                finish_reason: null,
-              },
-            ],
-          };
-          return `data: ${JSON.stringify(data)}\n\n`;
+              ],
+            };
+            return `data: ${JSON.stringify(data)}\n\n`;
+          }
+          return "";
         }
-        return "";
-      }
 
-      case "content_block_delta": {
-        if (chunk.delta?.type === "text_delta" && chunk.delta.text) {
-          const data: OpenAIChatCompletionChunk = {
-            id: `chatcmpl-${Date.now()}`,
-            object: "chat.completion.chunk",
-            created: timestamp,
-            model: "",
-            choices: [
-              {
-                index: 0,
-                delta: { content: chunk.delta.text },
-                finish_reason: null,
-              },
-            ],
-          };
-          return `data: ${JSON.stringify(data)}\n\n`;
-        }
-        if (chunk.delta?.type === "thinking_delta" && chunk.delta.thinking) {
-          // Wrap thinking in delta with reasoning_content for compatibility
-          const data: OpenAIChatCompletionChunk = {
-            id: `chatcmpl-${Date.now()}`,
-            object: "chat.completion.chunk",
-            created: timestamp,
-            model: "",
-            choices: [
-              {
-                index: 0,
-                delta: { content: null } as OpenAIChatDelta & { reasoning_content?: string },
-                finish_reason: null,
-              },
-            ],
-          };
-          // Add reasoning_content to delta
-          (data.choices[0]!.delta as OpenAIChatDelta & { reasoning_content?: string }).reasoning_content =
-            chunk.delta.thinking;
-          return `data: ${JSON.stringify(data)}\n\n`;
-        }
-        if (chunk.delta?.type === "input_json_delta" && chunk.delta.partialJson) {
-          // Tool arguments delta
-          const data: OpenAIChatCompletionChunk = {
-            id: `chatcmpl-${Date.now()}`,
-            object: "chat.completion.chunk",
-            created: timestamp,
-            model: "",
-            choices: [
-              {
-                index: 0,
-                delta: {
-                  tool_calls: [
-                    {
-                      index: chunk.index || 0,
-                      function: {
-                        arguments: chunk.delta.partialJson,
-                      },
-                    },
-                  ],
+        case "content_block_delta": {
+          if (chunk.delta?.type === "text_delta" && chunk.delta.text) {
+            const data: OpenAIChatCompletionChunk = {
+              id: `chatcmpl-${Date.now()}`,
+              object: "chat.completion.chunk",
+              created: timestamp,
+              model: "",
+              choices: [
+                {
+                  index: 0,
+                  delta: { content: chunk.delta.text },
+                  finish_reason: null,
                 },
-                finish_reason: null,
-              },
-            ],
-          };
-          return `data: ${JSON.stringify(data)}\n\n`;
-        }
-        return "";
-      }
-
-      case "message_delta": {
-        // Send finish reason and usage
-        const data: OpenAIChatCompletionChunk = {
-          id: `chatcmpl-${Date.now()}`,
-          object: "chat.completion.chunk",
-          created: timestamp,
-          model: "",
-          choices: [
-            {
-              index: 0,
-              delta: {},
-              finish_reason: convertStopReason(chunk.messageDelta?.stopReason || null),
-            },
-          ],
-          usage: chunk.usage
-            ? {
-                prompt_tokens: chunk.usage.inputTokens,
-                completion_tokens: chunk.usage.outputTokens,
-                total_tokens: chunk.usage.inputTokens + chunk.usage.outputTokens,
+              ],
+            };
+            return `data: ${JSON.stringify(data)}\n\n`;
+          }
+          if (chunk.delta?.type === "thinking_delta" && chunk.delta.thinking) {
+            // Wrap thinking in delta with reasoning_content for compatibility
+            const data: OpenAIChatCompletionChunk = {
+              id: `chatcmpl-${Date.now()}`,
+              object: "chat.completion.chunk",
+              created: timestamp,
+              model: "",
+              choices: [
+                {
+                  index: 0,
+                  delta: { content: null } as OpenAIChatDelta & {
+                    reasoning_content?: string;
+                  },
+                  finish_reason: null,
+                },
+              ],
+            };
+            // Add reasoning_content to delta
+            (
+              data.choices[0]!.delta as OpenAIChatDelta & {
+                reasoning_content?: string;
               }
-            : undefined,
-        };
-        return `data: ${JSON.stringify(data)}\n\n`;
+            ).reasoning_content = chunk.delta.thinking;
+            return `data: ${JSON.stringify(data)}\n\n`;
+          }
+          if (
+            chunk.delta?.type === "input_json_delta" &&
+            chunk.delta.partialJson
+          ) {
+            // Tool arguments delta
+            const data: OpenAIChatCompletionChunk = {
+              id: `chatcmpl-${Date.now()}`,
+              object: "chat.completion.chunk",
+              created: timestamp,
+              model: "",
+              choices: [
+                {
+                  index: 0,
+                  delta: {
+                    tool_calls: [
+                      {
+                        index: chunk.index || 0,
+                        function: {
+                          arguments: chunk.delta.partialJson,
+                        },
+                      },
+                    ],
+                  },
+                  finish_reason: null,
+                },
+              ],
+            };
+            return `data: ${JSON.stringify(data)}\n\n`;
+          }
+          return "";
+        }
+
+        case "message_delta": {
+          // Send finish reason and usage
+          const data: OpenAIChatCompletionChunk = {
+            id: `chatcmpl-${Date.now()}`,
+            object: "chat.completion.chunk",
+            created: timestamp,
+            model: "",
+            choices: [
+              {
+                index: 0,
+                delta: {},
+                finish_reason: convertStopReason(
+                  chunk.messageDelta?.stopReason || null,
+                ),
+              },
+            ],
+            usage: chunk.usage
+              ? {
+                  prompt_tokens: chunk.usage.inputTokens,
+                  completion_tokens: chunk.usage.outputTokens,
+                  total_tokens:
+                    chunk.usage.inputTokens + chunk.usage.outputTokens,
+                }
+              : undefined,
+          };
+          return `data: ${JSON.stringify(data)}\n\n`;
+        }
+
+        case "message_stop":
+          return "";
+
+        case "error":
+          // Return error as a regular message for now
+          return "";
+
+        default:
+          return "";
       }
+    },
 
-      case "message_stop":
-        return "";
-
-      case "error":
-        // Return error as a regular message for now
-        return "";
-
-      default:
-        return "";
-    }
-  },
-
-  getDoneMarker(): string {
-    return "data: [DONE]\n\n";
-  },
-};
+    getDoneMarker(): string {
+      return "data: [DONE]\n\n";
+    },
+  };

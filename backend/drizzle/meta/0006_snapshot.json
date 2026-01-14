@@ -78,9 +78,7 @@
         "api_keys_key_unique": {
           "name": "api_keys_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "policies": {},
@@ -210,12 +208,8 @@
           "name": "completions_api_key_id_api_keys_id_fk",
           "tableFrom": "completions",
           "tableTo": "api_keys",
-          "columnsFrom": [
-            "api_key_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["api_key_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -223,12 +217,8 @@
           "name": "completions_upstream_id_upstreams_id_fk",
           "tableFrom": "completions",
           "tableTo": "upstreams",
-          "columnsFrom": [
-            "upstream_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["upstream_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -238,9 +228,7 @@
         "completions_id_unique": {
           "name": "completions_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {},
@@ -352,12 +340,8 @@
           "name": "embeddings_api_key_id_api_keys_id_fk",
           "tableFrom": "embeddings",
           "tableTo": "api_keys",
-          "columnsFrom": [
-            "api_key_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["api_key_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -365,12 +349,8 @@
           "name": "embeddings_model_id_models_id_fk",
           "tableFrom": "embeddings",
           "tableTo": "models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -380,9 +360,7 @@
         "embeddings_id_unique": {
           "name": "embeddings_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {},
@@ -495,12 +473,8 @@
           "name": "models_provider_id_providers_id_fk",
           "tableFrom": "models",
           "tableTo": "providers",
-          "columnsFrom": [
-            "provider_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["provider_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -510,10 +484,7 @@
         "models_provider_system_name_unique": {
           "name": "models_provider_system_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "provider_id",
-            "system_name"
-          ]
+          "columns": ["provider_id", "system_name"]
         }
       },
       "policies": {},
@@ -601,9 +572,7 @@
         "providers_name_unique": {
           "name": "providers_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -658,9 +627,7 @@
         "settings_key_unique": {
           "name": "settings_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "policies": {},
@@ -752,12 +719,8 @@
           "name": "srv_logs_related_api_key_id_api_keys_id_fk",
           "tableFrom": "srv_logs",
           "tableTo": "api_keys",
-          "columnsFrom": [
-            "related_api_key_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["related_api_key_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -765,12 +728,8 @@
           "name": "srv_logs_related_upstream_id_upstreams_id_fk",
           "tableFrom": "srv_logs",
           "tableTo": "upstreams",
-          "columnsFrom": [
-            "related_upstream_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["related_upstream_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -778,12 +737,8 @@
           "name": "srv_logs_related_completion_id_completions_id_fk",
           "tableFrom": "srv_logs",
           "tableTo": "completions",
-          "columnsFrom": [
-            "related_completion_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["related_completion_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -793,9 +748,7 @@
         "srv_logs_id_unique": {
           "name": "srv_logs_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {},
@@ -901,29 +854,17 @@
     "public.completions_status": {
       "name": "completions_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "completed",
-        "failed"
-      ]
+      "values": ["pending", "completed", "failed"]
     },
     "public.model_type": {
       "name": "model_type",
       "schema": "public",
-      "values": [
-        "chat",
-        "embedding"
-      ]
+      "values": ["chat", "embedding"]
     },
     "public.srv_logs_level": {
       "name": "srv_logs_level",
       "schema": "public",
-      "values": [
-        "unspecific",
-        "info",
-        "warn",
-        "error"
-      ]
+      "values": ["unspecific", "info", "warn", "error"]
     }
   },
   "schemas": {},

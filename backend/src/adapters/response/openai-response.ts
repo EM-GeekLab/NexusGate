@@ -9,9 +9,6 @@ import type {
   InternalStreamChunk,
   ResponseAdapter,
   StopReason,
-  TextContentBlock,
-  ThinkingContentBlock,
-  ToolUseContentBlock,
 } from "../types";
 
 // =============================================================================
@@ -64,7 +61,9 @@ interface ResponseApiUsage {
 /**
  * Convert internal stop reason to Response API status
  */
-function convertStopReason(stopReason: StopReason): ResponseApiResponse["status"] {
+function convertStopReason(
+  stopReason: StopReason,
+): ResponseApiResponse["status"] {
   switch (stopReason) {
     case "end_turn":
     case "stop_sequence":
@@ -82,7 +81,9 @@ function convertStopReason(stopReason: StopReason): ResponseApiResponse["status"
 /**
  * Convert internal content blocks to Response API output items
  */
-function convertContentToOutput(content: InternalContentBlock[]): ResponseApiOutputItem[] {
+function convertContentToOutput(
+  content: InternalContentBlock[],
+): ResponseApiOutputItem[] {
   const output: ResponseApiOutputItem[] = [];
   const textParts: ResponseApiContentPart[] = [];
   const thinkingParts: string[] = [];
@@ -91,19 +92,18 @@ function convertContentToOutput(content: InternalContentBlock[]): ResponseApiOut
     if (block.type === "text") {
       textParts.push({
         type: "output_text",
-        text: (block as TextContentBlock).text,
+        text: block.text,
       });
     } else if (block.type === "thinking") {
       // Include thinking in text with markers
-      thinkingParts.push((block as ThinkingContentBlock).thinking);
+      thinkingParts.push(block.thinking);
     } else if (block.type === "tool_use") {
-      const toolBlock = block as ToolUseContentBlock;
       output.push({
         type: "function_call",
-        id: toolBlock.id,
-        call_id: toolBlock.id,
-        name: toolBlock.name,
-        arguments: JSON.stringify(toolBlock.input),
+        id: block.id,
+        call_id: block.id,
+        name: block.name,
+        arguments: JSON.stringify(block.input),
         status: "completed",
       });
     }
@@ -135,148 +135,154 @@ function convertContentToOutput(content: InternalContentBlock[]): ResponseApiOut
 // Response Adapter Implementation
 // =============================================================================
 
-export const openaiResponseResponseAdapter: ResponseAdapter<ResponseApiResponse> = {
-  format: "openai-responses",
+export const openaiResponseResponseAdapter: ResponseAdapter<ResponseApiResponse> =
+  {
+    format: "openai-responses",
 
-  serialize(response: InternalResponse): ResponseApiResponse {
-    return {
-      id: response.id,
-      object: "response",
-      created_at: response.createdAt || Math.floor(Date.now() / 1000),
-      status: convertStopReason(response.stopReason),
-      output: convertContentToOutput(response.content),
-      usage: {
-        input_tokens: response.usage.inputTokens,
-        output_tokens: response.usage.outputTokens,
-        total_tokens: response.usage.inputTokens + response.usage.outputTokens,
-      },
-      model: response.model,
-    };
-  },
+    serialize(response: InternalResponse): ResponseApiResponse {
+      return {
+        id: response.id,
+        object: "response",
+        created_at: response.createdAt || Math.floor(Date.now() / 1000),
+        status: convertStopReason(response.stopReason),
+        output: convertContentToOutput(response.content),
+        usage: {
+          input_tokens: response.usage.inputTokens,
+          output_tokens: response.usage.outputTokens,
+          total_tokens:
+            response.usage.inputTokens + response.usage.outputTokens,
+        },
+        model: response.model,
+      };
+    },
 
-  serializeStreamChunk(chunk: InternalStreamChunk): string {
-    switch (chunk.type) {
-      case "message_start": {
-        const event = {
-          type: "response.created",
-          response: {
-            id: chunk.message?.id || `resp_${Date.now()}`,
-            object: "response",
-            created_at: Math.floor(Date.now() / 1000),
-            status: "in_progress",
-            output: [],
-            model: chunk.message?.model || "",
-          },
-        };
-        return `data: ${JSON.stringify(event)}\n\n`;
-      }
-
-      case "content_block_start": {
-        if (chunk.contentBlock?.type === "text") {
+    serializeStreamChunk(chunk: InternalStreamChunk): string {
+      switch (chunk.type) {
+        case "message_start": {
           const event = {
-            type: "response.output_item.added",
-            output_index: 0,
-            item: {
-              type: "message",
-              id: `msg_${Date.now()}`,
-              role: "assistant",
-              content: [],
+            type: "response.created",
+            response: {
+              id: chunk.message?.id || `resp_${Date.now()}`,
+              object: "response",
+              created_at: Math.floor(Date.now() / 1000),
               status: "in_progress",
+              output: [],
+              model: chunk.message?.model || "",
             },
           };
           return `data: ${JSON.stringify(event)}\n\n`;
         }
-        if (chunk.contentBlock?.type === "tool_use") {
-          const toolBlock = chunk.contentBlock as ToolUseContentBlock;
+
+        case "content_block_start": {
+          if (chunk.contentBlock?.type === "text") {
+            const event = {
+              type: "response.output_item.added",
+              output_index: 0,
+              item: {
+                type: "message",
+                id: `msg_${Date.now()}`,
+                role: "assistant",
+                content: [],
+                status: "in_progress",
+              },
+            };
+            return `data: ${JSON.stringify(event)}\n\n`;
+          }
+          if (chunk.contentBlock?.type === "tool_use") {
+            const toolBlock = chunk.contentBlock;
+            const event = {
+              type: "response.output_item.added",
+              output_index: chunk.index || 0,
+              item: {
+                type: "function_call",
+                id: toolBlock.id,
+                call_id: toolBlock.id,
+                name: toolBlock.name,
+                arguments: "",
+                status: "in_progress",
+              },
+            };
+            return `data: ${JSON.stringify(event)}\n\n`;
+          }
+          return "";
+        }
+
+        case "content_block_delta": {
+          if (chunk.delta?.type === "text_delta" && chunk.delta.text) {
+            const event = {
+              type: "response.output_text.delta",
+              output_index: 0,
+              content_index: chunk.index || 0,
+              delta: chunk.delta.text,
+            };
+            return `data: ${JSON.stringify(event)}\n\n`;
+          }
+          if (
+            chunk.delta?.type === "input_json_delta" &&
+            chunk.delta.partialJson
+          ) {
+            const event = {
+              type: "response.function_call_arguments.delta",
+              output_index: chunk.index || 0,
+              delta: chunk.delta.partialJson,
+            };
+            return `data: ${JSON.stringify(event)}\n\n`;
+          }
+          return "";
+        }
+
+        case "content_block_stop": {
           const event = {
-            type: "response.output_item.added",
+            type: "response.output_item.done",
             output_index: chunk.index || 0,
-            item: {
-              type: "function_call",
-              id: toolBlock.id,
-              call_id: toolBlock.id,
-              name: toolBlock.name,
-              arguments: "",
-              status: "in_progress",
+          };
+          return `data: ${JSON.stringify(event)}\n\n`;
+        }
+
+        case "message_delta": {
+          // Send usage update if available
+          if (chunk.usage) {
+            const event = {
+              type: "response.usage",
+              usage: {
+                input_tokens: chunk.usage.inputTokens,
+                output_tokens: chunk.usage.outputTokens,
+                total_tokens:
+                  chunk.usage.inputTokens + chunk.usage.outputTokens,
+              },
+            };
+            return `data: ${JSON.stringify(event)}\n\n`;
+          }
+          return "";
+        }
+
+        case "message_stop": {
+          const event = {
+            type: "response.done",
+            response: {
+              status: "completed",
             },
           };
           return `data: ${JSON.stringify(event)}\n\n`;
         }
-        return "";
-      }
 
-      case "content_block_delta": {
-        if (chunk.delta?.type === "text_delta" && chunk.delta.text) {
+        case "error": {
           const event = {
-            type: "response.output_text.delta",
-            output_index: 0,
-            content_index: chunk.index || 0,
-            delta: chunk.delta.text,
-          };
-          return `data: ${JSON.stringify(event)}\n\n`;
-        }
-        if (chunk.delta?.type === "input_json_delta" && chunk.delta.partialJson) {
-          const event = {
-            type: "response.function_call_arguments.delta",
-            output_index: chunk.index || 0,
-            delta: chunk.delta.partialJson,
-          };
-          return `data: ${JSON.stringify(event)}\n\n`;
-        }
-        return "";
-      }
-
-      case "content_block_stop": {
-        const event = {
-          type: "response.output_item.done",
-          output_index: chunk.index || 0,
-        };
-        return `data: ${JSON.stringify(event)}\n\n`;
-      }
-
-      case "message_delta": {
-        // Send usage update if available
-        if (chunk.usage) {
-          const event = {
-            type: "response.usage",
-            usage: {
-              input_tokens: chunk.usage.inputTokens,
-              output_tokens: chunk.usage.outputTokens,
-              total_tokens: chunk.usage.inputTokens + chunk.usage.outputTokens,
+            type: "error",
+            error: {
+              type: chunk.error?.type || "server_error",
+              message: chunk.error?.message || "Unknown error",
             },
           };
           return `data: ${JSON.stringify(event)}\n\n`;
         }
-        return "";
+
+        default:
+          return "";
       }
+    },
 
-      case "message_stop": {
-        const event = {
-          type: "response.done",
-          response: {
-            status: "completed",
-          },
-        };
-        return `data: ${JSON.stringify(event)}\n\n`;
-      }
-
-      case "error": {
-        const event = {
-          type: "error",
-          error: {
-            type: chunk.error?.type || "server_error",
-            message: chunk.error?.message || "Unknown error",
-          },
-        };
-        return `data: ${JSON.stringify(event)}\n\n`;
-      }
-
-      default:
-        return "";
-    }
-  },
-
-  getDoneMarker(): string {
-    return "data: [DONE]\n\n";
-  },
-};
+    getDoneMarker(): string {
+      return "data: [DONE]\n\n";
+    },
+  };

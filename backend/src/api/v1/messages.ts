@@ -5,10 +5,15 @@
 
 import { consola } from "consola";
 import { Elysia, t } from "elysia";
+import type { ModelWithProvider } from "@/adapters/types";
+import {
+  getRequestAdapter,
+  getResponseAdapter,
+  getUpstreamAdapter,
+} from "@/adapters";
 import { getModelsWithProviderBySystemName } from "@/db";
 import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
-import { addCompletions, type Completion } from "@/utils/completions";
 import {
   extractUpstreamHeaders,
   selectModel,
@@ -16,15 +21,7 @@ import {
   parseModelProvider,
   PROVIDER_HEADER,
 } from "@/utils/api-helpers";
-import {
-  getRequestAdapter,
-  getResponseAdapter,
-  getUpstreamAdapter,
-} from "@/adapters";
-import type {
-  ModelWithProvider,
-  ProviderConfig,
-} from "@/adapters/types";
+import { addCompletions, type Completion } from "@/utils/completions";
 
 const logger = consola.withTag("messagesApi");
 
@@ -96,10 +93,7 @@ const tAnthropicMessageCreate = t.Object(
       t.Object(
         {
           role: t.String(),
-          content: t.Union([
-            t.String(),
-            t.Array(tAnthropicContentBlock),
-          ]),
+          content: t.Union([t.String(), t.Array(tAnthropicContentBlock)]),
         },
         { additionalProperties: true },
       ),
@@ -135,7 +129,8 @@ function buildCompletionRecord(
     prompt: {
       messages: messages.map((m) => ({
         role: m.role,
-        content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+        content:
+          typeof m.content === "string" ? m.content : JSON.stringify(m.content),
       })),
       extraBody,
       extraHeaders,
@@ -170,13 +165,16 @@ async function handleNonStreamingRequest(
 
   const [resp, err] = await fetch(upstreamUrl, upstreamInit)
     .then((r) => [r, null] as [Response, null])
-    .catch((error) => {
+    .catch((error: unknown) => {
       logger.error("fetch error", error);
       return [null, error] as [null, Error];
     });
 
   if (!resp) {
-    logger.error("upstream error", { status: 500, msg: "Failed to fetch upstream" });
+    logger.error("upstream error", {
+      status: 500,
+      msg: "Failed to fetch upstream",
+    });
     completion.status = "failed";
     addCompletions(completion, bearer, {
       level: "error",
@@ -185,6 +183,8 @@ async function handleNonStreamingRequest(
         type: "completionError",
         data: { type: "fetchError", msg: err.toString() },
       },
+    }).catch(() => {
+      logger.error("Failed to log completion after fetch failure");
     });
     set.status = 500;
     return JSON.stringify({
@@ -204,6 +204,8 @@ async function handleNonStreamingRequest(
         type: "completionError",
         data: { type: "upstreamError", status: resp.status, msg },
       },
+    }).catch(() => {
+      logger.error("Failed to log completion after upstream error");
     });
     set.status = resp.status;
     return msg;
@@ -229,13 +231,16 @@ async function handleNonStreamingRequest(
       content: extractContentText(internalResponse),
     },
   ];
-  addCompletions(completion, bearer);
+  addCompletions(completion, bearer).catch(() => {
+    logger.error("Failed to log completion after non-streaming");
+  });
 
   return JSON.stringify(serialized);
 }
 
 /**
  * Handle streaming message request
+ * @yields string - SSE formatted string chunks
  */
 async function* handleStreamingRequest(
   upstreamUrl: string,
@@ -256,13 +261,16 @@ async function* handleStreamingRequest(
 
   const [resp, err] = await fetch(upstreamUrl, upstreamInit)
     .then((r) => [r, null] as [Response, null])
-    .catch((error) => {
+    .catch((error: unknown) => {
       logger.error("fetch error", error);
       return [null, error] as [null, Error];
     });
 
   if (!resp) {
-    logger.error("upstream error", { status: 500, msg: "Failed to fetch upstream" });
+    logger.error("upstream error", {
+      status: 500,
+      msg: "Failed to fetch upstream",
+    });
     completion.status = "failed";
     addCompletions(completion, bearer, {
       level: "error",
@@ -271,6 +279,8 @@ async function* handleStreamingRequest(
         type: "completionError",
         data: { type: "fetchError", msg: err.toString() },
       },
+    }).catch(() => {
+      logger.error("Failed to log completion after fetch error");
     });
     set.status = 500;
     yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "Failed to fetch upstream" } })}\n\n`;
@@ -288,6 +298,8 @@ async function* handleStreamingRequest(
         type: "completionError",
         data: { type: "upstreamError", status: resp.status, msg },
       },
+    }).catch(() => {
+      logger.error("Failed to log completion after upstream error");
     });
     set.status = resp.status;
     yield msg;
@@ -304,6 +316,8 @@ async function* handleStreamingRequest(
         type: "completionError",
         data: { type: "upstreamError", status: resp.status, msg: "No body" },
       },
+    }).catch(() => {
+      logger.error("Failed to log completion after no body error");
     });
     set.status = 500;
     yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "No body" } })}\n\n`;
@@ -336,7 +350,10 @@ async function* handleStreamingRequest(
       if (chunk.type === "content_block_delta") {
         if (chunk.delta?.type === "text_delta" && chunk.delta.text) {
           textParts.push(chunk.delta.text);
-        } else if (chunk.delta?.type === "thinking_delta" && chunk.delta.thinking) {
+        } else if (
+          chunk.delta?.type === "thinking_delta" &&
+          chunk.delta.thinking
+        ) {
           thinkingParts.push(chunk.delta.thinking);
         }
       }
@@ -369,7 +386,9 @@ async function* handleStreamingRequest(
     completion.status = "completed";
     completion.ttft = ttft;
     completion.duration = Date.now() - begin;
-    addCompletions(completion, bearer);
+    addCompletions(completion, bearer).catch(() => {
+      logger.error("Failed to log completion after streaming");
+    });
 
     if (isFirstChunk) {
       logger.error("upstream error: no chunk received");
@@ -379,8 +398,14 @@ async function* handleStreamingRequest(
         message: "No chunk received",
         details: {
           type: "completionError",
-          data: { type: "upstreamError", status: 500, msg: "No chunk received" },
+          data: {
+            type: "upstreamError",
+            status: 500,
+            msg: "No chunk received",
+          },
         },
+      }).catch(() => {
+        logger.error("Failed to log completion after no chunk received");
       });
       set.status = 500;
       yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "No chunk received" } })}\n\n`;
@@ -395,6 +420,8 @@ async function* handleStreamingRequest(
         type: "completionError",
         data: { type: "streamError", msg: String(error) },
       },
+    }).catch(() => {
+      logger.error("Failed to log completion after stream error");
     });
     set.status = 500;
     yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "Stream processing error" } })}\n\n`;
@@ -471,7 +498,9 @@ export const messagesApi = new Elysia({
 
       // Parse request using Anthropic adapter
       const requestAdapter = getRequestAdapter("anthropic");
-      const internalRequest = requestAdapter.parse(body as Record<string, unknown>);
+      const internalRequest = requestAdapter.parse(
+        body as Record<string, unknown>,
+      );
 
       // Update model in internal request to use remote ID
       internalRequest.model = modelConfig.remoteId ?? modelConfig.systemName;
@@ -485,14 +514,12 @@ export const messagesApi = new Elysia({
       }
 
       // Get provider type (default to openai for compatibility)
-      const providerType = (provider as ProviderConfig).type || "openai";
+      const providerType = provider.type || "openai";
 
       // Build upstream request using adapter
       const upstreamAdapter = getUpstreamAdapter(providerType);
-      const { url: upstreamUrl, init: upstreamInit } = upstreamAdapter.buildRequest(
-        internalRequest,
-        provider as ProviderConfig,
-      );
+      const { url: upstreamUrl, init: upstreamInit } =
+        upstreamAdapter.buildRequest(internalRequest, provider);
 
       // Build completion record for logging
       const completion = buildCompletionRecord(

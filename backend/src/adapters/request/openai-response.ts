@@ -4,14 +4,12 @@
  */
 
 import type {
-  InternalContentBlock,
   InternalMessage,
   InternalRequest,
   InternalToolDefinition,
   JsonSchema,
   RequestAdapter,
   ToolResultContentBlock,
-  ToolUseContentBlock,
 } from "../types";
 
 // =============================================================================
@@ -66,7 +64,11 @@ interface ResponseApiRequest {
   top_p?: number;
   stream?: boolean;
   tools?: ResponseApiTool[];
-  tool_choice?: "auto" | "none" | "required" | { type: "function"; name: string };
+  tool_choice?:
+    | "auto"
+    | "none"
+    | "required"
+    | { type: "function"; name: string };
   parallel_tool_calls?: boolean;
   previous_response_id?: string;
   store?: boolean;
@@ -145,7 +147,7 @@ function convertInputItem(item: ResponseApiInputItem): InternalMessage | null {
  * Convert Response API input to internal messages
  */
 function convertInput(
-  input?: string | ResponseApiInputItem[]
+  input?: string | ResponseApiInputItem[],
 ): InternalMessage[] {
   if (!input) {
     return [];
@@ -173,7 +175,9 @@ function convertInput(
 /**
  * Convert Response API tools to internal tool definitions
  */
-function convertTools(tools?: ResponseApiTool[]): InternalToolDefinition[] | undefined {
+function convertTools(
+  tools?: ResponseApiTool[],
+): InternalToolDefinition[] | undefined {
   if (!tools || tools.length === 0) {
     return undefined;
   }
@@ -188,7 +192,7 @@ function convertTools(tools?: ResponseApiTool[]): InternalToolDefinition[] | und
  * Convert Response API tool choice to internal format
  */
 function convertToolChoice(
-  toolChoice?: ResponseApiRequest["tool_choice"]
+  toolChoice?: ResponseApiRequest["tool_choice"],
 ): InternalRequest["toolChoice"] {
   if (!toolChoice) {
     return undefined;
@@ -209,35 +213,40 @@ function convertToolChoice(
 // Request Adapter Implementation
 // =============================================================================
 
-export const openaiResponseRequestAdapter: RequestAdapter<ResponseApiRequest> = {
-  format: "openai-responses",
+export const openaiResponseRequestAdapter: RequestAdapter<ResponseApiRequest> =
+  {
+    format: "openai-responses",
 
-  parse(request: ResponseApiRequest): InternalRequest {
-    return {
-      model: request.model,
-      messages: convertInput(request.input),
-      systemPrompt: request.instructions,
-      maxTokens: request.max_output_tokens,
-      temperature: request.temperature,
-      topP: request.top_p,
-      stream: request.stream,
-      tools: convertTools(request.tools),
-      toolChoice: convertToolChoice(request.tool_choice),
-      extraParams: this.extractExtraBody?.(request as Record<string, unknown>),
-    };
-  },
+    parse(request: ResponseApiRequest): InternalRequest {
+      return {
+        model: request.model,
+        messages: convertInput(request.input),
+        systemPrompt: request.instructions,
+        maxTokens: request.max_output_tokens,
+        temperature: request.temperature,
+        topP: request.top_p,
+        stream: request.stream,
+        tools: convertTools(request.tools),
+        toolChoice: convertToolChoice(request.tool_choice),
+        extraParams: this.extractExtraBody?.(
+          request as Record<string, unknown>,
+        ),
+      };
+    },
 
-  extractExtraBody(body: Record<string, unknown>): Record<string, unknown> | undefined {
-    const extra: Record<string, unknown> = {};
-    let hasExtra = false;
+    extractExtraBody(
+      body: Record<string, unknown>,
+    ): Record<string, unknown> | undefined {
+      const extra: Record<string, unknown> = {};
+      let hasExtra = false;
 
-    for (const [key, value] of Object.entries(body)) {
-      if (!KNOWN_FIELDS.has(key)) {
-        extra[key] = value;
-        hasExtra = true;
+      for (const [key, value] of Object.entries(body)) {
+        if (!KNOWN_FIELDS.has(key)) {
+          extra[key] = value;
+          hasExtra = true;
+        }
       }
-    }
 
-    return hasExtra ? extra : undefined;
-  },
-};
+      return hasExtra ? extra : undefined;
+    },
+  };

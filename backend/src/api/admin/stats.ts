@@ -32,8 +32,9 @@ export const adminStats = new Elysia().group("/stats", (app) =>
         throw new Error(`Invalid range: ${rangeKey}`);
       }
 
-      const endTime = new Date();
-      const startTime = new Date(endTime.getTime() - config.seconds * 1000);
+      // Pass rangeSeconds to database functions which will use NOW() - INTERVAL internally
+      // This avoids timezone issues with 'timestamp without time zone' columns
+      const rangeSeconds = config.seconds;
 
       // Fetch all data in parallel
       const [
@@ -44,12 +45,12 @@ export const adminStats = new Elysia().group("/stats", (app) =>
         completionsTimeSeries,
         embeddingsTimeSeries,
       ] = await Promise.all([
-        getCompletionsStats(startTime, endTime),
-        getEmbeddingsStats(startTime, endTime),
-        getCompletionsModelDistribution(startTime, endTime),
-        getEmbeddingsModelDistribution(startTime, endTime),
-        getCompletionsTimeSeries(startTime, endTime, config.bucketSeconds),
-        getEmbeddingsTimeSeries(startTime, endTime, config.bucketSeconds),
+        getCompletionsStats(rangeSeconds),
+        getEmbeddingsStats(rangeSeconds),
+        getCompletionsModelDistribution(rangeSeconds),
+        getEmbeddingsModelDistribution(rangeSeconds),
+        getCompletionsTimeSeries(rangeSeconds, config.bucketSeconds),
+        getEmbeddingsTimeSeries(rangeSeconds, config.bucketSeconds),
       ]);
 
       // Calculate success rates
@@ -97,10 +98,13 @@ export const adminStats = new Elysia().group("/stats", (app) =>
       >();
 
       // Generate all buckets within the time range
+      // Use current time as end, and calculate start based on rangeSeconds
+      const now = Date.now();
       const bucketCount = Math.ceil(config.seconds / config.bucketSeconds);
       for (let i = 0; i < bucketCount; i++) {
+        // Calculate bucket time from start (now - rangeSeconds)
         const bucketTime = new Date(
-          startTime.getTime() + i * config.bucketSeconds * 1000,
+          now - config.seconds * 1000 + i * config.bucketSeconds * 1000,
         );
         const key = bucketTime.toISOString();
         timeSeriesMap.set(key, {

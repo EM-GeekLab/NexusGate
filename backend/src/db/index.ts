@@ -1033,9 +1033,10 @@ export async function sumEmbeddingTokenUsage(apiKeyId?: number) {
 
 /**
  * Get completions statistics for a time range
+ * @param rangeSeconds number of seconds to look back from NOW()
  */
-export async function getCompletionsStats(startTime: Date, endTime: Date) {
-  logger.debug("getCompletionsStats", startTime, endTime);
+export async function getCompletionsStats(rangeSeconds: number) {
+  logger.debug("getCompletionsStats", rangeSeconds);
   const r = await db
     .select({
       total: count(schema.CompletionsTable.id),
@@ -1050,8 +1051,7 @@ export async function getCompletionsStats(startTime: Date, endTime: Date) {
     .where(
       and(
         not(schema.CompletionsTable.deleted),
-        sql`${schema.CompletionsTable.createdAt} >= ${startTime}`,
-        sql`${schema.CompletionsTable.createdAt} < ${endTime}`,
+        sql`${schema.CompletionsTable.createdAt} >= NOW() - INTERVAL '${sql.raw(String(rangeSeconds))} seconds'`,
       ),
     );
   const [first] = r;
@@ -1068,9 +1068,10 @@ export async function getCompletionsStats(startTime: Date, endTime: Date) {
 
 /**
  * Get embeddings statistics for a time range
+ * @param rangeSeconds number of seconds to look back from NOW()
  */
-export async function getEmbeddingsStats(startTime: Date, endTime: Date) {
-  logger.debug("getEmbeddingsStats", startTime, endTime);
+export async function getEmbeddingsStats(rangeSeconds: number) {
+  logger.debug("getEmbeddingsStats", rangeSeconds);
   const r = await db
     .select({
       total: count(schema.EmbeddingsTable.id),
@@ -1083,8 +1084,7 @@ export async function getEmbeddingsStats(startTime: Date, endTime: Date) {
     .where(
       and(
         not(schema.EmbeddingsTable.deleted),
-        sql`${schema.EmbeddingsTable.createdAt} >= ${startTime}`,
-        sql`${schema.EmbeddingsTable.createdAt} < ${endTime}`,
+        sql`${schema.EmbeddingsTable.createdAt} >= NOW() - INTERVAL '${sql.raw(String(rangeSeconds))} seconds'`,
       ),
     );
   const [first] = r;
@@ -1099,12 +1099,10 @@ export async function getEmbeddingsStats(startTime: Date, endTime: Date) {
 
 /**
  * Get completions model distribution for a time range
+ * @param rangeSeconds number of seconds to look back from NOW()
  */
-export async function getCompletionsModelDistribution(
-  startTime: Date,
-  endTime: Date,
-) {
-  logger.debug("getCompletionsModelDistribution", startTime, endTime);
+export async function getCompletionsModelDistribution(rangeSeconds: number) {
+  logger.debug("getCompletionsModelDistribution", rangeSeconds);
   return await db
     .select({
       model: schema.CompletionsTable.model,
@@ -1114,8 +1112,7 @@ export async function getCompletionsModelDistribution(
     .where(
       and(
         not(schema.CompletionsTable.deleted),
-        sql`${schema.CompletionsTable.createdAt} >= ${startTime}`,
-        sql`${schema.CompletionsTable.createdAt} < ${endTime}`,
+        sql`${schema.CompletionsTable.createdAt} >= NOW() - INTERVAL '${sql.raw(String(rangeSeconds))} seconds'`,
       ),
     )
     .groupBy(schema.CompletionsTable.model)
@@ -1125,12 +1122,10 @@ export async function getCompletionsModelDistribution(
 
 /**
  * Get embeddings model distribution for a time range
+ * @param rangeSeconds number of seconds to look back from NOW()
  */
-export async function getEmbeddingsModelDistribution(
-  startTime: Date,
-  endTime: Date,
-) {
-  logger.debug("getEmbeddingsModelDistribution", startTime, endTime);
+export async function getEmbeddingsModelDistribution(rangeSeconds: number) {
+  logger.debug("getEmbeddingsModelDistribution", rangeSeconds);
   return await db
     .select({
       model: schema.EmbeddingsTable.model,
@@ -1140,8 +1135,7 @@ export async function getEmbeddingsModelDistribution(
     .where(
       and(
         not(schema.EmbeddingsTable.deleted),
-        sql`${schema.EmbeddingsTable.createdAt} >= ${startTime}`,
-        sql`${schema.EmbeddingsTable.createdAt} < ${endTime}`,
+        sql`${schema.EmbeddingsTable.createdAt} >= NOW() - INTERVAL '${sql.raw(String(rangeSeconds))} seconds'`,
       ),
     )
     .groupBy(schema.EmbeddingsTable.model)
@@ -1151,13 +1145,14 @@ export async function getEmbeddingsModelDistribution(
 
 /**
  * Get completions time series data for a time range
+ * @param rangeSeconds number of seconds to look back from NOW()
+ * @param bucketSeconds size of each time bucket in seconds
  */
 export async function getCompletionsTimeSeries(
-  startTime: Date,
-  endTime: Date,
+  rangeSeconds: number,
   bucketSeconds: number,
 ) {
-  logger.debug("getCompletionsTimeSeries", startTime, endTime, bucketSeconds);
+  logger.debug("getCompletionsTimeSeries", rangeSeconds, bucketSeconds);
   const result = await db.execute(sql`
     SELECT
       to_timestamp(floor(extract(epoch from created_at) / ${bucketSeconds}) * ${bucketSeconds}) AS bucket,
@@ -1168,8 +1163,7 @@ export async function getCompletionsTimeSeries(
       COALESCE(AVG(CASE WHEN status = 'completed' AND ttft > 0 THEN ttft END), 0) AS avg_ttft
     FROM completions
     WHERE deleted = false
-      AND created_at >= ${startTime}
-      AND created_at < ${endTime}
+      AND created_at >= NOW() - INTERVAL '${sql.raw(String(rangeSeconds))} seconds'
     GROUP BY bucket
     ORDER BY bucket ASC
   `);
@@ -1189,13 +1183,14 @@ export async function getCompletionsTimeSeries(
 
 /**
  * Get embeddings time series data for a time range
+ * @param rangeSeconds number of seconds to look back from NOW()
+ * @param bucketSeconds size of each time bucket in seconds
  */
 export async function getEmbeddingsTimeSeries(
-  startTime: Date,
-  endTime: Date,
+  rangeSeconds: number,
   bucketSeconds: number,
 ) {
-  logger.debug("getEmbeddingsTimeSeries", startTime, endTime, bucketSeconds);
+  logger.debug("getEmbeddingsTimeSeries", rangeSeconds, bucketSeconds);
   const result = await db.execute(sql`
     SELECT
       to_timestamp(floor(extract(epoch from created_at) / ${bucketSeconds}) * ${bucketSeconds}) AS bucket,
@@ -1205,8 +1200,7 @@ export async function getEmbeddingsTimeSeries(
       COALESCE(AVG(CASE WHEN duration > 0 THEN duration END), 0) AS avg_duration
     FROM embeddings
     WHERE deleted = false
-      AND created_at >= ${startTime}
-      AND created_at < ${endTime}
+      AND created_at >= NOW() - INTERVAL '${sql.raw(String(rangeSeconds))} seconds'
     GROUP BY bucket
     ORDER BY bucket ASC
   `);

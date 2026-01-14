@@ -40,17 +40,17 @@ export function RateLimitCell({ apiKey, type }: RateLimitCellProps) {
   }
 
   const limit = type === 'rpm' ? usage.limits.rpm : usage.limits.tpm
-  const remainingFromApi = type === 'rpm' ? usage.usage.rpm.remaining : usage.usage.tpm.remaining
-  // Ensure remaining is not negative for display
-  const remaining = Math.max(0, remainingFromApi)
-  // Calculate percentage used (capped at 100%)
-  const percentageUsed = limit > 0 ? Math.min(100, ((limit - remaining) / limit) * 100) : 0
+  const current = type === 'rpm' ? usage.usage.rpm.current : usage.usage.tpm.current
+  // Calculate percentage used (capped at 100% for progress bar)
+  const percentageUsed = limit > 0 ? Math.min(100, (current / limit) * 100) : 0
+  // Check if over limit (burst usage)
+  const isOverLimit = current > limit
 
   return (
     <div className="flex min-w-28 items-center gap-2">
       <Progress value={percentageUsed} className="h-2 w-16 flex-shrink-0" />
-      <span className="text-muted-foreground text-xs whitespace-nowrap">
-        {formatNumber(remaining)}/{formatNumber(limit)}
+      <span className={`text-xs whitespace-nowrap ${isOverLimit ? 'text-orange-500 font-medium' : 'text-muted-foreground'}`}>
+        {formatNumber(current)}/{formatNumber(limit)}
       </span>
     </div>
   )

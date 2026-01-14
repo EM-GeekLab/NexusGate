@@ -18,6 +18,9 @@ export async function selectUpstream(model: string) {
   }
 
   const [, model_, upstream] = m;
+  if (!model_ || !upstream) {
+    throw new Error("unreachable code");
+  }
   const [availables] = await findUpstreams(model_, upstream);
   return availables;
 }

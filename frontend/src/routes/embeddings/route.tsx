@@ -16,7 +16,7 @@ export const Route = createFileRoute('/embeddings')({
 function RouteComponent() {
   const { t } = useTranslation()
   return (
-    <>
+    <div className="flex h-svh flex-col">
       <AppHeader className="border-b">
         <AppHeaderPart>
           <AppSidebarTrigger />
@@ -24,7 +24,9 @@ function RouteComponent() {
           <AppHeaderTitle>{t('routes.embeddings.route.Embeddings')}</AppHeaderTitle>
         </AppHeaderPart>
       </AppHeader>
-      <Outlet />
-    </>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <Outlet />
+      </div>
+    </div>
   )
 }

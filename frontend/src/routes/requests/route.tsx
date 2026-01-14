@@ -18,7 +18,7 @@ export const Route = createFileRoute('/requests')({
 function RouteComponent() {
   const { t } = useTranslation()
   return (
-    <>
+    <div className="flex h-svh flex-col">
       <AppHeader className="border-b">
         <AppHeaderPart>
           <AppSidebarTrigger />
@@ -28,7 +28,9 @@ function RouteComponent() {
           <FilterResetButton />
         </AppHeaderPart>
       </AppHeader>
-      <Outlet />
-    </>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <Outlet />
+      </div>
+    </div>
   )
 }

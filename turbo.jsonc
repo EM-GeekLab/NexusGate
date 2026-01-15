@@ -15,9 +15,13 @@
     "build": {
       "dependsOn": ["^build"]
     },
-    "lint": {},
+    "lint": {
+      "dependsOn": ["^lint"],
+      "cache": false
+    },
     "check": {
-      "dependsOn": ["^check"]
+      "dependsOn": ["^check"],
+      "cache": false
     },
     "fmt": {}
   }

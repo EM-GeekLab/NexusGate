@@ -140,16 +140,16 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden p-0">
-        <DialogHeader className="border-b px-6 py-5">
+      <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b px-6 py-5">
           <DialogTitle className="text-lg font-semibold">{t('pages.settings.manageModels.Title')}</DialogTitle>
           <p className="text-muted-foreground text-sm">
             for {provider.name}
           </p>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'saved' | 'remote')} className="flex flex-col">
-          <TabsList className="mx-6 mt-4 w-fit">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'saved' | 'remote')} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <TabsList className="mx-6 mt-4 w-fit shrink-0">
             <TabsTrigger value="saved" className="px-6">
               {t('pages.settings.manageModels.SavedModels')} ({savedModels.length})
             </TabsTrigger>
@@ -158,7 +158,7 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
             </TabsTrigger>
           </TabsList>
 
-          <div className="px-6 py-4">
+          <div className="shrink-0 px-6 py-4">
             <div className="relative">
               <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
               <Input
@@ -170,12 +170,12 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
             </div>
           </div>
 
-          <TabsContent value="saved" className="mt-0 flex-1 overflow-auto px-6 pb-6">
+          <TabsContent value="saved" className="mt-0 min-h-0 flex-1 overflow-y-auto px-6 pb-6">
             <ManualAddForm
               onAdd={(model) => createMutation.mutate(model)}
               isPending={createMutation.isPending}
             />
-            <div className="mt-4 max-h-[350px] space-y-3 overflow-y-auto pr-2">
+            <div className="mt-4 space-y-3">
               {isLoadingSaved ? (
                 <div className="text-muted-foreground py-8 text-center text-sm">
                   {t('pages.settings.models.Loading')}
@@ -197,7 +197,7 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
             </div>
           </TabsContent>
 
-          <TabsContent value="remote" className="mt-0 flex-1 overflow-auto px-6 pb-6">
+          <TabsContent value="remote" className="mt-0 min-h-0 flex-1 overflow-y-auto px-6 pb-6">
             {!supportsRemoteModels ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircleIcon className="text-muted-foreground mb-3 size-10" />
@@ -231,7 +231,7 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
                 <p className="text-muted-foreground mb-4 text-sm">
                   {t('pages.settings.manageModels.ClickToAddHint')}
                 </p>
-                <div className="max-h-[400px] space-y-3 overflow-y-auto pr-2">
+                <div className="space-y-3">
                   {isLoadingRemote ? (
                     <div className="text-muted-foreground py-8 text-center text-sm">
                       {t('pages.settings.models.Loading')}

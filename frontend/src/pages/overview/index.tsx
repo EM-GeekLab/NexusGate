@@ -1,8 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { Route as DashboardIndexRoute } from '@/routes/_dashboard/index'
 
 import { LatencyChart } from './charts/latency-chart'
 import { ModelDistributionChart } from './charts/model-distribution'
@@ -53,7 +56,20 @@ function LoadingSkeleton() {
 
 export function OverviewPage() {
   const { t } = useTranslation()
-  const [timeRange, setTimeRange] = useState<TimeRange>('1h')
+  const isMobile = useIsMobile()
+  const { range } = DashboardIndexRoute.useSearch()
+  const navigate = useNavigate()
+
+  const timeRange = range as TimeRange
+
+  const handleTimeRangeChange = (value: TimeRange) => {
+    navigate({
+      to: '/',
+      search: { range: value },
+      replace: true,
+    })
+  }
+
   const { data, isLoading, error } = useOverviewStats(timeRange)
 
   // Memoize data to prevent unnecessary re-renders during sidebar toggle
@@ -72,10 +88,12 @@ export function OverviewPage() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Time range selector */}
-      <div className="flex items-center justify-end">
-        <TimeRangeSelect value={timeRange} onChange={setTimeRange} />
-      </div>
+      {/* Time range selector - only show on mobile */}
+      {isMobile && (
+        <div className="flex items-center justify-end">
+          <TimeRangeSelect value={timeRange} onChange={handleTimeRangeChange} />
+        </div>
+      )}
 
       {isLoading || !data ? (
         <LoadingSkeleton />

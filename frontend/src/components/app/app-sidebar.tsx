@@ -1,5 +1,5 @@
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import { ArrowUpDownIcon, BoxIcon, LayoutGridIcon, SettingsIcon, WaypointsIcon } from 'lucide-react'
+import { ArrowUpDownIcon, BoxIcon, ChartPieIcon, LayoutGridIcon, SettingsIcon, WaypointsIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
@@ -20,11 +20,11 @@ import i18n from '@/i18n'
 import { AppSidebarFooter } from './app-sidebar-footer'
 
 const navItems = [
-  // {
-  //   icon: <ChartPieIcon />,
-  //   title: 'Overview',
-  //   href: '/',
-  // },
+  {
+    icon: <ChartPieIcon className="size-4" />,
+    title: i18n.t('components.app.app-sidebar.Overview'),
+    href: '/',
+  },
   {
     icon: <ArrowUpDownIcon className="size-4" />,
     title: i18n.t('components.app.app-sidebar.Requests'),

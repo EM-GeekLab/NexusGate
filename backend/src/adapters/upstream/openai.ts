@@ -236,6 +236,7 @@ function convertFinishReason(finishReason: string | null): StopReason {
       return "tool_use";
     case "content_filter":
       return "content_filter";
+    case null:
     default:
       return null;
   }

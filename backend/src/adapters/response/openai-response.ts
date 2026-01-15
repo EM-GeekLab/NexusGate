@@ -68,13 +68,12 @@ function convertStopReason(
     case "end_turn":
     case "stop_sequence":
     case "tool_use":
+    case null:
       return "completed";
     case "max_tokens":
       return "incomplete";
     case "content_filter":
       return "failed";
-    default:
-      return "completed";
   }
 }
 
@@ -276,9 +275,6 @@ export const openaiResponseResponseAdapter: ResponseAdapter<ResponseApiResponse>
           };
           return `data: ${JSON.stringify(event)}\n\n`;
         }
-
-        default:
-          return "";
       }
     },
 

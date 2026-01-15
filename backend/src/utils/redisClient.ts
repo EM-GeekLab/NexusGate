@@ -99,6 +99,29 @@ class RedisClient {
   }
 
   /**
+   * Execute a Lua script atomically
+   * @param {string} script - Lua script to execute
+   * @param {object} options - Keys and arguments for the script
+   * @returns {Promise<unknown>} Script result
+   */
+  public async eval(
+    script: string,
+    options: { keys: string[]; arguments: string[] },
+  ): Promise<unknown> {
+    try {
+      return await this.client.eval(
+        script,
+        options.keys.length,
+        ...options.keys,
+        ...options.arguments,
+      );
+    } catch (error) {
+      logger.error(`Redis eval error: ${(error as Error).message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Close the Redis connection
    */
   public async close(): Promise<void> {

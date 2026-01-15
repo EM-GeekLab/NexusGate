@@ -24,8 +24,8 @@ export const apiKeyRateLimitPlugin = new Elysia({
   .use(apiKeyPlugin)
   .macro({
     apiKeyRateLimit: {
-      async resolve({ status, set, store }) {
-        const apiKeyRecord = store.apiKeyRecord;
+      // apiKeyRecord is now a request-scoped context property from checkApiKey macro
+      async resolve({ status, set, apiKeyRecord }) {
         if (!apiKeyRecord) {
           // No API key record means checkApiKey macro wasn't applied or failed
           // Skip rate limiting in this case

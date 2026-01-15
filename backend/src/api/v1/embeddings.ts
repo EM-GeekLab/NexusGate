@@ -67,7 +67,7 @@ export const embeddingsApi = new Elysia({
   .use(rateLimitPlugin)
   .post(
     "/",
-    async ({ body: rawBody, status, bearer, store }) => {
+    async ({ body: rawBody, status, bearer, apiKeyRecord }) => {
       const body = rawBody as EmbeddingCreateBody;
       if (bearer === undefined) {
         return status(500);
@@ -217,10 +217,10 @@ export const embeddingsApi = new Elysia({
 
       // Consume tokens for TPM rate limiting (post-flight)
       // For embeddings, we only have input tokens
-      if (store.apiKeyRecord && embeddingRecord.inputTokens > 0) {
+      if (apiKeyRecord && embeddingRecord.inputTokens > 0) {
         await consumeTokens(
-          store.apiKeyRecord.id,
-          store.apiKeyRecord.tpmLimit,
+          apiKeyRecord.id,
+          apiKeyRecord.tpmLimit,
           embeddingRecord.inputTokens,
         );
       }

@@ -28,10 +28,16 @@ export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
 
     return;
   })
-  .state("apiKeyRecord", null as ApiKey | null)
+  // Request-scoped apiKeyRecord - initialized as null, populated by checkApiKey macro
+  // Using derive ensures each request gets its own instance (not shared like state)
+  .derive({ as: "global" }, () => ({
+    apiKeyRecord: null as ApiKey | null,
+  }))
   .macro({
     checkApiKey: {
-      async resolve({ status, bearer, store }) {
+      // Resolve runs before the handler and can modify the request context
+      // The apiKeyRecord from derive above will be overwritten with the actual value
+      async resolve({ status, bearer, apiKeyRecord: _ }) {
         if (!bearer) {
           return status(401, "Invalid API key");
         }
@@ -41,8 +47,10 @@ export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
           return status(401, "Invalid API key");
         }
 
-        // Store API key record for rate limiting and other uses
-        store.apiKeyRecord = apiKeyRecord;
+        // Return apiKeyRecord - this merges into the context for this request only
+        return {
+          apiKeyRecord,
+        };
       },
     },
     checkAdminApiKey: {

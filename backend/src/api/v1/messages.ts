@@ -238,7 +238,8 @@ async function handleNonStreamingRequest(
   });
 
   // Consume tokens for TPM rate limiting (post-flight)
-  if (apiKeyRecord) {
+  // Only consume if token counts are valid (not -1 which indicates parsing failure)
+  if (apiKeyRecord && completion.promptTokens > 0 && completion.completionTokens > 0) {
     const totalTokens = completion.promptTokens + completion.completionTokens;
     await consumeTokens(apiKeyRecord.id, apiKeyRecord.tpmLimit, totalTokens);
   }
@@ -453,7 +454,7 @@ export const messagesApi = new Elysia({
   .use(rateLimitPlugin)
   .post(
     "/messages",
-    async function* ({ body, set, bearer, request, store }) {
+    async function* ({ body, set, bearer, request, apiKeyRecord }) {
       if (bearer === undefined) {
         set.status = 500;
         yield JSON.stringify({
@@ -555,7 +556,7 @@ export const messagesApi = new Elysia({
           bearer,
           set,
           providerType,
-          store.apiKeyRecord,
+          apiKeyRecord ?? null,
         );
       } else {
         const response = await handleNonStreamingRequest(
@@ -565,7 +566,7 @@ export const messagesApi = new Elysia({
           bearer,
           set,
           providerType,
-          store.apiKeyRecord,
+          apiKeyRecord ?? null,
         );
         yield response;
       }

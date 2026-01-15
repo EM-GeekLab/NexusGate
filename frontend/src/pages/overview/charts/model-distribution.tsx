@@ -1,7 +1,9 @@
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 
 import type { OverviewStats } from '../use-overview-stats'
+import { tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from './chart-styles'
 
 interface ModelDistributionChartProps {
   data: OverviewStats['modelDistribution']
@@ -20,7 +22,9 @@ const COLORS = [
   'hsl(212, 97%, 87%)',
 ]
 
-export function ModelDistributionChart({ data }: ModelDistributionChartProps) {
+export const ModelDistributionChart = memo(function ModelDistributionChart({
+  data,
+}: ModelDistributionChartProps) {
   const { t } = useTranslation()
 
   if (data.length === 0) {
@@ -52,23 +56,19 @@ export function ModelDistributionChart({ data }: ModelDistributionChartProps) {
           fill="#8884d8"
           dataKey="value"
           nameKey="name"
-          label={({ name, percent }) =>
-            `${name ?? ''} (${((percent ?? 0) * 100).toFixed(0)}%)`
-          }
+          label={({ name, percent }) => `${name ?? ''} (${((percent ?? 0) * 100).toFixed(0)}%)`}
         >
           {chartData.map((_entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
         <Tooltip
-          contentStyle={{
-            backgroundColor: 'hsl(var(--background))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '6px',
-          }}
+          contentStyle={tooltipContentStyle}
+          labelStyle={tooltipLabelStyle}
+          itemStyle={tooltipItemStyle}
         />
         <Legend />
       </PieChart>
     </ResponsiveContainer>
   )
-}
+})

@@ -1,13 +1,15 @@
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import type { OverviewStats } from '../use-overview-stats'
+import { tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from './chart-styles'
 
 interface TokenUsageChartProps {
   data: OverviewStats['tokenUsage']
 }
 
-export function TokenUsageChart({ data }: TokenUsageChartProps) {
+export const TokenUsageChart = memo(function TokenUsageChart({ data }: TokenUsageChartProps) {
   const { t } = useTranslation()
 
   const chartData = [
@@ -43,14 +45,12 @@ export function TokenUsageChart({ data }: TokenUsageChartProps) {
         <YAxis type="category" dataKey="name" className="text-xs" width={80} />
         <Tooltip
           formatter={(value) => [(value as number).toLocaleString(), 'Tokens']}
-          contentStyle={{
-            backgroundColor: 'hsl(var(--background))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '6px',
-          }}
+          contentStyle={tooltipContentStyle}
+          labelStyle={tooltipLabelStyle}
+          itemStyle={tooltipItemStyle}
         />
         <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
-}
+})

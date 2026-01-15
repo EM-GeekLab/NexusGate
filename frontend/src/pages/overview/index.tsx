@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -56,6 +56,12 @@ export function OverviewPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('1h')
   const { data, isLoading, error } = useOverviewStats(timeRange)
 
+  // Memoize data to prevent unnecessary re-renders during sidebar toggle
+  // This stabilizes the reference when the data hasn't actually changed
+  const stableTimeSeries = useMemo(() => data?.timeSeries ?? [], [data?.timeSeries])
+  const stableTokenUsage = useMemo(() => data?.tokenUsage, [data?.tokenUsage])
+  const stableModelDistribution = useMemo(() => data?.modelDistribution ?? [], [data?.modelDistribution])
+
   if (error) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
@@ -85,7 +91,7 @@ export function OverviewPage() {
                 <CardTitle>{t('pages.overview.charts.requestsTrend')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <RequestsTrendChart data={data.timeSeries} />
+                <RequestsTrendChart data={stableTimeSeries} />
               </CardContent>
             </Card>
             <Card>
@@ -93,7 +99,7 @@ export function OverviewPage() {
                 <CardTitle>{t('pages.overview.charts.tokenUsage')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <TokenUsageChart data={data.tokenUsage} />
+                {stableTokenUsage && <TokenUsageChart data={stableTokenUsage} />}
               </CardContent>
             </Card>
           </div>
@@ -105,7 +111,7 @@ export function OverviewPage() {
                 <CardTitle>{t('pages.overview.charts.latencyTrend')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <LatencyChart data={data.timeSeries} />
+                <LatencyChart data={stableTimeSeries} />
               </CardContent>
             </Card>
             <Card>
@@ -113,7 +119,7 @@ export function OverviewPage() {
                 <CardTitle>{t('pages.overview.charts.modelDistribution')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <ModelDistributionChart data={data.modelDistribution} />
+                <ModelDistributionChart data={stableModelDistribution} />
               </CardContent>
             </Card>
           </div>
@@ -124,7 +130,7 @@ export function OverviewPage() {
               <CardTitle>{t('pages.overview.charts.successRateTrend')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <SuccessRateChart data={data.timeSeries} />
+              <SuccessRateChart data={stableTimeSeries} />
             </CardContent>
           </Card>
         </>

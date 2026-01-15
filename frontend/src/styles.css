@@ -196,3 +196,13 @@ code {
     cursor: pointer;
   }
 }
+
+/* Recharts focus outline fix - removes the focus border on chart elements */
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus {
+  outline: none;
+}
+
+.recharts-surface:focus {
+  outline: none;
+}

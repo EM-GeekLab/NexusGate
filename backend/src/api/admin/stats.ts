@@ -98,14 +98,17 @@ export const adminStats = new Elysia().group("/stats", (app) =>
       >();
 
       // Generate all buckets within the time range
-      // Use current time as end, and calculate start based on rangeSeconds
+      // Align start time to the bucket boundary to match DB bucketing and prevent mismatches
+      // The DB uses: to_timestamp(floor(extract(epoch from created_at) / bucketSeconds) * bucketSeconds)
+      const bucketMillis = config.bucketSeconds * 1000;
       const now = Date.now();
+      // Align start time to bucket boundary (floor to nearest bucket)
+      const alignedStart =
+        Math.floor((now - config.seconds * 1000) / bucketMillis) * bucketMillis;
       const bucketCount = Math.ceil(config.seconds / config.bucketSeconds);
+
       for (let i = 0; i < bucketCount; i++) {
-        // Calculate bucket time from start (now - rangeSeconds)
-        const bucketTime = new Date(
-          now - config.seconds * 1000 + i * config.bucketSeconds * 1000,
-        );
+        const bucketTime = new Date(alignedStart + i * bucketMillis);
         const key = bucketTime.toISOString();
         timeSeriesMap.set(key, {
           timestamp: key,
@@ -135,15 +138,27 @@ export const adminStats = new Elysia().group("/stats", (app) =>
         const key = new Date(row.bucket).toISOString();
         const existing = timeSeriesMap.get(key);
         if (existing) {
-          existing.embeddingsCount = Number(row.total);
+          const embeddingsCount = Number(row.total);
+          existing.embeddingsCount = embeddingsCount;
           existing.embeddingsFailed = Number(row.failed);
-          // Average the duration if completions already has data
-          if (existing.avgDuration > 0) {
-            existing.avgDuration =
-              (existing.avgDuration + Number(row.avg_duration)) / 2;
-          } else {
-            existing.avgDuration = Number(row.avg_duration);
+
+          // Calculate weighted average duration if both completions and embeddings have data
+          // Using weighted average: (avg1 * count1 + avg2 * count2) / (count1 + count2)
+          const embeddingsDuration = Number(row.avg_duration);
+          const completionsCount = existing.completionsCount;
+
+          if (completionsCount > 0 && embeddingsCount > 0 && embeddingsDuration > 0) {
+            // Both have data - calculate weighted average
+            const totalDuration =
+              existing.avgDuration * completionsCount +
+              embeddingsDuration * embeddingsCount;
+            const totalCount = completionsCount + embeddingsCount;
+            existing.avgDuration = totalDuration / totalCount;
+          } else if (embeddingsCount > 0 && embeddingsDuration > 0) {
+            // Only embeddings have data for this bucket
+            existing.avgDuration = embeddingsDuration;
           }
+          // If only completions have data, keep existing.avgDuration as is
         }
       }
 

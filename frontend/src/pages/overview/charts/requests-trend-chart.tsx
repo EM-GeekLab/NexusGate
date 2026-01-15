@@ -1,14 +1,18 @@
+import { memo } from 'react'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import type { OverviewStats } from '../use-overview-stats'
+import { tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from './chart-styles'
 
 interface RequestsTrendChartProps {
   data: OverviewStats['timeSeries']
 }
 
-export function RequestsTrendChart({ data }: RequestsTrendChartProps) {
+export const RequestsTrendChart = memo(function RequestsTrendChart({
+  data,
+}: RequestsTrendChartProps) {
   const { t } = useTranslation()
 
   const chartData = data.map((item: OverviewStats['timeSeries'][number]) => ({
@@ -29,11 +33,9 @@ export function RequestsTrendChart({ data }: RequestsTrendChartProps) {
         <YAxis className="text-xs" />
         <Tooltip
           labelFormatter={(value) => format(new Date(value), 'yyyy-MM-dd HH:mm:ss')}
-          contentStyle={{
-            backgroundColor: 'hsl(var(--background))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '6px',
-          }}
+          contentStyle={tooltipContentStyle}
+          labelStyle={tooltipLabelStyle}
+          itemStyle={tooltipItemStyle}
         />
         <Legend />
         <Area
@@ -57,4 +59,4 @@ export function RequestsTrendChart({ data }: RequestsTrendChartProps) {
       </AreaChart>
     </ResponsiveContainer>
   )
-}
+})

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { ActivityIcon, ClockIcon, GaugeIcon, ZapIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -9,7 +10,7 @@ interface SummaryCardsProps {
   data: OverviewStats
 }
 
-export function SummaryCards({ data }: SummaryCardsProps) {
+export const SummaryCards = memo(function SummaryCards({ data }: SummaryCardsProps) {
   const { t } = useTranslation()
 
   const { summary } = data
@@ -64,4 +65,4 @@ export function SummaryCards({ data }: SummaryCardsProps) {
       ))}
     </div>
   )
-}
+})

@@ -10,16 +10,16 @@ interface ModelDistributionChartProps {
 }
 
 const COLORS = [
-  'hsl(var(--chart-1))',
-  'hsl(var(--chart-2))',
-  'hsl(var(--chart-3))',
-  'hsl(var(--chart-4))',
-  'hsl(var(--chart-5))',
-  'hsl(221.2, 83.2%, 53.3%)',
-  'hsl(212, 95%, 68%)',
-  'hsl(216, 92%, 60%)',
-  'hsl(210, 98%, 78%)',
-  'hsl(212, 97%, 87%)',
+  'var(--color-chart-1)',
+  'var(--color-chart-2)',
+  'var(--color-chart-3)',
+  'var(--color-chart-4)',
+  'var(--color-chart-5)',
+  'var(--color-chart-6)',
+  'var(--color-chart-7)',
+  'var(--color-chart-8)',
+  'var(--color-chart-9)',
+  'var(--color-chart-10)',
 ]
 
 export const ModelDistributionChart = memo(function ModelDistributionChart({

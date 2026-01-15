@@ -14,7 +14,7 @@ import type { ProviderTypeEnumType } from "@/db/schema";
 // Provider Test Strategy Pattern
 // ============================================
 
-interface ProviderTestResult {
+export interface ProviderTestResult {
   success: boolean;
   message?: string;
   models: { id: string; owned_by?: string }[];
@@ -30,6 +30,23 @@ interface Provider {
 }
 
 type ProviderTestFn = (provider: Provider) => Promise<ProviderTestResult>;
+
+/**
+ * Check if an error indicates that the OpenAI models endpoint is unavailable.
+ * This helper detects 404/405 errors which indicate the endpoint doesn't exist
+ * but the connection itself may be working.
+ */
+function isModelEndpointUnavailable(error: Error & { status?: number }): boolean {
+  const errorMessage = error.message || "";
+  return (
+    error.status === 404 ||
+    error.status === 405 ||
+    errorMessage.includes("404") ||
+    errorMessage.includes("405") ||
+    errorMessage.includes("Not Found") ||
+    errorMessage.includes("Method Not Allowed")
+  );
+}
 
 /**
  * Test Anthropic provider connection by sending a minimal messages request.
@@ -100,17 +117,8 @@ async function testOpenAIResponsesConnection(
   } catch (e) {
     // Check if it's a 404/405 (endpoint not available) vs real connection error
     const error = e as Error & { status?: number };
-    const errorMessage = error.message || "";
 
-    // These indicate the endpoint doesn't exist but connection works
-    if (
-      error.status === 404 ||
-      error.status === 405 ||
-      errorMessage.includes("404") ||
-      errorMessage.includes("405") ||
-      errorMessage.includes("Not Found") ||
-      errorMessage.includes("Method Not Allowed")
-    ) {
+    if (isModelEndpointUnavailable(error)) {
       return {
         success: true,
         message: "Connection configured (models endpoint not available)",
@@ -352,18 +360,11 @@ export const adminProviders = new Elysia({ prefix: "/providers" })
         };
       } catch (e) {
         const error = e as Error & { status?: number };
-        const errorMessage = error.message || "";
 
         // For openai-responses, the /models endpoint might not be available
-        // Check for 404/405 errors which indicate endpoint doesn't exist
         if (
           provider.type === "openai-responses" &&
-          (error.status === 404 ||
-            error.status === 405 ||
-            errorMessage.includes("404") ||
-            errorMessage.includes("405") ||
-            errorMessage.includes("Not Found") ||
-            errorMessage.includes("Method Not Allowed"))
+          isModelEndpointUnavailable(error)
         ) {
           return status(400, {
             error: "Models list endpoint not available for this provider. Please configure models manually.",

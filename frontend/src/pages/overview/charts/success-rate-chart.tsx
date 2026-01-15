@@ -28,8 +28,8 @@ export const SuccessRateChart = memo(function SuccessRateChart({
 
     return {
       timestamp: item.timestamp,
-      completions: Math.round(completionsSuccessRate * 100) / 100,
-      embeddings: Math.round(embeddingsSuccessRate * 100) / 100,
+      completions: completionsSuccessRate,
+      embeddings: embeddingsSuccessRate,
     }
   })
 

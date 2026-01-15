@@ -17,8 +17,8 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "lint": "turbo run lint",
-    "check": "turbo run check",
+    "lint": "turbo run lint --continue",
+    "check": "turbo run check --continue",
     "fmt": "turbo run fmt"
   },
   "packageManager": "bun@1.2.23",

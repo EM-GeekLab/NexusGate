@@ -10,20 +10,17 @@ import type {
   ResponseAdapter,
   UpstreamAdapter,
 } from "./types";
-
+import { anthropicRequestAdapter } from "./request/anthropic";
 // Import request adapters
 import { openaiChatRequestAdapter } from "./request/openai-chat";
-import { anthropicRequestAdapter } from "./request/anthropic";
 import { openaiResponseRequestAdapter } from "./request/openai-response";
-
+import { anthropicResponseAdapter } from "./response/anthropic";
 // Import response adapters
 import { openaiChatResponseAdapter } from "./response/openai-chat";
-import { anthropicResponseAdapter } from "./response/anthropic";
 import { openaiResponseResponseAdapter } from "./response/openai-response";
-
+import { anthropicUpstreamAdapter } from "./upstream/anthropic";
 // Import upstream adapters
 import { openaiUpstreamAdapter } from "./upstream/openai";
-import { anthropicUpstreamAdapter } from "./upstream/anthropic";
 import { openaiResponsesUpstreamAdapter } from "./upstream/openai-responses";
 
 // =============================================================================

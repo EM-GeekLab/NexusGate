@@ -9,14 +9,12 @@ const logger = consola.withTag("redisClient");
  */
 class RedisClient {
   private client: Redis;
-  private _isConnected = false;
 
   constructor() {
     this.client = new Redis(REDIS_URL);
 
     // Set up event listeners
     this.client.on("connect", () => {
-      this._isConnected = true;
       logger.success(`Connected to Redis at ${REDIS_URL}`);
     });
 
@@ -25,7 +23,6 @@ class RedisClient {
     });
 
     this.client.on("close", () => {
-      this._isConnected = false;
       logger.warn("Redis connection closed");
     });
 
@@ -98,6 +95,29 @@ class RedisClient {
     } catch (error) {
       logger.error(`Redis del error: ${(error as Error).message}`);
       return 0;
+    }
+  }
+
+  /**
+   * Execute a Lua script atomically
+   * @param {string} script - Lua script to execute
+   * @param {object} options - Keys and arguments for the script
+   * @returns {Promise<unknown>} Script result
+   */
+  public async eval(
+    script: string,
+    options: { keys: string[]; arguments: string[] },
+  ): Promise<unknown> {
+    try {
+      return await this.client.eval(
+        script,
+        options.keys.length,
+        ...options.keys,
+        ...options.arguments,
+      );
+    } catch (error) {
+      logger.error(`Redis eval error: ${(error as Error).message}`);
+      throw error;
     }
   }
 

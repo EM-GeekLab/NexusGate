@@ -4,12 +4,7 @@
  */
 
 import { consola } from "consola";
-import type {
-  InternalResponse,
-  ModelWithProvider,
-  TextContentBlock,
-  ThinkingContentBlock,
-} from "@/adapters/types";
+import type { InternalResponse, ModelWithProvider } from "@/adapters/types";
 
 const logger = consola.withTag("api-helpers");
 
@@ -128,9 +123,9 @@ export function extractContentText(response: InternalResponse): string {
 
   for (const block of response.content) {
     if (block.type === "text") {
-      parts.push((block as TextContentBlock).text);
+      parts.push(block.text);
     } else if (block.type === "thinking") {
-      thinkingParts.push((block as ThinkingContentBlock).thinking);
+      thinkingParts.push(block.thinking);
     }
   }
 
@@ -156,7 +151,8 @@ export function parseModelProvider(
 ): { systemName: string; targetProvider: string | undefined } {
   // Parse model@provider format
   const modelMatch = model.match(/^(\S+)@(\S+)$/);
-  const systemName = modelMatch ? modelMatch[1]! : model;
+  // oxlint-disable-next-line no-unnecessary-type-assertion
+  const systemName = modelMatch ? modelMatch[1]! : model; // conflicting with tsc
 
   // Determine target provider: header takes precedence over model@provider format
   const targetProvider = providerHeader

@@ -10,12 +10,10 @@ import type {
   InternalResponse,
   InternalStreamChunk,
   InternalToolDefinition,
-  InternalUsage,
   ProviderConfig,
   StopReason,
   TextContentBlock,
   ThinkingContentBlock,
-  ToolResultContentBlock,
   ToolUseContentBlock,
   UpstreamAdapter,
 } from "../types";
@@ -123,12 +121,11 @@ function convertMessage(msg: InternalMessage): AnthropicMessage | null {
     if (Array.isArray(msg.content)) {
       for (const block of msg.content) {
         if (block.type === "tool_result") {
-          const tr = block as ToolResultContentBlock;
           toolResults.push({
             type: "tool_result",
-            tool_use_id: tr.toolUseId,
-            content: tr.content,
-            is_error: tr.isError,
+            tool_use_id: block.toolUseId,
+            content: block.content,
+            is_error: block.isError,
           });
         }
       }
@@ -156,9 +153,9 @@ function convertMessage(msg: InternalMessage): AnthropicMessage | null {
     } else {
       for (const block of msg.content) {
         if (block.type === "text") {
-          content.push({ type: "text", text: (block as TextContentBlock).text });
+          content.push({ type: "text", text: block.text });
         } else if (block.type === "thinking") {
-          content.push({ type: "thinking", thinking: (block as ThinkingContentBlock).thinking });
+          content.push({ type: "thinking", thinking: block.thinking });
         }
       }
     }
@@ -193,11 +190,10 @@ function convertMessage(msg: InternalMessage): AnthropicMessage | null {
   const content: AnthropicContentBlock[] = [];
   for (const block of msg.content) {
     if (block.type === "text") {
-      const textBlock = block as TextContentBlock;
       content.push({
         type: "text",
-        text: textBlock.text,
-        cache_control: textBlock.cacheControl,
+        text: block.text,
+        cache_control: block.cacheControl,
       });
     }
   }
@@ -211,7 +207,9 @@ function convertMessage(msg: InternalMessage): AnthropicMessage | null {
 /**
  * Convert internal tools to Anthropic format
  */
-function convertTools(tools?: InternalToolDefinition[]): AnthropicTool[] | undefined {
+function convertTools(
+  tools?: InternalToolDefinition[],
+): AnthropicTool[] | undefined {
   if (!tools || tools.length === 0) {
     return undefined;
   }
@@ -226,7 +224,7 @@ function convertTools(tools?: InternalToolDefinition[]): AnthropicTool[] | undef
  * Convert internal tool choice to Anthropic format
  */
 function convertToolChoice(
-  toolChoice?: InternalRequest["toolChoice"]
+  toolChoice?: InternalRequest["toolChoice"],
 ): AnthropicRequest["tool_choice"] {
   if (!toolChoice) {
     return undefined;
@@ -259,6 +257,7 @@ function convertStopReason(stopReason: string | null): StopReason {
       return "stop_sequence";
     case "tool_use":
       return "tool_use";
+    case null:
     default:
       return null;
   }
@@ -267,12 +266,17 @@ function convertStopReason(stopReason: string | null): StopReason {
 /**
  * Convert Anthropic content block to internal format
  */
-function convertContentBlock(block: AnthropicContentBlock): InternalContentBlock | null {
+function convertContentBlock(
+  block: AnthropicContentBlock,
+): InternalContentBlock | null {
   switch (block.type) {
     case "text":
       return { type: "text", text: block.text || "" } as TextContentBlock;
     case "thinking":
-      return { type: "thinking", thinking: block.thinking || "" } as ThinkingContentBlock;
+      return {
+        type: "thinking",
+        thinking: block.thinking || "",
+      } as ThinkingContentBlock;
     case "tool_use":
       return {
         type: "tool_use",
@@ -280,7 +284,9 @@ function convertContentBlock(block: AnthropicContentBlock): InternalContentBlock
         name: block.name || "",
         input: block.input || {},
       } as ToolUseContentBlock;
-    default:
+    case "image":
+    case "tool_result":
+      // Image and tool_result blocks are not converted to internal format
       return null;
   }
 }
@@ -317,18 +323,21 @@ function convertResponse(resp: AnthropicResponse): InternalResponse {
 // =============================================================================
 
 async function* parseAnthropicSse(
-  body: ReadableStream<Uint8Array>
+  body: ReadableStream<Uint8Array>,
 ): AsyncGenerator<AnthropicStreamEvent, void, unknown> {
   const decoder = new TextDecoderStream();
-  // @ts-expect-error: TypeScript's TextDecoderStream type is incompatible with pipeThrough, but works at runtime
   const reader = body.pipeThrough(decoder).getReader();
   let buffer = "";
   let currentEvent = "";
 
   while (true) {
     const { value, done } = await reader.read();
-    if (done) break;
-    if (!value) continue;
+    if (done) {
+      break;
+    }
+    if (!value) {
+      continue;
+    }
 
     buffer += value;
     const lines = buffer.split("\n");
@@ -367,7 +376,7 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
 
   buildRequest(
     request: InternalRequest,
-    provider: ProviderConfig
+    provider: ProviderConfig,
   ): { url: string; init: RequestInit } {
     // Build messages array
     const messages: AnthropicMessage[] = [];
@@ -379,15 +388,20 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
         const last = messages[messages.length - 1];
         if (last && last.role === converted.role) {
           // Merge contents
-          if (typeof last.content === "string" && typeof converted.content === "string") {
+          if (
+            typeof last.content === "string" &&
+            typeof converted.content === "string"
+          ) {
             last.content = `${last.content}\n${converted.content}`;
           } else {
-            const lastContent = typeof last.content === "string"
-              ? [{ type: "text" as const, text: last.content }]
-              : last.content;
-            const newContent = typeof converted.content === "string"
-              ? [{ type: "text" as const, text: converted.content }]
-              : converted.content;
+            const lastContent =
+              typeof last.content === "string"
+                ? [{ type: "text" as const, text: last.content }]
+                : last.content;
+            const newContent =
+              typeof converted.content === "string"
+                ? [{ type: "text" as const, text: converted.content }]
+                : converted.content;
             last.content = [...lastContent, ...newContent];
           }
         } else {
@@ -402,13 +416,17 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
       messages,
       max_tokens: request.maxTokens || 4096, // Anthropic requires max_tokens
       ...(request.systemPrompt && { system: request.systemPrompt }),
-      ...(request.temperature !== undefined && { temperature: request.temperature }),
+      ...(request.temperature !== undefined && {
+        temperature: request.temperature,
+      }),
       ...(request.topP !== undefined && { top_p: request.topP }),
       ...(request.topK !== undefined && { top_k: request.topK }),
       ...(request.stream !== undefined && { stream: request.stream }),
       ...(request.stopSequences && { stop_sequences: request.stopSequences }),
       ...(request.tools && { tools: convertTools(request.tools) }),
-      ...(request.toolChoice && { tool_choice: convertToolChoice(request.toolChoice) }),
+      ...(request.toolChoice && {
+        tool_choice: convertToolChoice(request.toolChoice),
+      }),
       ...request.extraParams,
     };
 
@@ -447,7 +465,7 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
   },
 
   async *parseStreamResponse(
-    response: Response
+    response: Response,
   ): AsyncGenerator<InternalStreamChunk, void, unknown> {
     if (!response.body) {
       throw new Error("Response body is null");
@@ -524,7 +542,10 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
             yield {
               type: "content_block_delta",
               index: event.index,
-              delta: { type: "input_json_delta", partialJson: delta.partial_json },
+              delta: {
+                type: "input_json_delta",
+                partialJson: delta.partial_json,
+              },
             };
           }
           break;

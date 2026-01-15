@@ -1,4 +1,4 @@
-import consola from "consola";
+import { consola } from "consola";
 import * as db from "@/db";
 import { getSetting, upsertSetting } from "@/db";
 import {
@@ -87,12 +87,14 @@ async function loadInitConfig(): Promise<InitConfigJson | null> {
         `Loading initialization configuration from file: ${INIT_CONFIG_PATH}`,
       );
       const configData = await configFile.text();
-      const config = JSON.parse(configData);
+      const config = JSON.parse(configData) as unknown;
       const parsed = await initConfigJsonSchema.safeParseAsync(config);
       if (parsed.success) {
         return parsed.data;
       }
-      logger.error(`Invalid initialization configuration: ${parsed.error}`);
+      logger.error(
+        `Invalid initialization configuration: ${JSON.stringify(parsed.error)}`,
+      );
       return null;
     } catch (error) {
       logger.error(

@@ -7,12 +7,12 @@ import {
 } from "@/utils/rateLimitConfig";
 
 export const adminRateLimits = new Elysia()
-  .get("/ratelimits", async () => {
+  .get("/ratelimits", () => {
     return getAllRateLimits();
   })
   .get(
     "/ratelimits/:identifier",
-    async ({ params, status }) => {
+    ({ params, status }) => {
       const { identifier } = params;
       const config = getRateLimitConfig(identifier);
       if (!config) {
@@ -28,7 +28,7 @@ export const adminRateLimits = new Elysia()
   )
   .post(
     "/ratelimits",
-    async ({ body, status, set }) => {
+    ({ body, status, set }) => {
       const { identifier, ...config } = body;
       const existing = getRateLimitConfig(identifier);
 
@@ -55,7 +55,7 @@ export const adminRateLimits = new Elysia()
   )
   .delete(
     "/ratelimits/:identifier",
-    async ({ params, status, set }) => {
+    ({ params, status, set }) => {
       const { identifier } = params;
       const existing = getRateLimitConfig(identifier);
 

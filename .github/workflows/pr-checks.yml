@@ -1,0 +1,28 @@
+name: Check Pull Requests
+
+on:
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  quality-check:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun ci
+
+      - name: Run checks
+        run: bun run check
+
+      - name: Run linter
+        run: bun run lint

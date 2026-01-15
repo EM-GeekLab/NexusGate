@@ -9,9 +9,6 @@ import type {
   InternalStreamChunk,
   ResponseAdapter,
   StopReason,
-  TextContentBlock,
-  ThinkingContentBlock,
-  ToolUseContentBlock,
 } from "../types";
 
 // =============================================================================
@@ -64,7 +61,7 @@ function convertStopReason(stopReason: StopReason): string | null {
       return "tool_use";
     case "content_filter":
       return "content_filter";
-    default:
+    case null:
       return null;
   }
 }
@@ -72,28 +69,30 @@ function convertStopReason(stopReason: StopReason): string | null {
 /**
  * Convert internal content block to Anthropic format
  */
-function convertContentBlock(block: InternalContentBlock): AnthropicContentBlock | null {
+function convertContentBlock(
+  block: InternalContentBlock,
+): AnthropicContentBlock | null {
   switch (block.type) {
     case "text":
       return {
         type: "text",
-        text: (block as TextContentBlock).text,
+        text: block.text,
       };
     case "thinking":
       return {
         type: "thinking",
-        thinking: (block as ThinkingContentBlock).thinking,
+        thinking: block.thinking,
       };
     case "tool_use": {
-      const toolBlock = block as ToolUseContentBlock;
       return {
         type: "tool_use",
-        id: toolBlock.id,
-        name: toolBlock.name,
-        input: toolBlock.input,
+        id: block.id,
+        name: block.name,
+        input: block.input,
       };
     }
-    default:
+    case "tool_result":
+      // Tool results are not included in Anthropic assistant responses
       return null;
   }
 }
@@ -162,7 +161,7 @@ export const anthropicResponseAdapter: ResponseAdapter<AnthropicMessage> = {
         } else if (chunk.contentBlock?.type === "thinking") {
           contentBlock = { type: "thinking", thinking: "" };
         } else if (chunk.contentBlock?.type === "tool_use") {
-          const toolBlock = chunk.contentBlock as ToolUseContentBlock;
+          const toolBlock = chunk.contentBlock;
           contentBlock = {
             type: "tool_use",
             id: toolBlock.id,
@@ -185,9 +184,15 @@ export const anthropicResponseAdapter: ResponseAdapter<AnthropicMessage> = {
         if (chunk.delta?.type === "text_delta") {
           delta = { type: "text_delta", text: chunk.delta.text || "" };
         } else if (chunk.delta?.type === "thinking_delta") {
-          delta = { type: "thinking_delta", thinking: chunk.delta.thinking || "" };
+          delta = {
+            type: "thinking_delta",
+            thinking: chunk.delta.thinking || "",
+          };
         } else if (chunk.delta?.type === "input_json_delta") {
-          delta = { type: "input_json_delta", partial_json: chunk.delta.partialJson || "" };
+          delta = {
+            type: "input_json_delta",
+            partial_json: chunk.delta.partialJson || "",
+          };
         } else {
           return "";
         }
@@ -211,7 +216,9 @@ export const anthropicResponseAdapter: ResponseAdapter<AnthropicMessage> = {
         const event = {
           type: "message_delta",
           delta: {
-            stop_reason: convertStopReason(chunk.messageDelta?.stopReason || null),
+            stop_reason: convertStopReason(
+              chunk.messageDelta?.stopReason || null,
+            ),
             stop_sequence: chunk.messageDelta?.stopSequence || null,
           },
           usage: chunk.usage

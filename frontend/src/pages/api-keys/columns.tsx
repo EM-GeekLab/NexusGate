@@ -8,6 +8,7 @@ import i18n from '@/i18n'
 
 import { ApiKeyInvocationGuideButton } from './api-invocation-help'
 import { ApiKeyCopyButton } from './api-key-copy-button'
+import { RateLimitCell } from './rate-limit-cell'
 import { RowActionButton } from './row-action-button'
 
 export type ApiKey = Exclude<Awaited<ReturnType<typeof api.admin.apiKey.get>>['data'], null>[number]
@@ -31,6 +32,20 @@ export const columns: ColumnDef<ApiKey>[] = [
           </ApiKeyInvocationGuideButton>
         </div>
       )
+    },
+  },
+  {
+    accessorKey: 'rpmLimit',
+    header: i18n.t('pages.api-keys.columns.RPM'),
+    cell: ({ row }) => {
+      return <RateLimitCell apiKey={row.original.key} type="rpm" />
+    },
+  },
+  {
+    accessorKey: 'tpmLimit',
+    header: i18n.t('pages.api-keys.columns.TPM'),
+    cell: ({ row }) => {
+      return <RateLimitCell apiKey={row.original.key} type="tpm" />
     },
   },
   {

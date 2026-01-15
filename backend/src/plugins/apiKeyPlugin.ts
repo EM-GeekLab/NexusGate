@@ -1,6 +1,10 @@
 import { Elysia } from "elysia";
-import { checkApiKey } from "@/utils/apiKey.ts";
+import { validateApiKey } from "@/utils/apiKey.ts";
 import { ADMIN_SUPER_SECRET } from "@/utils/config.ts";
+import type { ApiKey } from "@/db";
+
+// Re-export ApiKey type for consumers
+export type { ApiKey } from "@/db";
 
 export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
   .derive({ as: "global" }, ({ headers }) => {
@@ -24,16 +28,33 @@ export const apiKeyPlugin = new Elysia({ name: "apiKeyPlugin" })
 
     return;
   })
+  // Request-scoped apiKeyRecord - initialized as null, populated by checkApiKey macro
+  // Using derive ensures each request gets its own instance (not shared like state)
+  .derive({ as: "global" }, () => ({
+    apiKeyRecord: null as ApiKey | null,
+  }))
   .macro({
     checkApiKey: {
-      async beforeHandle({ status, bearer }) {
-        if (!bearer || !(await checkApiKey(bearer))) {
+      // Resolve runs before the handler and can modify the request context
+      // The apiKeyRecord from derive above will be overwritten with the actual value
+      async resolve({ status, bearer, apiKeyRecord: _ }) {
+        if (!bearer) {
           return status(401, "Invalid API key");
         }
+
+        const apiKeyRecord = await validateApiKey(bearer);
+        if (!apiKeyRecord) {
+          return status(401, "Invalid API key");
+        }
+
+        // Return apiKeyRecord - this merges into the context for this request only
+        return {
+          apiKeyRecord,
+        };
       },
     },
     checkAdminApiKey: {
-      async beforeHandle({ status, bearer }) {
+      beforeHandle({ status, bearer }) {
         if (!bearer || !(bearer === ADMIN_SUPER_SECRET)) {
           return status(401, "Invalid admin secret");
         }

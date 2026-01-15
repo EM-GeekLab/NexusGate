@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import OpenAI from "openai";
+import { OpenAI } from "openai";
 import {
   deleteProvider,
   findProvider,

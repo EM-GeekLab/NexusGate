@@ -82,7 +82,9 @@ export function fromOpenAITools(tools: OpenAITool[]): InternalToolDefinition[] {
 /**
  * Convert internal tool definitions to Anthropic format
  */
-export function toAnthropicTools(tools: InternalToolDefinition[]): AnthropicTool[] {
+export function toAnthropicTools(
+  tools: InternalToolDefinition[],
+): AnthropicTool[] {
   return tools.map((tool) => ({
     name: tool.name,
     description: tool.description,
@@ -93,7 +95,9 @@ export function toAnthropicTools(tools: InternalToolDefinition[]): AnthropicTool
 /**
  * Convert Anthropic tools to internal format
  */
-export function fromAnthropicTools(tools: AnthropicTool[]): InternalToolDefinition[] {
+export function fromAnthropicTools(
+  tools: AnthropicTool[],
+): InternalToolDefinition[] {
   return tools.map((tool) => ({
     name: tool.name,
     description: tool.description,
@@ -108,7 +112,9 @@ export function fromAnthropicTools(tools: AnthropicTool[]): InternalToolDefiniti
 /**
  * Convert internal tool use blocks to OpenAI tool calls
  */
-export function toOpenAIToolCalls(toolUses: ToolUseContentBlock[]): OpenAIToolCall[] {
+export function toOpenAIToolCalls(
+  toolUses: ToolUseContentBlock[],
+): OpenAIToolCall[] {
   return toolUses.map((tu) => ({
     id: tu.id,
     type: "function" as const,
@@ -122,7 +128,9 @@ export function toOpenAIToolCalls(toolUses: ToolUseContentBlock[]): OpenAIToolCa
 /**
  * Convert OpenAI tool calls to internal tool use blocks
  */
-export function fromOpenAIToolCalls(toolCalls: OpenAIToolCall[]): ToolUseContentBlock[] {
+export function fromOpenAIToolCalls(
+  toolCalls: OpenAIToolCall[],
+): ToolUseContentBlock[] {
   return toolCalls.map((tc) => ({
     type: "tool_use" as const,
     id: tc.id,
@@ -134,7 +142,9 @@ export function fromOpenAIToolCalls(toolCalls: OpenAIToolCall[]): ToolUseContent
 /**
  * Convert internal tool use blocks to Anthropic tool use
  */
-export function toAnthropicToolUse(toolUses: ToolUseContentBlock[]): AnthropicToolUse[] {
+export function toAnthropicToolUse(
+  toolUses: ToolUseContentBlock[],
+): AnthropicToolUse[] {
   return toolUses.map((tu) => ({
     type: "tool_use" as const,
     id: tu.id,
@@ -147,7 +157,7 @@ export function toAnthropicToolUse(toolUses: ToolUseContentBlock[]): AnthropicTo
  * Convert Anthropic tool use to internal tool use blocks
  */
 export function fromAnthropicToolUse(
-  toolUses: AnthropicToolUse[]
+  toolUses: AnthropicToolUse[],
 ): ToolUseContentBlock[] {
   return toolUses.map((tu) => ({
     type: "tool_use" as const,
@@ -179,12 +189,20 @@ type AnthropicToolChoice = { type: "auto" | "any" | "tool"; name?: string };
  * Convert internal tool choice to OpenAI format
  */
 export function toOpenAIToolChoice(
-  choice: InternalToolChoice | undefined
+  choice: InternalToolChoice | undefined,
 ): OpenAIToolChoice | undefined {
-  if (!choice) return undefined;
-  if (choice === "auto") return "auto";
-  if (choice === "none") return "none";
-  if (choice === "any") return "required";
+  if (!choice) {
+    return undefined;
+  }
+  if (choice === "auto") {
+    return "auto";
+  }
+  if (choice === "none") {
+    return "none";
+  }
+  if (choice === "any") {
+    return "required";
+  }
   if (typeof choice === "object" && choice.type === "tool") {
     return { type: "function", function: { name: choice.name } };
   }
@@ -195,12 +213,20 @@ export function toOpenAIToolChoice(
  * Convert OpenAI tool choice to internal format
  */
 export function fromOpenAIToolChoice(
-  choice: OpenAIToolChoice | undefined
+  choice: OpenAIToolChoice | undefined,
 ): InternalToolChoice | undefined {
-  if (!choice) return undefined;
-  if (choice === "auto") return "auto";
-  if (choice === "none") return "none";
-  if (choice === "required") return "any";
+  if (!choice) {
+    return undefined;
+  }
+  if (choice === "auto") {
+    return "auto";
+  }
+  if (choice === "none") {
+    return "none";
+  }
+  if (choice === "required") {
+    return "any";
+  }
   if (typeof choice === "object" && choice.type === "function") {
     return { type: "tool", name: choice.function.name };
   }
@@ -211,12 +237,21 @@ export function fromOpenAIToolChoice(
  * Convert internal tool choice to Anthropic format
  */
 export function toAnthropicToolChoice(
-  choice: InternalToolChoice | undefined
+  choice: InternalToolChoice | undefined,
 ): AnthropicToolChoice | undefined {
-  if (!choice) return undefined;
-  if (choice === "auto") return { type: "auto" };
-  if (choice === "any") return { type: "any" };
-  if (choice === "none") return undefined; // Anthropic doesn't have explicit "none"
+  if (!choice) {
+    return undefined;
+  }
+  if (choice === "auto") {
+    return { type: "auto" };
+  }
+  if (choice === "any") {
+    return { type: "any" };
+  }
+  if (choice === "none") {
+    return undefined;
+  }
+  // Anthropic doesn't have explicit "none"
   if (typeof choice === "object" && choice.type === "tool") {
     return { type: "tool", name: choice.name };
   }
@@ -227,11 +262,17 @@ export function toAnthropicToolChoice(
  * Convert Anthropic tool choice to internal format
  */
 export function fromAnthropicToolChoice(
-  choice: AnthropicToolChoice | undefined
+  choice: AnthropicToolChoice | undefined,
 ): InternalToolChoice | undefined {
-  if (!choice) return undefined;
-  if (choice.type === "auto") return "auto";
-  if (choice.type === "any") return "any";
+  if (!choice) {
+    return undefined;
+  }
+  if (choice.type === "auto") {
+    return "auto";
+  }
+  if (choice.type === "any") {
+    return "any";
+  }
   if (choice.type === "tool" && choice.name) {
     return { type: "tool", name: choice.name };
   }
@@ -265,7 +306,7 @@ export function generateToolCallId(): string {
  */
 export function validateToolInput(
   input: Record<string, unknown>,
-  schema: JsonSchema
+  schema: JsonSchema,
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
@@ -287,7 +328,7 @@ export function validateToolInput(
         const actualType = Array.isArray(value) ? "array" : typeof value;
         if (expectedType && expectedType !== actualType) {
           errors.push(
-            `Field '${key}' expected type '${expectedType}' but got '${actualType}'`
+            `Field '${key}' expected type '${expectedType}' but got '${actualType}'`,
           );
         }
       }

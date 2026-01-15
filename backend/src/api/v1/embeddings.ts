@@ -2,6 +2,7 @@ import type { CreateEmbeddingResponse } from "openai/resources";
 import { consola } from "consola";
 import { Elysia, t } from "elysia";
 import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
+import { apiKeyRateLimitPlugin, consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import { addEmbedding, type EmbeddingRecord } from "@/utils/embeddings";
 import { selectModel, buildUpstreamUrl, getRemoteModelId } from "@/utils/model";
@@ -62,10 +63,11 @@ export const embeddingsApi = new Elysia({
   },
 })
   .use(apiKeyPlugin)
+  .use(apiKeyRateLimitPlugin)
   .use(rateLimitPlugin)
   .post(
     "/",
-    async ({ body: rawBody, status, bearer }) => {
+    async ({ body: rawBody, status, bearer, apiKeyRecord }) => {
       const body = rawBody as EmbeddingCreateBody;
       if (bearer === undefined) {
         return status(500);
@@ -118,7 +120,7 @@ export const embeddingsApi = new Elysia({
       // Make request to upstream
       const [resp, fetchError] = await fetch(upstreamEndpoint, reqInit)
         .then((r) => [r, null] as [Response, null])
-        .catch((err) => {
+        .catch((err: unknown) => {
           logger.error("fetch error", err);
           return [null, err] as [null, Error];
         });
@@ -140,6 +142,8 @@ export const embeddingsApi = new Elysia({
               msg: fetchError.toString(),
             },
           },
+        }).catch(() => {
+          logger.error("Failed to log embedding after fetch failure");
         });
         return status(500, "Failed to fetch upstream");
       }
@@ -163,6 +167,8 @@ export const embeddingsApi = new Elysia({
               msg,
             },
           },
+        }).catch(() => {
+          logger.error("Failed to log embedding after upstream error");
         });
         return status(resp.status, msg);
       }
@@ -186,6 +192,8 @@ export const embeddingsApi = new Elysia({
               msg: e instanceof Error ? e.message : "Unknown parse error",
             },
           },
+        }).catch(() => {
+          logger.error("Failed to log embedding after parse failure");
         });
         return status(500, "Failed to parse upstream response");
       }
@@ -203,7 +211,19 @@ export const embeddingsApi = new Elysia({
       embeddingRecord.status = "completed";
       embeddingRecord.duration = Date.now() - begin;
 
-      void addEmbedding(embeddingRecord, bearer);
+      addEmbedding(embeddingRecord, bearer).catch(() => {
+        logger.error("Failed to log embedding after completion");
+      });
+
+      // Consume tokens for TPM rate limiting (post-flight)
+      // For embeddings, we only have input tokens
+      if (apiKeyRecord && embeddingRecord.inputTokens > 0) {
+        await consumeTokens(
+          apiKeyRecord.id,
+          apiKeyRecord.tpmLimit,
+          embeddingRecord.inputTokens,
+        );
+      }
 
       logger.debug("embeddings request completed", {
         inputTokens: embeddingRecord.inputTokens,
@@ -217,6 +237,7 @@ export const embeddingsApi = new Elysia({
     {
       body: tEmbeddingCreate,
       checkApiKey: true,
+      apiKeyRateLimit: true,
       rateLimit: {
         identifier: (body) => (body as { model: string }).model,
       },

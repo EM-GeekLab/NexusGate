@@ -152,7 +152,7 @@ function convertMessage(msg: InternalMessage): OpenAIMessage {
         ? msg.content
         : msg.content
             .filter((b) => b.type === "text")
-            .map((b) => (b as TextContentBlock).text)
+            .map((b) => b.text)
             .join("");
     return {
       role: "assistant",
@@ -174,7 +174,7 @@ function convertMessage(msg: InternalMessage): OpenAIMessage {
       ? msg.content
       : msg.content
           .filter((b) => b.type === "text")
-          .map((b) => (b as TextContentBlock).text)
+          .map((b) => b.text)
           .join("");
 
   return {
@@ -186,7 +186,9 @@ function convertMessage(msg: InternalMessage): OpenAIMessage {
 /**
  * Convert internal tools to OpenAI format
  */
-function convertTools(tools?: InternalToolDefinition[]): OpenAITool[] | undefined {
+function convertTools(
+  tools?: InternalToolDefinition[],
+): OpenAITool[] | undefined {
   if (!tools || tools.length === 0) {
     return undefined;
   }
@@ -204,7 +206,7 @@ function convertTools(tools?: InternalToolDefinition[]): OpenAITool[] | undefine
  * Convert internal tool choice to OpenAI format
  */
 function convertToolChoice(
-  toolChoice?: InternalRequest["toolChoice"]
+  toolChoice?: InternalRequest["toolChoice"],
 ): OpenAIChatRequest["tool_choice"] {
   if (!toolChoice) {
     return undefined;
@@ -234,6 +236,7 @@ function convertFinishReason(finishReason: string | null): StopReason {
       return "tool_use";
     case "content_filter":
       return "content_filter";
+    case null:
     default:
       return null;
   }
@@ -292,17 +295,20 @@ function convertResponse(resp: OpenAIChatResponse): InternalResponse {
 // =============================================================================
 
 async function* parseOpenAISse(
-  body: ReadableStream<Uint8Array>
+  body: ReadableStream<Uint8Array>,
 ): AsyncGenerator<string, void, unknown> {
   const decoder = new TextDecoderStream();
-  // @ts-expect-error: TypeScript's TextDecoderStream type is incompatible with pipeThrough, but works at runtime
   const reader = body.pipeThrough(decoder).getReader();
   let buffer = "";
 
   while (true) {
     const { value, done } = await reader.read();
-    if (done) break;
-    if (!value) continue;
+    if (done) {
+      break;
+    }
+    if (!value) {
+      continue;
+    }
 
     buffer += value;
     const lines = buffer.split("\n");
@@ -331,7 +337,7 @@ export const openaiUpstreamAdapter: UpstreamAdapter = {
 
   buildRequest(
     request: InternalRequest,
-    provider: ProviderConfig
+    provider: ProviderConfig,
   ): { url: string; init: RequestInit } {
     // Build messages array with system prompt
     const messages: OpenAIMessage[] = [];
@@ -352,13 +358,17 @@ export const openaiUpstreamAdapter: UpstreamAdapter = {
       model: request.model,
       messages,
       ...(request.maxTokens && { max_tokens: request.maxTokens }),
-      ...(request.temperature !== undefined && { temperature: request.temperature }),
+      ...(request.temperature !== undefined && {
+        temperature: request.temperature,
+      }),
       ...(request.topP !== undefined && { top_p: request.topP }),
       ...(request.stream !== undefined && { stream: request.stream }),
       ...(request.stream && { stream_options: { include_usage: true } }),
       ...(request.stopSequences && { stop: request.stopSequences }),
       ...(request.tools && { tools: convertTools(request.tools) }),
-      ...(request.toolChoice && { tool_choice: convertToolChoice(request.toolChoice) }),
+      ...(request.toolChoice && {
+        tool_choice: convertToolChoice(request.toolChoice),
+      }),
       ...request.extraParams,
     };
 
@@ -396,7 +406,7 @@ export const openaiUpstreamAdapter: UpstreamAdapter = {
   },
 
   async *parseStreamResponse(
-    response: Response
+    response: Response,
   ): AsyncGenerator<InternalStreamChunk, void, unknown> {
     if (!response.body) {
       throw new Error("Response body is null");
@@ -449,7 +459,9 @@ export const openaiUpstreamAdapter: UpstreamAdapter = {
       }
 
       const choice = data.choices[0];
-      if (!choice) continue;
+      if (!choice) {
+        continue;
+      }
 
       // Handle reasoning content (thinking)
       if (choice.delta.reasoning_content) {
@@ -481,11 +493,17 @@ export const openaiUpstreamAdapter: UpstreamAdapter = {
           if (tc.index !== currentToolCallIndex) {
             // New tool call
             if (currentToolCallIndex >= 0) {
-              yield { type: "content_block_stop", index: currentToolCallIndex + 1 };
+              yield {
+                type: "content_block_stop",
+                index: currentToolCallIndex + 1,
+              };
             }
             currentToolCallIndex = tc.index;
             blockIndex++;
-            toolCalls.set(tc.index, { id: tc.id || "", name: tc.function?.name || "" });
+            toolCalls.set(tc.index, {
+              id: tc.id || "",
+              name: tc.function?.name || "",
+            });
             yield {
               type: "content_block_start",
               index: blockIndex,

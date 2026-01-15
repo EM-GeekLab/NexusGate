@@ -257,6 +257,7 @@ function convertStopReason(stopReason: string | null): StopReason {
       return "stop_sequence";
     case "tool_use":
       return "tool_use";
+    case null:
     default:
       return null;
   }
@@ -283,7 +284,9 @@ function convertContentBlock(
         name: block.name || "",
         input: block.input || {},
       } as ToolUseContentBlock;
-    default:
+    case "image":
+    case "tool_result":
+      // Image and tool_result blocks are not converted to internal format
       return null;
   }
 }

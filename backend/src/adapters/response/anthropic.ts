@@ -61,7 +61,7 @@ function convertStopReason(stopReason: StopReason): string | null {
       return "tool_use";
     case "content_filter":
       return "content_filter";
-    default:
+    case null:
       return null;
   }
 }
@@ -91,7 +91,8 @@ function convertContentBlock(
         input: block.input,
       };
     }
-    default:
+    case "tool_result":
+      // Tool results are not included in Anthropic assistant responses
       return null;
   }
 }

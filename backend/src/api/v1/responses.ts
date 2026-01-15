@@ -12,7 +12,8 @@ import {
   getUpstreamAdapter,
 } from "@/adapters";
 import { getModelsWithProviderBySystemName } from "@/db";
-import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
+import { apiKeyPlugin, type ApiKey } from "@/plugins/apiKeyPlugin";
+import { apiKeyRateLimitPlugin, consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import {
   extractUpstreamHeaders,
@@ -165,6 +166,7 @@ async function handleNonStreamingRequest(
   bearer: string,
   set: { status?: number | string },
   providerType: string,
+  apiKeyRecord: ApiKey | null,
 ): Promise<string> {
   const begin = Date.now();
 
@@ -246,6 +248,13 @@ async function handleNonStreamingRequest(
     logger.error("Failed to log completion after non-streaming");
   });
 
+  // Consume tokens for TPM rate limiting (post-flight)
+  // Only consume if token counts are valid (not -1 which indicates parsing failure)
+  if (apiKeyRecord && completion.promptTokens > 0 && completion.completionTokens > 0) {
+    const totalTokens = completion.promptTokens + completion.completionTokens;
+    await consumeTokens(apiKeyRecord.id, apiKeyRecord.tpmLimit, totalTokens);
+  }
+
   return JSON.stringify(serialized);
 }
 
@@ -260,6 +269,7 @@ async function* handleStreamingRequest(
   bearer: string,
   set: { status?: number | string },
   providerType: string,
+  apiKeyRecord: ApiKey | null,
 ): AsyncGenerator<string, void, unknown> {
   const begin = Date.now();
 
@@ -406,6 +416,12 @@ async function* handleStreamingRequest(
       logger.error("Failed to log completion after streaming");
     });
 
+    // Consume tokens for TPM rate limiting (post-flight)
+    if (apiKeyRecord && inputTokens > 0 && outputTokens > 0) {
+      const totalTokens = inputTokens + outputTokens;
+      await consumeTokens(apiKeyRecord.id, apiKeyRecord.tpmLimit, totalTokens);
+    }
+
     if (isFirstChunk) {
       logger.error("upstream error: no chunk received");
       completion.status = "failed";
@@ -450,10 +466,11 @@ export const responsesApi = new Elysia({
   },
 })
   .use(apiKeyPlugin)
+  .use(apiKeyRateLimitPlugin)
   .use(rateLimitPlugin)
   .post(
     "/responses",
-    async function* ({ body, set, bearer, request }) {
+    async function* ({ body, set, bearer, request, apiKeyRecord }) {
       if (bearer === undefined) {
         set.status = 500;
         yield JSON.stringify({
@@ -555,6 +572,7 @@ export const responsesApi = new Elysia({
           bearer,
           set,
           providerType,
+          apiKeyRecord ?? null,
         );
       } else {
         const response = await handleNonStreamingRequest(
@@ -564,6 +582,7 @@ export const responsesApi = new Elysia({
           bearer,
           set,
           providerType,
+          apiKeyRecord ?? null,
         );
         yield response;
       }
@@ -571,6 +590,7 @@ export const responsesApi = new Elysia({
     {
       body: tResponseApiCreate,
       checkApiKey: true,
+      apiKeyRateLimit: true,
       rateLimit: {
         identifier: (body: unknown) => (body as { model: string }).model,
       },

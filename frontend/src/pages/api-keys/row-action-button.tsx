@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowUpDownIcon, CopyIcon, MoreHorizontalIcon, OctagonXIcon } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowUpDownIcon, CopyIcon, GaugeIcon, MoreHorizontalIcon, OctagonXIcon } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -29,8 +30,10 @@ import {
 import { useCopy } from '@/hooks/use-copy'
 
 import type { ApiKey } from './columns'
+import { RateLimitDialog } from './rate-limit-dialog'
 
 export const RowActionButton = ({ data }: { data: ApiKey }) => {
+  const [rateLimitDialogOpen, setRateLimitDialogOpen] = useState(false)
   const { t } = useTranslation()
 
   const { copy } = useCopy({
@@ -79,6 +82,7 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
   })
 
   return (
+    <>
     <AlertDialog>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -99,6 +103,10 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
           <DropdownMenuItem onClick={() => navigate({ to: '/requests', search: { apiKeyId: data.id } })}>
             <ArrowUpDownIcon />
             {t('pages.api-keys.row-action-button.ViewRequests')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setRateLimitDialogOpen(true)}>
+            <GaugeIcon />
+            {t('pages.api-keys.row-action-button.ConfigureRateLimits')}
           </DropdownMenuItem>
           {!data.revoked && (
             <>
@@ -132,5 +140,8 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <RateLimitDialog apiKey={data} open={rateLimitDialogOpen} onOpenChange={setRateLimitDialogOpen} />
+  </>
   )
 }

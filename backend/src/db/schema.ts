@@ -24,6 +24,9 @@ export const ApiKeysTable = pgTable("api_keys", {
   expiresAt: timestamp("expires_at"),
   lastSeen: timestamp("last_seen"),
   revoked: boolean("revoked").notNull().default(false),
+  // Rate limit configuration
+  rpmLimit: integer("rpm_limit").notNull().default(50), // Requests per minute
+  tpmLimit: integer("tpm_limit").notNull().default(50000), // Tokens per minute
 });
 
 export const UpstreamTable = pgTable("upstreams", {

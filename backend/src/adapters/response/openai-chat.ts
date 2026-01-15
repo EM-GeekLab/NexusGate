@@ -107,7 +107,7 @@ function convertStopReason(stopReason: StopReason): string | null {
       return "tool_calls";
     case "content_filter":
       return "content_filter";
-    default:
+    case null:
       return null;
   }
 }
@@ -271,6 +271,10 @@ export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> =
           }
           if (chunk.delta?.type === "thinking_delta" && chunk.delta.thinking) {
             // Wrap thinking in delta with reasoning_content for compatibility
+            const delta: OpenAIChatDelta & { reasoning_content?: string } = {
+              content: null,
+              reasoning_content: chunk.delta.thinking,
+            };
             const data: OpenAIChatCompletionChunk = {
               id: `chatcmpl-${Date.now()}`,
               object: "chat.completion.chunk",
@@ -279,21 +283,11 @@ export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> =
               choices: [
                 {
                   index: 0,
-                  delta: { content: null } as OpenAIChatDelta & {
-                    reasoning_content?: string;
-                  },
+                  delta,
                   finish_reason: null,
                 },
               ],
             };
-            // Add reasoning_content to delta
-            // oxlint-disable-next-line no-unnecessary-type-assertion
-            (
-              data.choices[0]!.delta as OpenAIChatDelta & {
-                // conflicting with tsc
-                reasoning_content?: string;
-              }
-            ).reasoning_content = chunk.delta.thinking;
             return `data: ${JSON.stringify(data)}\n\n`;
           }
           if (
@@ -328,6 +322,10 @@ export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> =
           return "";
         }
 
+        case "content_block_stop":
+          // OpenAI format doesn't have explicit block stop events
+          return "";
+
         case "message_delta": {
           // Send finish reason and usage
           const data: OpenAIChatCompletionChunk = {
@@ -361,9 +359,6 @@ export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> =
 
         case "error":
           // Return error as a regular message for now
-          return "";
-
-        default:
           return "";
       }
     },

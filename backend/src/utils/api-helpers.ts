@@ -115,8 +115,12 @@ export function selectModel(
 // =============================================================================
 
 /**
- * Extract text content from internal response
- * Combines thinking content (wrapped in <think> tags) and text content
+ * Builds a single string from an InternalResponse's content blocks.
+ *
+ * Thinking blocks are concatenated and wrapped in a single `<think>...</think>` block placed before text content.
+ *
+ * @param response - The InternalResponse whose content blocks will be extracted
+ * @returns The assembled string: if any thinking blocks exist, a `<think>` block with their concatenated content followed by a newline, then all text blocks concatenated; an empty string if there is no content
  */
 export function extractContentText(response: InternalResponse): string {
   const parts: string[] = [];
@@ -139,8 +143,10 @@ export function extractContentText(response: InternalResponse): string {
 }
 
 /**
- * Extract tool calls from internal response
- * Converts internal ToolUseContentBlock to OpenAI ToolCallType format
+ * Produce ToolCallType entries for each "tool_use" content block in the response.
+ *
+ * @param response - Internal response whose content blocks will be scanned for tool usages
+ * @returns An array of `ToolCallType` objects representing found tool invocations, or `undefined` if none were found
  */
 export function extractToolCalls(
   response: InternalResponse,

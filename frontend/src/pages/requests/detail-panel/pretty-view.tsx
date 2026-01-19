@@ -47,6 +47,14 @@ interface ToolDefinition {
   }
 }
 
+/**
+ * Render a two-column pretty view that presents request metadata alongside prompt and completion messages.
+ *
+ * Displays a left metadata panel and two content sections: prompt (request) messages and completion (response) messages,
+ * each with a header showing title, token counts, and message entries.
+ *
+ * @returns The JSX element for the messages pretty view UI.
+ */
 export function MessagesPrettyView() {
   const { t } = useTranslation()
 
@@ -90,6 +98,15 @@ function MessagesPrettyContainer({ className, ...props }: ComponentProps<'div'>)
   return <div className={cn('min-w-0 border-b @6xl:relative @6xl:overflow-auto', className)} {...props} />
 }
 
+/**
+ * Render a header bar showing an optional icon, title text, an optional length badge, and token usage.
+ *
+ * @param icon - Optional leading icon or element shown at the start of the header
+ * @param title - Header text
+ * @param tokens - Optional token count displayed by the TokenUsage indicator
+ * @param length - Optional numeric badge shown next to the title (e.g., message count)
+ * @param className - Additional CSS class names applied to the container
+ */
 function MessageTitle({
   icon,
   title,
@@ -118,6 +135,16 @@ function MessageTitle({
   )
 }
 
+/**
+ * Render a single request message including role header, optional reasoning, message content, and tool-call details.
+ *
+ * The component displays the message role (and a terminal icon for tool messages), an optional `tool_call_id`, a collapsible
+ * "Reasoning" section for assistant messages when present, the message body rendered as Markdown, and a list of tool calls
+ * (each rendered with ToolCallDisplay) when `tool_calls` exist on the message.
+ *
+ * @param message - The request message to render
+ * @returns A JSX element containing the formatted message block
+ */
 function MessageContent({ message }: { message: RequestMessage }) {
   const { t } = useTranslation()
   const messageText = getMessageText(message)
@@ -159,6 +186,15 @@ function MessageContent({ message }: { message: RequestMessage }) {
   )
 }
 
+/**
+ * Renders a response message block including reasoning, Markdown content, tool-call panels, refusal text, or an empty placeholder.
+ *
+ * Renders the message's extracted reasoning (in a collapsible panel) followed by the message content as Markdown when present; renders a Tool Calls section with a count badge and ToolCallDisplay entries when `tool_calls` are present; renders refusal text in a destructive-styled block when `refusal` is present; and shows a localized "No Content" placeholder if nothing else is rendered.
+ *
+ * @param message - The response message to render (may include `content`, `refusal`, and optional `tool_calls`).
+ * @param className - Optional CSS class(es) applied to the outer container.
+ * @returns A div element containing the assembled response message UI.
+ */
 function ResponseMessageContent({ message, className }: { message: ResponseMessage; className?: string }) {
   const { t } = useTranslation()
   const { content, refusal, tool_calls: toolCalls } = message as ResponseMessage & { tool_calls?: ToolCall[] }
@@ -271,6 +307,16 @@ function CopiableText({ text }: { text: string }) {
   )
 }
 
+/**
+ * Render the metadata panel for a request in the pretty view.
+ *
+ * Displays request identifiers and details such as model, provider, timings (TTFT and duration),
+ * token counts, tool definitions and choice, and any extra body or headers. Hidden fields are
+ * omitted and some entries render interactive or formatted components (copyable model, duration
+ * tooltips, collapsible tool definitions, JSON blocks).
+ *
+ * @returns A React element containing the structured meta information for the current request.
+ */
 function RequestMetaInfo() {
   const { t } = useTranslation()
 
@@ -442,6 +488,17 @@ function ExtraDataDisplay({ data }: { data?: Record<string, unknown> }) {
   )
 }
 
+/**
+ * Extracts and returns the text content from a RequestMessage.
+ *
+ * If the message's `content` is a string, that string is returned. If the message has a structured `content`
+ * (an array of parts) and the role is one of `user`, `assistant`, `system`, `developer`, or `tool`, the function
+ * concatenates all parts whose `type` is `'text'` and returns the combined text. If no text can be obtained,
+ * an empty string is returned.
+ *
+ * @param message - The request message to extract text from
+ * @returns The extracted text, or an empty string if none is available
+ */
 function getMessageText(message: RequestMessage): string {
   return match(message)
     .with({ content: P.string }, (msg) => msg.content)
@@ -460,7 +517,10 @@ function getMessageText(message: RequestMessage): string {
 }
 
 /**
- * Component to display a single tool call
+ * Render a collapsible panel showing a single tool call's name, id, and arguments.
+ *
+ * @param toolCall - The tool call object containing `id`, `function.name`, and `function.arguments`.
+ * @returns A JSX element that displays the tool's name and id in the header and the parsed or raw arguments in a collapsible content area.
  */
 function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
   const { t } = useTranslation()
@@ -503,7 +563,10 @@ function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
 }
 
 /**
- * Component to display tool definitions in metadata
+ * Renders a list of tool definitions as collapsible panels showing each tool's name,
+ * optional description, and optional parameters.
+ *
+ * @param tools - Array of tool definitions to display; each entry's `function` object should include `name`, and may include `description` and `parameters`
  */
 function ToolsDefinitionDisplay({ tools }: { tools: ToolDefinition[] }) {
   const { t } = useTranslation()

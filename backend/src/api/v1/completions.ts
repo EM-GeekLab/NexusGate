@@ -59,7 +59,16 @@ const tChatCompletionCreate = t.Object(
 );
 
 /**
- * Build completion record for logging
+ * Create a Completion record initialized for logging and tracking.
+ *
+ * @param requestedModel - The model identifier provided in the original request
+ * @param modelId - Internal numeric ID for the selected model
+ * @param messages - The chat messages that form the prompt
+ * @param tools - Optional tool definitions included in the prompt metadata
+ * @param toolChoice - Optional tool selection policy or function call descriptor
+ * @param extraBody - Optional additional request parameters to store with the prompt
+ * @param extraHeaders - Optional extra headers forwarded to the upstream stored with the prompt
+ * @returns A Completion object with the prompt populated and tracking fields initialized (tokens set to -1, status set to "pending", empty completion, ttft and duration set to -1)
  */
 function buildCompletionRecord(
   requestedModel: string,
@@ -91,7 +100,12 @@ function buildCompletionRecord(
 }
 
 /**
- * Handle non-streaming completion request
+ * Proxies a non-streaming chat completion request to the upstream provider, updates and logs a Completion record, and applies post-request token consumption when applicable.
+ *
+ * @param completion - Completion record to update with usage, status, timing, and resulting assistant content; it will be logged before returning.
+ * @param set - Mutable container for the HTTP response status; updated to reflect upstream or internal error status when applicable.
+ * @param apiKeyRecord - Optional API key record used to consume TPM tokens after a successful completion; if null, token consumption is skipped.
+ * @returns A string containing either the serialized OpenAI-compatible response (JSON) from the upstream provider or an error payload string when the upstream request fails.
  */
 async function handleNonStreamingRequest(
   upstreamUrl: string,

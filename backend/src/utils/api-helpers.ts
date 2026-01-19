@@ -263,10 +263,6 @@ export type FailoverErrorResult =
   | {
       type: "failover_exhausted";
       status: 502;
-    }
-  | {
-      type: "internal_error";
-      status: 500;
     };
 
 /**

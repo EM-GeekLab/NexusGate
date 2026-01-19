@@ -485,7 +485,7 @@ export const messagesApi = new Elysia({
         } catch (error) {
           logger.error("Stream processing error", error);
           set.status = 500;
-          yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "Stream processing error" } })}\n\n`;
+          yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "server_error", message: "Stream processing error" } })}\n\n`;
         }
       } else {
         // Non-streaming request with failover

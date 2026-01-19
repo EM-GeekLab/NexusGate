@@ -23,13 +23,19 @@ import type {
 } from "@/db/schema";
 import {
   extractUpstreamHeaders,
-  selectModel,
+  filterCandidates,
   extractContentText,
   extractToolCalls,
   parseModelProvider,
+  processFailoverError,
   PROVIDER_HEADER,
 } from "@/utils/api-helpers";
 import { addCompletions, type Completion } from "@/utils/completions";
+import {
+  executeWithFailover,
+  selectMultipleCandidates,
+  type FailoverConfig,
+} from "@/services/failover";
 
 const logger = consola.withTag("completionsApi");
 
@@ -104,7 +110,7 @@ const tChatCompletionCreate = t.Object(
  */
 function buildCompletionRecord(
   requestedModel: string,
-  modelId: number,
+  modelId: number | undefined,
   messages: CompletionsMessageType[],
   tools?: ToolDefinitionType[],
   toolChoice?: ToolChoiceType,
@@ -132,70 +138,16 @@ function buildCompletionRecord(
 }
 
 /**
- * Handle non-streaming completion request
+ * Process a successful non-streaming response
  */
-async function handleNonStreamingRequest(
-  upstreamUrl: string,
-  upstreamInit: RequestInit,
+async function processNonStreamingResponse(
+  resp: Response,
   completion: Completion,
   bearer: string,
-  set: { status?: number | string },
   providerType: string,
   apiKeyRecord: ApiKey | null,
+  begin: number,
 ): Promise<string> {
-  const begin = Date.now();
-
-  logger.debug("proxying completions request to upstream", {
-    bearer,
-    upstreamUrl,
-    providerType,
-  });
-
-  const [resp, err] = await fetch(upstreamUrl, upstreamInit)
-    .then((r) => [r, null] as [Response, null])
-    .catch((error: unknown) => {
-      logger.error("fetch error", error);
-      return [null, error] as [null, Error];
-    });
-
-  if (!resp) {
-    logger.error("upstream error", {
-      status: 500,
-      msg: "Failed to fetch upstream",
-    });
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: `Failed to fetch upstream. ${err.toString()}`,
-      details: {
-        type: "completionError",
-        data: { type: "fetchError", msg: err.toString() },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion after fetch failure");
-    });
-    set.status = 500;
-    return JSON.stringify({ error: "Failed to fetch upstream" });
-  }
-
-  if (!resp.ok) {
-    const msg = await resp.text();
-    logger.error("upstream error", { status: resp.status, msg });
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: `Upstream error: ${msg}`,
-      details: {
-        type: "completionError",
-        data: { type: "upstreamError", status: resp.status, msg },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion error after upstream error");
-    });
-    set.status = resp.status;
-    return msg;
-  }
-
   // Parse response using upstream adapter
   const upstreamAdapter = getUpstreamAdapter(providerType);
   const internalResponse = await upstreamAdapter.parseResponse(resp);
@@ -235,92 +187,17 @@ async function handleNonStreamingRequest(
 }
 
 /**
- * Handle streaming completion request
+ * Process a successful streaming response
  * @yields string chunks in OpenAI format
  */
-async function* handleStreamingRequest(
-  upstreamUrl: string,
-  upstreamInit: RequestInit,
+async function* processStreamingResponse(
+  resp: Response,
   completion: Completion,
   bearer: string,
-  set: { status?: number | string },
   providerType: string,
   apiKeyRecord: ApiKey | null,
+  begin: number,
 ): AsyncGenerator<string, void, unknown> {
-  const begin = Date.now();
-
-  logger.debug("proxying stream completions request to upstream", {
-    userKey: bearer,
-    upstreamUrl,
-    providerType,
-    stream: true,
-  });
-
-  const [resp, err] = await fetch(upstreamUrl, upstreamInit)
-    .then((r) => [r, null] as [Response, null])
-    .catch((error: unknown) => {
-      logger.error("fetch error", error);
-      return [null, error] as [null, Error];
-    });
-
-  if (!resp) {
-    logger.error("upstream error", {
-      status: 500,
-      msg: "Failed to fetch upstream",
-    });
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: `Failed to fetch upstream. ${err.toString()}`,
-      details: {
-        type: "completionError",
-        data: { type: "fetchError", msg: err.toString() },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion after fetch failure");
-    });
-    set.status = 500;
-    yield JSON.stringify({ error: "Failed to fetch upstream" });
-    return;
-  }
-
-  if (!resp.ok) {
-    const msg = await resp.text();
-    logger.error("upstream error", { status: resp.status, msg });
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: `Upstream error: ${msg}`,
-      details: {
-        type: "completionError",
-        data: { type: "upstreamError", status: resp.status, msg },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion after upstream error");
-    });
-    set.status = resp.status;
-    yield msg;
-    return;
-  }
-
-  if (!resp.body) {
-    logger.error("upstream error", { status: resp.status, msg: "No body" });
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: "No body",
-      details: {
-        type: "completionError",
-        data: { type: "upstreamError", status: resp.status, msg: "No body" },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion after no body error");
-    });
-    set.status = 500;
-    yield JSON.stringify({ error: "No body" });
-    return;
-  }
-
   // Get adapters
   const upstreamAdapter = getUpstreamAdapter(providerType);
   const responseAdapter = getResponseAdapter("openai-chat");
@@ -460,24 +337,7 @@ async function* handleStreamingRequest(
 
     // Handle case where no chunks were received
     if (isFirstChunk) {
-      logger.error("upstream error: no chunk received");
-      completion.status = "failed";
-      addCompletions(completion, bearer, {
-        level: "error",
-        message: "No chunk received",
-        details: {
-          type: "completionError",
-          data: {
-            type: "upstreamError",
-            status: 500,
-            msg: "No chunk received",
-          },
-        },
-      }).catch(() => {
-        logger.error("Failed to log completion after no chunk received");
-      });
-      set.status = 500;
-      yield JSON.stringify({ error: "No chunk received" });
+      throw new Error("No chunk received from upstream");
     }
   } catch (error) {
     logger.error("Stream processing error", error);
@@ -492,10 +352,17 @@ async function* handleStreamingRequest(
     }).catch(() => {
       logger.error("Failed to log completion after stream processing error");
     });
-    set.status = 500;
-    yield JSON.stringify({ error: "Stream processing error" });
+    throw error;
   }
 }
+
+// Failover configuration for completions API
+const COMPLETIONS_FAILOVER_CONFIG: Partial<FailoverConfig> = {
+  maxProviderAttempts: 3,
+  sameProviderRetries: 1,
+  retriableStatusCodes: [429, 500, 502, 503, 504],
+  timeoutMs: 120000, // 2 minutes for completions
+};
 
 export const completionsApi = new Elysia({
   prefix: "/chat",
@@ -516,6 +383,7 @@ export const completionsApi = new Elysia({
       }
 
       const reqHeaders = request.headers;
+      const begin = Date.now();
 
       // Parse model@provider format and extract provider from header
       const { systemName, targetProvider } = parseModelProvider(
@@ -542,12 +410,13 @@ export const completionsApi = new Elysia({
         return;
       }
 
-      // Select model/provider
-      const selected = selectModel(
+      // Filter candidates by target provider (if specified)
+      const filteredCandidates = filterCandidates(
         modelsWithProviders as ModelWithProvider[],
         targetProvider,
       );
-      if (!selected) {
+
+      if (filteredCandidates.length === 0) {
         set.status = 404;
         yield JSON.stringify({
           error: {
@@ -559,7 +428,11 @@ export const completionsApi = new Elysia({
         return;
       }
 
-      const { model: modelConfig, provider } = selected;
+      // Select candidates for failover (weighted random order)
+      const candidates = selectMultipleCandidates(
+        filteredCandidates,
+        COMPLETIONS_FAILOVER_CONFIG.maxProviderAttempts || 3,
+      );
 
       // Extract extra headers for passthrough
       const extraHeaders = extractUpstreamHeaders(reqHeaders);
@@ -570,10 +443,7 @@ export const completionsApi = new Elysia({
         body as Record<string, unknown>,
       );
 
-      // Update model in internal request to use remote ID
-      internalRequest.model = modelConfig.remoteId ?? modelConfig.systemName;
-
-      // Add extra headers
+      // Add extra headers to internal request
       if (extraHeaders) {
         internalRequest.extraHeaders = {
           ...internalRequest.extraHeaders,
@@ -581,25 +451,16 @@ export const completionsApi = new Elysia({
         };
       }
 
-      // Get provider type (default to openai for compatibility)
-      const providerType = provider.type || "openai";
+      // Build request function for failover
+      const buildRequestForProvider = (mp: ModelWithProvider) => {
+        // Clone internal request and update model
+        const req = { ...internalRequest };
+        req.model = mp.model.remoteId ?? mp.model.systemName;
 
-      // Build upstream request using adapter
-      const upstreamAdapter = getUpstreamAdapter(providerType);
-      const { url: upstreamUrl, init: upstreamInit } =
-        upstreamAdapter.buildRequest(internalRequest, provider);
-
-      // Build completion record for logging (with full message data)
-      // tools and tool_choice are now validated by schema
-      const completion = buildCompletionRecord(
-        body.model,
-        modelConfig.id,
-        body.messages as CompletionsMessageType[],
-        body.tools as ToolDefinitionType[] | undefined,
-        body.tool_choice as ToolChoiceType | undefined,
-        internalRequest.extraParams,
-        extraHeaders,
-      );
+        const providerType = mp.provider.type || "openai";
+        const upstreamAdapter = getUpstreamAdapter(providerType);
+        return upstreamAdapter.buildRequest(req, mp.provider);
+      };
 
       // Handle streaming vs non-streaming
       if (internalRequest.stream) {
@@ -611,26 +472,161 @@ export const completionsApi = new Elysia({
           return;
         }
 
-        yield* handleStreamingRequest(
-          upstreamUrl,
-          upstreamInit,
-          completion,
-          bearer,
-          set,
-          providerType,
-          apiKeyRecord ?? null,
+        // For streaming, use failover only for connection establishment
+        const result = await executeWithFailover(
+          candidates,
+          buildRequestForProvider,
+          COMPLETIONS_FAILOVER_CONFIG,
         );
+
+        if (!result.success) {
+          const completion = buildCompletionRecord(
+            body.model,
+            result.provider?.model.id ?? candidates[0]?.model.id,
+            body.messages as CompletionsMessageType[],
+            body.tools as ToolDefinitionType[] | undefined,
+            body.tool_choice as ToolChoiceType | undefined,
+            internalRequest.extraParams,
+            extraHeaders,
+          );
+
+          const errorResult = await processFailoverError(result, completion, bearer, "streaming");
+
+          if (errorResult.type === "upstream_error") {
+            set.status = errorResult.status;
+            yield errorResult.body;
+            return;
+          }
+
+          set.status = 502;
+          yield JSON.stringify({
+            error: {
+              message: "All upstream providers failed",
+              type: "upstream_error",
+              code: "all_providers_failed",
+            },
+          });
+          return;
+        }
+
+        if (!result.response || !result.provider) {
+          set.status = 500;
+          yield JSON.stringify({ error: "Internal server error" });
+          return;
+        }
+
+        if (!result.response.body) {
+          set.status = 500;
+          yield JSON.stringify({ error: "No body in response" });
+          return;
+        }
+
+        const providerType = result.provider.provider.type || "openai";
+        const completion = buildCompletionRecord(
+          body.model,
+          result.provider.model.id,
+          body.messages as CompletionsMessageType[],
+          body.tools as ToolDefinitionType[] | undefined,
+          body.tool_choice as ToolChoiceType | undefined,
+          internalRequest.extraParams,
+          extraHeaders,
+        );
+
+        try {
+          yield* processStreamingResponse(
+            result.response,
+            completion,
+            bearer,
+            providerType,
+            apiKeyRecord ?? null,
+            begin,
+          );
+        } catch (error) {
+          logger.error("Stream processing error", error);
+          set.status = 500;
+          yield JSON.stringify({ error: "Stream processing error" });
+        }
       } else {
-        const response = await handleNonStreamingRequest(
-          upstreamUrl,
-          upstreamInit,
-          completion,
-          bearer,
-          set,
-          providerType,
-          apiKeyRecord ?? null,
+        // Non-streaming request with failover
+        const result = await executeWithFailover(
+          candidates,
+          buildRequestForProvider,
+          COMPLETIONS_FAILOVER_CONFIG,
         );
-        yield response;
+
+        if (!result.success) {
+          const completion = buildCompletionRecord(
+            body.model,
+            result.provider?.model.id ?? candidates[0]?.model.id,
+            body.messages as CompletionsMessageType[],
+            body.tools as ToolDefinitionType[] | undefined,
+            body.tool_choice as ToolChoiceType | undefined,
+            internalRequest.extraParams,
+            extraHeaders,
+          );
+
+          const errorResult = await processFailoverError(result, completion, bearer, "non-streaming");
+
+          if (errorResult.type === "upstream_error") {
+            set.status = errorResult.status;
+            yield errorResult.body;
+            return;
+          }
+
+          set.status = 502;
+          yield JSON.stringify({
+            error: {
+              message: "All upstream providers failed",
+              type: "upstream_error",
+              code: "all_providers_failed",
+            },
+          });
+          return;
+        }
+
+        if (!result.response || !result.provider) {
+          set.status = 500;
+          yield JSON.stringify({ error: "Internal server error" });
+          return;
+        }
+
+        const providerType = result.provider.provider.type || "openai";
+        const completion = buildCompletionRecord(
+          body.model,
+          result.provider.model.id,
+          body.messages as CompletionsMessageType[],
+          body.tools as ToolDefinitionType[] | undefined,
+          body.tool_choice as ToolChoiceType | undefined,
+          internalRequest.extraParams,
+          extraHeaders,
+        );
+
+        try {
+          const response = await processNonStreamingResponse(
+            result.response,
+            completion,
+            bearer,
+            providerType,
+            apiKeyRecord ?? null,
+            begin,
+          );
+          yield response;
+        } catch (error) {
+          logger.error("Failed to process response", error);
+          completion.status = "failed";
+          addCompletions(completion, bearer, {
+            level: "error",
+            message: `Response processing error: ${String(error)}`,
+            details: {
+              type: "completionError",
+              data: { type: "processingError", msg: String(error) },
+            },
+          }).catch(() => {
+            logger.error("Failed to log completion after processing error");
+          });
+          set.status = 500;
+          yield JSON.stringify({ error: "Failed to process response" });
+        }
       }
     },
     {

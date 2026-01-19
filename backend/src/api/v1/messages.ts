@@ -17,12 +17,18 @@ import { apiKeyRateLimitPlugin, consumeTokens } from "@/plugins/apiKeyRateLimitP
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import {
   extractUpstreamHeaders,
-  selectModel,
+  filterCandidates,
   extractContentText,
   parseModelProvider,
+  processFailoverError,
   PROVIDER_HEADER,
 } from "@/utils/api-helpers";
 import { addCompletions, type Completion } from "@/utils/completions";
+import {
+  executeWithFailover,
+  selectMultipleCandidates,
+  type FailoverConfig,
+} from "@/services/failover";
 
 const logger = consola.withTag("messagesApi");
 
@@ -118,7 +124,7 @@ const tAnthropicMessageCreate = t.Object(
  */
 function buildCompletionRecord(
   requestedModel: string,
-  modelId: number,
+  modelId: number | undefined,
   messages: Array<{ role: string; content: unknown }>,
   extraBody?: Record<string, unknown>,
   extraHeaders?: Record<string, string>,
@@ -146,73 +152,16 @@ function buildCompletionRecord(
 }
 
 /**
- * Handle non-streaming message request
+ * Process a successful non-streaming message response
  */
-async function handleNonStreamingRequest(
-  upstreamUrl: string,
-  upstreamInit: RequestInit,
+async function processNonStreamingResponse(
+  resp: Response,
   completion: Completion,
   bearer: string,
-  set: { status?: number | string },
   providerType: string,
   apiKeyRecord: ApiKey | null,
+  begin: number,
 ): Promise<string> {
-  const begin = Date.now();
-
-  logger.debug("proxying messages request to upstream", {
-    bearer,
-    upstreamUrl,
-    providerType,
-  });
-
-  const [resp, err] = await fetch(upstreamUrl, upstreamInit)
-    .then((r) => [r, null] as [Response, null])
-    .catch((error: unknown) => {
-      logger.error("fetch error", error);
-      return [null, error] as [null, Error];
-    });
-
-  if (!resp) {
-    logger.error("upstream error", {
-      status: 500,
-      msg: "Failed to fetch upstream",
-    });
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: `Failed to fetch upstream. ${err.toString()}`,
-      details: {
-        type: "completionError",
-        data: { type: "fetchError", msg: err.toString() },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion after fetch failure");
-    });
-    set.status = 500;
-    return JSON.stringify({
-      type: "error",
-      error: { type: "api_error", message: "Failed to fetch upstream" },
-    });
-  }
-
-  if (!resp.ok) {
-    const msg = await resp.text();
-    logger.error("upstream error", { status: resp.status, msg });
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: `Upstream error: ${msg}`,
-      details: {
-        type: "completionError",
-        data: { type: "upstreamError", status: resp.status, msg },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion after upstream error");
-    });
-    set.status = resp.status;
-    return msg;
-  }
-
   // Parse response using upstream adapter
   const upstreamAdapter = getUpstreamAdapter(providerType);
   const internalResponse = await upstreamAdapter.parseResponse(resp);
@@ -248,92 +197,17 @@ async function handleNonStreamingRequest(
 }
 
 /**
- * Handle streaming message request
+ * Process a successful streaming message response
  * @yields string - SSE formatted string chunks
  */
-async function* handleStreamingRequest(
-  upstreamUrl: string,
-  upstreamInit: RequestInit,
+async function* processStreamingResponse(
+  resp: Response,
   completion: Completion,
   bearer: string,
-  set: { status?: number | string },
   providerType: string,
   apiKeyRecord: ApiKey | null,
+  begin: number,
 ): AsyncGenerator<string, void, unknown> {
-  const begin = Date.now();
-
-  logger.debug("proxying stream messages request to upstream", {
-    userKey: bearer,
-    upstreamUrl,
-    providerType,
-    stream: true,
-  });
-
-  const [resp, err] = await fetch(upstreamUrl, upstreamInit)
-    .then((r) => [r, null] as [Response, null])
-    .catch((error: unknown) => {
-      logger.error("fetch error", error);
-      return [null, error] as [null, Error];
-    });
-
-  if (!resp) {
-    logger.error("upstream error", {
-      status: 500,
-      msg: "Failed to fetch upstream",
-    });
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: `Failed to fetch upstream. ${err.toString()}`,
-      details: {
-        type: "completionError",
-        data: { type: "fetchError", msg: err.toString() },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion after fetch error");
-    });
-    set.status = 500;
-    yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "Failed to fetch upstream" } })}\n\n`;
-    return;
-  }
-
-  if (!resp.ok) {
-    const msg = await resp.text();
-    logger.error("upstream error", { status: resp.status, msg });
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: `Upstream error: ${msg}`,
-      details: {
-        type: "completionError",
-        data: { type: "upstreamError", status: resp.status, msg },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion after upstream error");
-    });
-    set.status = resp.status;
-    yield msg;
-    return;
-  }
-
-  if (!resp.body) {
-    logger.error("upstream error", { status: resp.status, msg: "No body" });
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: "No body",
-      details: {
-        type: "completionError",
-        data: { type: "upstreamError", status: resp.status, msg: "No body" },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion after no body error");
-    });
-    set.status = 500;
-    yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "No body" } })}\n\n`;
-    return;
-  }
-
   // Get adapters
   const upstreamAdapter = getUpstreamAdapter(providerType);
   const responseAdapter = getResponseAdapter("anthropic");
@@ -406,25 +280,9 @@ async function* handleStreamingRequest(
       await consumeTokens(apiKeyRecord.id, apiKeyRecord.tpmLimit, totalTokens);
     }
 
+    // Handle case where no chunks were received
     if (isFirstChunk) {
-      logger.error("upstream error: no chunk received");
-      completion.status = "failed";
-      addCompletions(completion, bearer, {
-        level: "error",
-        message: "No chunk received",
-        details: {
-          type: "completionError",
-          data: {
-            type: "upstreamError",
-            status: 500,
-            msg: "No chunk received",
-          },
-        },
-      }).catch(() => {
-        logger.error("Failed to log completion after no chunk received");
-      });
-      set.status = 500;
-      yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "No chunk received" } })}\n\n`;
+      throw new Error("No chunk received from upstream");
     }
   } catch (error) {
     logger.error("Stream processing error", error);
@@ -439,10 +297,17 @@ async function* handleStreamingRequest(
     }).catch(() => {
       logger.error("Failed to log completion after stream error");
     });
-    set.status = 500;
-    yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "Stream processing error" } })}\n\n`;
+    throw error;
   }
 }
+
+// Failover configuration for messages API
+const MESSAGES_FAILOVER_CONFIG: Partial<FailoverConfig> = {
+  maxProviderAttempts: 3,
+  sameProviderRetries: 1,
+  retriableStatusCodes: [429, 500, 502, 503, 504],
+  timeoutMs: 120000, // 2 minutes for messages
+};
 
 export const messagesApi = new Elysia({
   detail: {
@@ -465,6 +330,7 @@ export const messagesApi = new Elysia({
       }
 
       const reqHeaders = request.headers;
+      const begin = Date.now();
 
       // Parse model@provider format and extract provider from header
       const { systemName, targetProvider } = parseModelProvider(
@@ -491,12 +357,13 @@ export const messagesApi = new Elysia({
         return;
       }
 
-      // Select model/provider
-      const selected = selectModel(
+      // Filter candidates by target provider (if specified)
+      const filteredCandidates = filterCandidates(
         modelsWithProviders as ModelWithProvider[],
         targetProvider,
       );
-      if (!selected) {
+
+      if (filteredCandidates.length === 0) {
         set.status = 404;
         yield JSON.stringify({
           type: "error",
@@ -508,7 +375,11 @@ export const messagesApi = new Elysia({
         return;
       }
 
-      const { model: modelConfig, provider } = selected;
+      // Select candidates for failover (weighted random order)
+      const candidates = selectMultipleCandidates(
+        filteredCandidates,
+        MESSAGES_FAILOVER_CONFIG.maxProviderAttempts || 3,
+      );
 
       // Extract extra headers for passthrough
       const extraHeaders = extractUpstreamHeaders(reqHeaders);
@@ -519,10 +390,7 @@ export const messagesApi = new Elysia({
         body as Record<string, unknown>,
       );
 
-      // Update model in internal request to use remote ID
-      internalRequest.model = modelConfig.remoteId ?? modelConfig.systemName;
-
-      // Add extra headers
+      // Add extra headers to internal request
       if (extraHeaders) {
         internalRequest.extraHeaders = {
           ...internalRequest.extraHeaders,
@@ -530,45 +398,178 @@ export const messagesApi = new Elysia({
         };
       }
 
-      // Get provider type (default to openai for compatibility)
-      const providerType = provider.type || "openai";
+      // Build request function for failover
+      const buildRequestForProvider = (mp: ModelWithProvider) => {
+        // Clone internal request and update model
+        const req = { ...internalRequest };
+        req.model = mp.model.remoteId ?? mp.model.systemName;
 
-      // Build upstream request using adapter
-      const upstreamAdapter = getUpstreamAdapter(providerType);
-      const { url: upstreamUrl, init: upstreamInit } =
-        upstreamAdapter.buildRequest(internalRequest, provider);
-
-      // Build completion record for logging
-      const completion = buildCompletionRecord(
-        body.model,
-        modelConfig.id,
-        body.messages,
-        internalRequest.extraParams,
-        extraHeaders,
-      );
+        const providerType = mp.provider.type || "openai";
+        const upstreamAdapter = getUpstreamAdapter(providerType);
+        return upstreamAdapter.buildRequest(req, mp.provider);
+      };
 
       // Handle streaming vs non-streaming
       if (internalRequest.stream) {
-        yield* handleStreamingRequest(
-          upstreamUrl,
-          upstreamInit,
-          completion,
-          bearer,
-          set,
-          providerType,
-          apiKeyRecord ?? null,
+        // For streaming, use failover only for connection establishment
+        const result = await executeWithFailover(
+          candidates,
+          buildRequestForProvider,
+          MESSAGES_FAILOVER_CONFIG,
         );
+
+        if (!result.success) {
+          const completion = buildCompletionRecord(
+            body.model,
+            result.provider?.model.id ?? candidates[0]?.model.id,
+            body.messages,
+            internalRequest.extraParams,
+            extraHeaders,
+          );
+
+          const errorResult = await processFailoverError(result, completion, bearer, "streaming");
+
+          if (errorResult.type === "upstream_error") {
+            set.status = errorResult.status;
+            yield errorResult.body;
+            return;
+          }
+
+          set.status = 502;
+          yield JSON.stringify({
+            type: "error",
+            error: {
+              type: "api_error",
+              message: "All upstream providers failed",
+            },
+          });
+          return;
+        }
+
+        if (!result.response || !result.provider) {
+          set.status = 500;
+          yield JSON.stringify({
+            type: "error",
+            error: { type: "api_error", message: "Internal server error" },
+          });
+          return;
+        }
+
+        if (!result.response.body) {
+          set.status = 500;
+          yield JSON.stringify({
+            type: "error",
+            error: { type: "api_error", message: "No body in response" },
+          });
+          return;
+        }
+
+        const providerType = result.provider.provider.type || "openai";
+        const completion = buildCompletionRecord(
+          body.model,
+          result.provider.model.id,
+          body.messages,
+          internalRequest.extraParams,
+          extraHeaders,
+        );
+
+        try {
+          yield* processStreamingResponse(
+            result.response,
+            completion,
+            bearer,
+            providerType,
+            apiKeyRecord ?? null,
+            begin,
+          );
+        } catch (error) {
+          logger.error("Stream processing error", error);
+          set.status = 500;
+          yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "server_error", message: "Stream processing error" } })}\n\n`;
+        }
       } else {
-        const response = await handleNonStreamingRequest(
-          upstreamUrl,
-          upstreamInit,
-          completion,
-          bearer,
-          set,
-          providerType,
-          apiKeyRecord ?? null,
+        // Non-streaming request with failover
+        const result = await executeWithFailover(
+          candidates,
+          buildRequestForProvider,
+          MESSAGES_FAILOVER_CONFIG,
         );
-        yield response;
+
+        if (!result.success) {
+          const completion = buildCompletionRecord(
+            body.model,
+            result.provider?.model.id ?? candidates[0]?.model.id,
+            body.messages,
+            internalRequest.extraParams,
+            extraHeaders,
+          );
+
+          const errorResult = await processFailoverError(result, completion, bearer, "non-streaming");
+
+          if (errorResult.type === "upstream_error") {
+            set.status = errorResult.status;
+            yield errorResult.body;
+            return;
+          }
+
+          set.status = 502;
+          yield JSON.stringify({
+            type: "error",
+            error: {
+              type: "api_error",
+              message: "All upstream providers failed",
+            },
+          });
+          return;
+        }
+
+        if (!result.response || !result.provider) {
+          set.status = 500;
+          yield JSON.stringify({
+            type: "error",
+            error: { type: "api_error", message: "Internal server error" },
+          });
+          return;
+        }
+
+        const providerType = result.provider.provider.type || "openai";
+        const completion = buildCompletionRecord(
+          body.model,
+          result.provider.model.id,
+          body.messages,
+          internalRequest.extraParams,
+          extraHeaders,
+        );
+
+        try {
+          const response = await processNonStreamingResponse(
+            result.response,
+            completion,
+            bearer,
+            providerType,
+            apiKeyRecord ?? null,
+            begin,
+          );
+          yield response;
+        } catch (error) {
+          logger.error("Failed to process response", error);
+          completion.status = "failed";
+          addCompletions(completion, bearer, {
+            level: "error",
+            message: `Response processing error: ${String(error)}`,
+            details: {
+              type: "completionError",
+              data: { type: "processingError", msg: String(error) },
+            },
+          }).catch(() => {
+            logger.error("Failed to log completion after processing error");
+          });
+          set.status = 500;
+          yield JSON.stringify({
+            type: "error",
+            error: { type: "api_error", message: "Failed to process response" },
+          });
+        }
       }
     },
     {

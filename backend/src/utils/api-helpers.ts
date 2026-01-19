@@ -81,6 +81,36 @@ export function extractUpstreamHeaders(
 // =============================================================================
 
 /**
+ * Filter candidates by target provider if specified
+ * Returns all matching candidates (for use with failover)
+ */
+export function filterCandidates(
+  modelsWithProviders: ModelWithProvider[],
+  targetProvider?: string,
+): ModelWithProvider[] {
+  if (modelsWithProviders.length === 0) {
+    return [];
+  }
+
+  if (!targetProvider) {
+    return modelsWithProviders;
+  }
+
+  const filtered = modelsWithProviders.filter(
+    (mp) => mp.provider.name === targetProvider,
+  );
+
+  if (filtered.length > 0) {
+    return filtered;
+  }
+
+  logger.warn(
+    `Provider '${targetProvider}' does not offer requested model, falling back to available providers`,
+  );
+  return modelsWithProviders;
+}
+
+/**
  * Select the best model/provider combination based on target provider and weights
  * Uses weighted random selection for load balancing across multiple providers
  */
@@ -212,4 +242,105 @@ export function parseModelProvider(
     : modelMatch?.[2];
 
   return { systemName, targetProvider };
+}
+
+// =============================================================================
+// Failover Error Handling
+// =============================================================================
+
+import type { FailoverResult, FailoverError } from "@/services/failover";
+import { addCompletions, type Completion } from "@/utils/completions";
+
+/**
+ * Result of processing a failover error
+ */
+export type FailoverErrorResult =
+  | {
+      type: "upstream_error";
+      status: number;
+      body: string;
+    }
+  | {
+      type: "failover_exhausted";
+      status: 502;
+    };
+
+/**
+ * Generate error summary from failover errors
+ */
+export function getErrorSummary(errors: FailoverError[]): string {
+  return errors.map((e) => `${e.providerName}: ${e.error}`).join("; ");
+}
+
+/**
+ * Process failover error and update completion record
+ * Returns structured result indicating error type and response data
+ *
+ * @param result - The failover result (must have success=false)
+ * @param completion - The completion record to update (will be mutated)
+ * @param bearer - API key for logging
+ * @param requestType - "streaming" or "non-streaming" for log messages
+ */
+export async function processFailoverError(
+  result: FailoverResult<Response>,
+  completion: Completion,
+  bearer: string,
+  requestType: "streaming" | "non-streaming",
+): Promise<FailoverErrorResult> {
+  completion.status = "failed";
+  const errorSummary = getErrorSummary(result.errors);
+
+  // Non-retriable HTTP error from upstream - forward the response
+  if (result.response) {
+    logger.warn(`Non-retriable upstream error for ${requestType} request`, {
+      status: result.response.status,
+      provider: result.provider?.provider.name,
+    });
+
+    addCompletions(completion, bearer, {
+      level: "error",
+      message: `Upstream error (non-retriable): ${errorSummary}`,
+      details: {
+        type: "completionError",
+        data: {
+          type: "upstreamError",
+          msg: result.finalError,
+        },
+      },
+    }).catch(() => {
+      logger.error("Failed to log completion after upstream error");
+    });
+
+    const responseBody = await result.response.text();
+    return {
+      type: "upstream_error",
+      status: result.response.status,
+      body: responseBody,
+    };
+  }
+
+  // All providers failed with retriable errors or network errors
+  logger.error(`All providers failed for ${requestType} request`, {
+    errors: result.errors,
+    totalAttempts: result.totalAttempts,
+  });
+
+  addCompletions(completion, bearer, {
+    level: "error",
+    message: `All providers failed (${result.totalAttempts} attempts): ${errorSummary}`,
+    details: {
+      type: "completionError",
+      data: {
+        type: "failoverExhausted",
+        msg: result.finalError,
+      },
+    },
+  }).catch(() => {
+    logger.error("Failed to log completion after failover exhaustion");
+  });
+
+  return {
+    type: "failover_exhausted",
+    status: 502,
+  };
 }

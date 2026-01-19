@@ -122,15 +122,19 @@ export function isRetriableNetworkError(
   if (error.name === "AbortError") {
     return true;
   }
-  // Check error message for common network issues
+  // Check error message for specific transient network issues
+  // Use specific phrases to avoid false positives (e.g., "invalid network configuration")
   const message = error.message.toLowerCase();
   return (
+    message.includes("timed out") ||
     message.includes("timeout") ||
-    message.includes("aborted") ||
-    message.includes("econnreset") ||
-    message.includes("econnrefused") ||
-    message.includes("network") ||
-    message.includes("socket hang up")
+    message.includes("the operation was aborted") ||
+    message.includes("connection reset") ||
+    message.includes("connection refused") ||
+    message.includes("network error") ||
+    message.includes("network request failed") ||
+    message.includes("socket hang up") ||
+    message.includes("fetch failed")
   );
 }
 
@@ -188,23 +192,13 @@ export async function executeWithFailover(
 ): Promise<FailoverResult<Response>> {
   const cfg: FailoverConfig = { ...DEFAULT_FAILOVER_CONFIG, ...config };
   const errors: FailoverError[] = [];
-  const triedProviders = new Set<number>();
   let totalAttempts = 0;
 
-  // Limit candidates to maxProviderAttempts
-  const maxProviders = Math.min(candidates.length, cfg.maxProviderAttempts);
+  // Limit candidates to maxProviderAttempts and iterate in order
+  // candidates are already unique and ordered by selectMultipleCandidates
+  const providersToTry = candidates.slice(0, cfg.maxProviderAttempts);
 
-  for (let providerIndex = 0; providerIndex < maxProviders; providerIndex++) {
-    // Select next provider (skip already tried ones)
-    const provider = candidates.find(
-      (c) => !triedProviders.has(c.provider.id),
-    );
-    if (!provider) {
-      logger.debug("No more providers to try");
-      break;
-    }
-
-    triedProviders.add(provider.provider.id);
+  for (const [providerIndex, provider] of providersToTry.entries()) {
     const { url, init } = buildRequest(provider);
 
     // Try this provider with same-provider retries for transient errors
@@ -336,7 +330,7 @@ export async function executeWithFailover(
   const lastError = errors[errors.length - 1];
   logger.error("All providers exhausted", {
     totalAttempts,
-    providersAttempted: triedProviders.size,
+    providersAttempted: providersToTry.length,
     errors: errors.map((e) => ({
       provider: e.providerName,
       error: e.error,

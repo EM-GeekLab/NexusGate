@@ -465,12 +465,10 @@ function getMessageText(message: RequestMessage): string {
 function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
   const { t } = useTranslation()
 
-  // Parse arguments if it's a string
+  // Parse arguments JSON string
   let parsedArgs: Record<string, unknown> | null = null
   try {
-    parsedArgs = typeof toolCall.function.arguments === 'string'
-      ? JSON.parse(toolCall.function.arguments)
-      : toolCall.function.arguments
+    parsedArgs = JSON.parse(toolCall.function.arguments)
   } catch {
     // If parsing fails, leave as null and show raw string
   }

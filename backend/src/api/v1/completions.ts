@@ -19,6 +19,7 @@ import type {
   CompletionsMessageType,
   ToolDefinitionType,
   ToolCallType,
+  ToolChoiceType,
 } from "@/db/schema";
 import {
   extractUpstreamHeaders,
@@ -66,7 +67,7 @@ function buildCompletionRecord(
   modelId: number,
   messages: CompletionsMessageType[],
   tools?: ToolDefinitionType[],
-  toolChoice?: "auto" | "none" | "required" | { type: "function"; function: { name: string } },
+  toolChoice?: ToolChoiceType,
   extraBody?: Record<string, unknown>,
   extraHeaders?: Record<string, string>,
 ): Completion {
@@ -533,12 +534,7 @@ export const completionsApi = new Elysia({
       // Extract tools and tool_choice from request body for logging
       const rawBody = body as Record<string, unknown>;
       const tools = rawBody.tools as ToolDefinitionType[] | undefined;
-      const toolChoice = rawBody.tool_choice as
-        | "auto"
-        | "none"
-        | "required"
-        | { type: "function"; function: { name: string } }
-        | undefined;
+      const toolChoice = rawBody.tool_choice as ToolChoiceType | undefined;
 
       // Build completion record for logging (with full message data)
       const completion = buildCompletionRecord(

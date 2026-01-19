@@ -84,6 +84,15 @@ export type ToolDefinitionType = {
 };
 
 /**
+ * Tool choice configuration (OpenAI format)
+ */
+export type ToolChoiceType =
+  | "auto"
+  | "none"
+  | "required"
+  | { type: "function"; function: { name: string } };
+
+/**
  * Message content part (for multi-part messages)
  */
 export type MessageContentPartType =
@@ -110,7 +119,7 @@ export type CompletionsPromptType = {
   // Tool definitions passed in the request
   tools?: ToolDefinitionType[];
   // Tool choice configuration
-  tool_choice?: "auto" | "none" | "required" | { type: "function"; function: { name: string } };
+  tool_choice?: ToolChoiceType;
   // Extra body fields passed through to upstream
   extraBody?: Record<string, unknown>;
   // Extra headers passed through to upstream

@@ -11,6 +11,16 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
+/**
+ * API Key source enum - tracks how the key was created
+ */
+export const ApiKeySourceEnum = pgEnum("api_key_source", [
+  "manual", // Created manually via UI or API
+  "operator", // Created by K8s Operator
+  "init", // Created from init config
+]);
+export type ApiKeySourceEnumType = (typeof ApiKeySourceEnum.enumValues)[number];
+
 export const ApiKeysTable = pgTable("api_keys", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   key: varchar("key", {
@@ -27,6 +37,9 @@ export const ApiKeysTable = pgTable("api_keys", {
   // Rate limit configuration
   rpmLimit: integer("rpm_limit").notNull().default(50), // Requests per minute
   tpmLimit: integer("tpm_limit").notNull().default(50000), // Tokens per minute
+  // External system integration (for K8s Operator)
+  externalId: varchar("external_id", { length: 127 }).unique(), // e.g., k8s/cluster/namespace/appName
+  source: ApiKeySourceEnum("source").default("manual"), // How the key was created
 });
 
 export const UpstreamTable = pgTable("upstreams", {

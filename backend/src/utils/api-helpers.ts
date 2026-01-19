@@ -82,6 +82,7 @@ export function extractUpstreamHeaders(
 
 /**
  * Select the best model/provider combination based on target provider and weights
+ * Uses weighted random selection for load balancing across multiple providers
  */
 export function selectModel(
   modelsWithProviders: ModelWithProvider[],
@@ -106,8 +107,33 @@ export function selectModel(
     }
   }
 
-  // TODO: implement weighted load balancing
-  return candidates[0] || null;
+  // Single candidate, return directly
+  if (candidates.length === 1) {
+    // oxlint-disable-next-line no-unnecessary-type-assertion
+    return candidates[0]!; // TypeScript needs assertion here
+  }
+
+  // Weighted random selection for load balancing
+  const totalWeight = candidates.reduce((sum, c) => sum + c.model.weight, 0);
+  const random = Math.random() * totalWeight;
+
+  let cumulative = 0;
+  for (const candidate of candidates) {
+    cumulative += candidate.model.weight;
+    if (random < cumulative) {
+      logger.debug("Selected model via weighted random", {
+        modelId: candidate.model.id,
+        providerId: candidate.provider.id,
+        providerName: candidate.provider.name,
+        weight: candidate.model.weight,
+        totalWeight,
+      });
+      return candidate;
+    }
+  }
+
+  // Fallback (should not happen)
+  return candidates[0] ?? null;
 }
 
 // =============================================================================

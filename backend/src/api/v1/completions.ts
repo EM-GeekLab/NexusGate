@@ -42,19 +42,59 @@ const tStreamOptions = t.Object({
   include_usage: t.Optional(t.Boolean()),
 });
 
+// Tool function definition schema
+const tToolFunction = t.Object({
+  name: t.String(),
+  description: t.Optional(t.String()),
+  parameters: t.Optional(t.Record(t.String(), t.Unknown())),
+});
+
+// Tool definition schema
+const tToolDefinition = t.Object({
+  type: t.Literal("function"),
+  function: tToolFunction,
+});
+
+// Tool choice schema - can be string or object
+const tToolChoice = t.Union([
+  t.Literal("auto"),
+  t.Literal("none"),
+  t.Literal("required"),
+  t.Object({
+    type: t.Literal("function"),
+    function: t.Object({ name: t.String() }),
+  }),
+]);
+
+// Message schema - supports various message types
+const tMessage = t.Object(
+  {
+    role: t.String(),
+    content: t.Optional(t.Union([t.String(), t.Null()])),
+    tool_calls: t.Optional(t.Array(t.Object({
+      id: t.String(),
+      type: t.Literal("function"),
+      function: t.Object({
+        name: t.String(),
+        arguments: t.String(),
+      }),
+    }))),
+    tool_call_id: t.Optional(t.String()),
+    name: t.Optional(t.String()),
+  },
+  { additionalProperties: true },
+);
+
 // loose validation, only check required fields
 const tChatCompletionCreate = t.Object(
   {
-    messages: t.Array(
-      t.Object({
-        role: t.String(),
-        content: t.String(),
-      }),
-    ),
+    messages: t.Array(tMessage),
     model: t.String(),
     n: t.Optional(t.Number()),
     stream: t.Optional(t.Boolean()),
     stream_options: t.Optional(tStreamOptions),
+    tools: t.Optional(t.Array(tToolDefinition)),
+    tool_choice: t.Optional(tToolChoice),
   },
   { additionalProperties: true },
 );
@@ -549,18 +589,14 @@ export const completionsApi = new Elysia({
       const { url: upstreamUrl, init: upstreamInit } =
         upstreamAdapter.buildRequest(internalRequest, provider);
 
-      // Extract tools and tool_choice from request body for logging
-      const rawBody = body as Record<string, unknown>;
-      const tools = rawBody.tools as ToolDefinitionType[] | undefined;
-      const toolChoice = rawBody.tool_choice as ToolChoiceType | undefined;
-
       // Build completion record for logging (with full message data)
+      // tools and tool_choice are now validated by schema
       const completion = buildCompletionRecord(
         body.model,
         modelConfig.id,
-        rawBody.messages as CompletionsMessageType[],
-        tools,
-        toolChoice,
+        body.messages as CompletionsMessageType[],
+        body.tools as ToolDefinitionType[] | undefined,
+        body.tool_choice as ToolChoiceType | undefined,
         internalRequest.extraParams,
         extraHeaders,
       );

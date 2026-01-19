@@ -295,8 +295,12 @@ async function* handleStreamingRequest(
   let outputTokens = -1;
 
   // Track tool calls during streaming
-  const streamToolCalls: Map<number, ToolCallType> = new Map();
-  const toolCallArguments: Map<number, string[]> = new Map();
+  // Use Map with tool call ID as key to avoid index collision issues
+  const streamToolCalls: Map<string, ToolCallType> = new Map();
+  const toolCallArguments: Map<string, string[]> = new Map();
+  // Track index-to-id mapping for chunks that only provide index
+  const indexToIdMap: Map<number, string> = new Map();
+  let nextToolCallIndex = 0;
 
   try {
     const chunks = upstreamAdapter.parseStreamResponse(resp);
@@ -311,16 +315,18 @@ async function* handleStreamingRequest(
       if (chunk.type === "content_block_start") {
         // Track new tool call block
         if (chunk.contentBlock?.type === "tool_use") {
-          const index = chunk.index ?? 0;
-          streamToolCalls.set(index, {
-            id: chunk.contentBlock.id,
+          const toolId = chunk.contentBlock.id;
+          const index = chunk.index ?? nextToolCallIndex++;
+          indexToIdMap.set(index, toolId);
+          streamToolCalls.set(toolId, {
+            id: toolId,
             type: "function",
             function: {
               name: chunk.contentBlock.name,
               arguments: "",
             },
           });
-          toolCallArguments.set(index, []);
+          toolCallArguments.set(toolId, []);
         }
       } else if (chunk.type === "content_block_delta") {
         if (chunk.delta?.type === "text_delta" && chunk.delta.text) {
@@ -331,20 +337,26 @@ async function* handleStreamingRequest(
         ) {
           thinkingParts.push(chunk.delta.thinking);
         } else if (chunk.delta?.type === "input_json_delta" && chunk.delta.partialJson) {
-          // Collect tool call arguments
+          // Collect tool call arguments - lookup by index to get tool ID
           const index = chunk.index ?? 0;
-          const args = toolCallArguments.get(index);
-          if (args) {
-            args.push(chunk.delta.partialJson);
+          const toolId = indexToIdMap.get(index);
+          if (toolId) {
+            const args = toolCallArguments.get(toolId);
+            if (args) {
+              args.push(chunk.delta.partialJson);
+            }
           }
         }
       } else if (chunk.type === "content_block_stop") {
-        // Finalize tool call arguments
+        // Finalize tool call arguments - lookup by index to get tool ID
         const index = chunk.index ?? 0;
-        const toolCall = streamToolCalls.get(index);
-        const args = toolCallArguments.get(index);
-        if (toolCall && args) {
-          toolCall.function.arguments = args.join("");
+        const toolId = indexToIdMap.get(index);
+        if (toolId) {
+          const toolCall = streamToolCalls.get(toolId);
+          const args = toolCallArguments.get(toolId);
+          if (toolCall && args) {
+            toolCall.function.arguments = args.join("");
+          }
         }
       }
 

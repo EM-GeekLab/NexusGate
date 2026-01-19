@@ -122,12 +122,15 @@ function MessageContent({ message }: { message: RequestMessage }) {
   const { t } = useTranslation()
   const messageText = getMessageText(message)
 
+  // Cast message once to access optional tool-related properties
+  const extendedMessage = message as RequestMessage & { tool_call_id?: string; tool_calls?: ToolCall[] }
+
   // Check if this is a tool result message
   const isToolMessage = message.role === 'tool'
-  const toolCallId = 'tool_call_id' in message ? (message as { tool_call_id?: string }).tool_call_id : undefined
+  const toolCallId = extendedMessage.tool_call_id
 
   // Check if this is an assistant message with tool calls
-  const toolCalls = 'tool_calls' in message ? (message as { tool_calls?: ToolCall[] }).tool_calls : undefined
+  const toolCalls = extendedMessage.tool_calls
 
   const { content, reasoning } = match(message)
     .with({ role: 'assistant' }, () => extractReasoning(messageText))
@@ -283,8 +286,9 @@ function RequestMetaInfo() {
     extraBody?: Record<string, unknown>
     extraHeaders?: Record<string, string>
   }
-  const tools = promptData.tools
-  const toolChoice = promptData.tool_choice
+  // Fallback to extraBody for backward compatibility with older records
+  const tools = promptData.tools ?? (promptData.extraBody?.tools as ToolDefinition[] | undefined)
+  const toolChoice = promptData.tool_choice ?? promptData.extraBody?.tool_choice
 
   const descriptions: {
     key: string

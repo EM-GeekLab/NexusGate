@@ -338,24 +338,30 @@ async function* handleStreamingRequest(
           thinkingParts.push(chunk.delta.thinking);
         } else if (chunk.delta?.type === "input_json_delta" && chunk.delta.partialJson) {
           // Collect tool call arguments - lookup by index to get tool ID
-          const index = chunk.index ?? 0;
-          const toolId = indexToIdMap.get(index);
-          if (toolId) {
-            const args = toolCallArguments.get(toolId);
-            if (args) {
-              args.push(chunk.delta.partialJson);
+          // Skip if index is missing to avoid data corruption
+          if (chunk.index !== undefined) {
+            const toolId = indexToIdMap.get(chunk.index);
+            if (toolId) {
+              const args = toolCallArguments.get(toolId);
+              if (args) {
+                args.push(chunk.delta.partialJson);
+              }
             }
+          } else {
+            logger.warn("Received input_json_delta without index, skipping");
           }
         }
       } else if (chunk.type === "content_block_stop") {
         // Finalize tool call arguments - lookup by index to get tool ID
-        const index = chunk.index ?? 0;
-        const toolId = indexToIdMap.get(index);
-        if (toolId) {
-          const toolCall = streamToolCalls.get(toolId);
-          const args = toolCallArguments.get(toolId);
-          if (toolCall && args) {
-            toolCall.function.arguments = args.join("");
+        // Skip if index is missing to avoid data corruption
+        if (chunk.index !== undefined) {
+          const toolId = indexToIdMap.get(chunk.index);
+          if (toolId) {
+            const toolCall = streamToolCalls.get(toolId);
+            const args = toolCallArguments.get(toolId);
+            if (toolCall && args) {
+              toolCall.function.arguments = args.join("");
+            }
           }
         }
       }

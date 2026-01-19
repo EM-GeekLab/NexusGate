@@ -81,6 +81,36 @@ export function extractUpstreamHeaders(
 // =============================================================================
 
 /**
+ * Filter candidates by target provider if specified
+ * Returns all matching candidates (for use with failover)
+ */
+export function filterCandidates(
+  modelsWithProviders: ModelWithProvider[],
+  targetProvider?: string,
+): ModelWithProvider[] {
+  if (modelsWithProviders.length === 0) {
+    return [];
+  }
+
+  if (!targetProvider) {
+    return modelsWithProviders;
+  }
+
+  const filtered = modelsWithProviders.filter(
+    (mp) => mp.provider.name === targetProvider,
+  );
+
+  if (filtered.length > 0) {
+    return filtered;
+  }
+
+  logger.warn(
+    `Provider '${targetProvider}' does not offer requested model, falling back to available providers`,
+  );
+  return modelsWithProviders;
+}
+
+/**
  * Select the best model/provider combination based on target provider and weights
  * Uses weighted random selection for load balancing across multiple providers
  */

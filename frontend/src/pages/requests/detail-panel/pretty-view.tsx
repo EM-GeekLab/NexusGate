@@ -1,5 +1,14 @@
 import type { ComponentProps, ReactNode } from 'react'
-import { CheckIcon, ChevronRightIcon, CopyIcon, ForwardIcon, HelpCircleIcon, ReplyIcon } from 'lucide-react'
+import {
+  CheckIcon,
+  ChevronRightIcon,
+  CopyIcon,
+  ForwardIcon,
+  HelpCircleIcon,
+  ReplyIcon,
+  WrenchIcon,
+  TerminalIcon,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { match, P } from 'ts-pattern'
 
@@ -17,6 +26,26 @@ import { TokenUsage } from './token-usage'
 
 type RequestMessage = ChatRequest['prompt']['messages'][number]
 type ResponseMessage = ChatRequest['completion'][number]
+
+// Tool call type from OpenAI format
+interface ToolCall {
+  id: string
+  type: 'function'
+  function: {
+    name: string
+    arguments: string
+  }
+}
+
+// Tool definition type
+interface ToolDefinition {
+  type: 'function'
+  function: {
+    name: string
+    description?: string
+    parameters?: Record<string, unknown>
+  }
+}
 
 export function MessagesPrettyView() {
   const { t } = useTranslation()
@@ -90,37 +119,83 @@ function MessageTitle({
 }
 
 function MessageContent({ message }: { message: RequestMessage }) {
+  const { t } = useTranslation()
   const messageText = getMessageText(message)
+
+  // Cast message once to access optional tool-related properties
+  const extendedMessage = message as RequestMessage & { tool_call_id?: string; tool_calls?: ToolCall[] }
+
+  // Check if this is a tool result message
+  const isToolMessage = message.role === 'tool'
+  const toolCallId = extendedMessage.tool_call_id
+
+  // Check if this is an assistant message with tool calls
+  const toolCalls = extendedMessage.tool_calls
 
   const { content, reasoning } = match(message)
     .with({ role: 'assistant' }, () => extractReasoning(messageText))
     .otherwise(() => ({ reasoning: null, content: messageText }))
 
   return (
-    <div data-role={message.role} className="data-[role=user]:bg-muted/75 p-4 data-[role=system]:not-last:border-b">
-      <h4 className="text-muted-foreground mb-3 text-sm/none font-semibold">{message.role}</h4>
+    <div data-role={message.role} className="data-[role=user]:bg-muted/75 p-4 data-[role=system]:not-last:border-b data-[role=tool]:bg-amber-50/50 dark:data-[role=tool]:bg-amber-950/20">
+      <h4 className="text-muted-foreground mb-3 flex items-center gap-1.5 text-sm/none font-semibold">
+        {isToolMessage && <TerminalIcon className="size-3.5" />}
+        {message.role}
+        {toolCallId && (
+          <span className="text-muted-foreground/70 font-mono text-xs">({toolCallId})</span>
+        )}
+      </h4>
       {reasoning && <ReasoningContent className="my-4" content={reasoning} />}
-      <Markdown text={content} />
+      {content && <Markdown text={content} />}
+      {toolCalls && toolCalls.length > 0 && (
+        <div className="mt-3 space-y-2">
+          <h5 className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+            <WrenchIcon className="size-3" />
+            {t('pages.requests.detail-panel.pretty-view.ToolCalls')}
+          </h5>
+          {toolCalls.map((toolCall, index) => (
+            <ToolCallDisplay key={toolCall.id || index} toolCall={toolCall} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
 function ResponseMessageContent({ message, className }: { message: ResponseMessage; className?: string }) {
-  const { content, refusal } = message
+  const { t } = useTranslation()
+  const { content, refusal, tool_calls: toolCalls } = message as ResponseMessage & { tool_calls?: ToolCall[] }
 
   const renderResult: ReactNode[] = []
 
   if (content) {
     const { content: text, reasoning } = extractReasoning(content)
     renderResult.push(
-      <>
+      <div key="content-section">
         {reasoning && (
           <div className="p-4 pb-0">
-            <ReasoningContent key="reasoning" content={reasoning} defaultOpen />
+            <ReasoningContent content={reasoning} defaultOpen />
           </div>
         )}
-        <Markdown key="content" className="p-4" text={text} />
-      </>,
+        <Markdown className="p-4" text={text} />
+      </div>,
+    )
+  }
+
+  if (toolCalls && toolCalls.length > 0) {
+    renderResult.push(
+      <div key="tool-calls" className="border-t p-4">
+        <h5 className="text-muted-foreground mb-3 flex items-center gap-1.5 text-xs font-medium">
+          <WrenchIcon className="size-3" />
+          {t('pages.requests.detail-panel.pretty-view.ToolCalls')}
+          <IndicatorBadge>{toolCalls.length}</IndicatorBadge>
+        </h5>
+        <div className="space-y-2">
+          {toolCalls.map((toolCall, index) => (
+            <ToolCallDisplay key={toolCall.id || index} toolCall={toolCall} />
+          ))}
+        </div>
+      </div>,
     )
   }
 
@@ -128,6 +203,15 @@ function ResponseMessageContent({ message, className }: { message: ResponseMessa
     renderResult.push(
       <div key="refusal" className="text-destructive bg-destructive/10 p-4 text-sm">
         {refusal}
+      </div>,
+    )
+  }
+
+  // Show placeholder if no content
+  if (renderResult.length === 0) {
+    renderResult.push(
+      <div key="empty" className="text-muted-foreground p-4 text-sm italic">
+        {t('pages.requests.detail-panel.pretty-view.NoContent')}
       </div>,
     )
   }
@@ -195,6 +279,17 @@ function RequestMetaInfo() {
 
   const data = useRequestDetailContext()
 
+  // Extract tools from prompt (may be stored directly or in extraBody for older records)
+  const promptData = data.prompt as {
+    tools?: ToolDefinition[]
+    tool_choice?: unknown
+    extraBody?: Record<string, unknown>
+    extraHeaders?: Record<string, string>
+  }
+  // Fallback to extraBody for backward compatibility with older records
+  const tools = promptData.tools ?? (promptData.extraBody?.tools as ToolDefinition[] | undefined)
+  const toolChoice = promptData.tool_choice ?? promptData.extraBody?.tool_choice
+
   const descriptions: {
     key: string
     name: ReactNode
@@ -246,17 +341,45 @@ function RequestMetaInfo() {
       className: 'tabular-nums',
     },
     {
+      key: 'tools',
+      name: (
+        <span className="flex items-center gap-1.5">
+          <WrenchIcon className="size-3" />
+          {t('pages.requests.detail-panel.pretty-view.Tools')}
+          <IndicatorBadge>{tools?.length ?? 0}</IndicatorBadge>
+        </span>
+      ),
+      value: tools && tools.length > 0 ? <ToolsDefinitionDisplay tools={tools} /> : '-',
+      hidden: !tools || tools.length === 0,
+      fullWidth: true,
+    },
+    {
+      key: 'toolChoice',
+      name: t('pages.requests.detail-panel.pretty-view.ToolChoice'),
+      value: toolChoice ? (
+        typeof toolChoice === 'string' ? (
+          <span className="font-mono text-xs">{toolChoice}</span>
+        ) : (
+          <pre className="bg-muted/50 max-w-full overflow-auto rounded px-2 py-1 font-mono text-xs whitespace-pre-wrap break-all">
+            {JSON.stringify(toolChoice, null, 2)}
+          </pre>
+        )
+      ) : '-',
+      hidden: !toolChoice,
+      fullWidth: typeof toolChoice === 'object',
+    },
+    {
       key: 'extraBody',
       name: t('pages.requests.detail-panel.pretty-view.ExtraBody'),
-      value: <ExtraDataDisplay data={data.prompt.extraBody} />,
-      hidden: !data.prompt.extraBody,
+      value: <ExtraDataDisplay data={promptData.extraBody} />,
+      hidden: !promptData.extraBody,
       fullWidth: true,
     },
     {
       key: 'extraHeaders',
       name: t('pages.requests.detail-panel.pretty-view.ExtraHeaders'),
-      value: <ExtraDataDisplay data={data.prompt.extraHeaders} />,
-      hidden: !data.prompt.extraHeaders,
+      value: <ExtraDataDisplay data={promptData.extraHeaders} />,
+      hidden: !promptData.extraHeaders,
       fullWidth: true,
     },
   ]
@@ -338,4 +461,93 @@ function getMessageText(message: RequestMessage): string {
           .join(''),
     )
     .otherwise(() => '')
+}
+
+/**
+ * Component to display a single tool call
+ */
+function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
+  const { t } = useTranslation()
+
+  // Parse arguments JSON string
+  let parsedArgs: Record<string, unknown> | null = null
+  try {
+    parsedArgs = JSON.parse(toolCall.function.arguments)
+  } catch {
+    // If parsing fails, leave as null and show raw string
+  }
+
+  return (
+    <Collapsible
+      defaultOpen
+      className="border-border/50 data-[state=open]:border-border overflow-hidden rounded-md border transition-colors"
+    >
+      <CollapsibleTrigger className="group/collapsible bg-secondary/50 text-secondary-foreground hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-background data-[state=open]:hover:bg-accent flex w-full items-center justify-between px-3 py-2 text-sm transition-colors data-[state=open]:font-medium [&_svg]:size-4">
+        <span className="flex items-center gap-2">
+          <WrenchIcon className="size-3.5" />
+          <span className="font-mono">{toolCall.function.name}</span>
+          <span className="text-muted-foreground/70 font-mono text-xs">({toolCall.id})</span>
+        </span>
+        <ChevronRightIcon className="-mr-1 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="p-3 pt-2">
+          <div className="text-muted-foreground mb-1 text-xs font-medium">
+            {t('pages.requests.detail-panel.pretty-view.Arguments')}
+          </div>
+          <pre className="bg-muted/50 max-h-64 overflow-auto rounded px-2 py-1 font-mono text-xs whitespace-pre-wrap break-all">
+            {parsedArgs ? JSON.stringify(parsedArgs, null, 2) : toolCall.function.arguments}
+          </pre>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+/**
+ * Component to display tool definitions in metadata
+ */
+function ToolsDefinitionDisplay({ tools }: { tools: ToolDefinition[] }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="space-y-2">
+      {tools.map((tool, index) => (
+        <Collapsible
+          key={tool.function.name + index}
+          className="border-border/50 data-[state=open]:border-border overflow-hidden rounded-md border transition-colors"
+        >
+          <CollapsibleTrigger className="group/collapsible bg-secondary/50 text-secondary-foreground hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-background data-[state=open]:hover:bg-accent flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors data-[state=open]:font-medium [&_svg]:size-3.5">
+            <span className="flex items-center gap-1.5">
+              <WrenchIcon className="size-3" />
+              <span className="font-mono">{tool.function.name}</span>
+            </span>
+            <ChevronRightIcon className="-mr-1 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="space-y-2 p-2 pt-1">
+              {tool.function.description && (
+                <div>
+                  <div className="text-muted-foreground mb-0.5 text-[10px] font-medium uppercase">
+                    {t('pages.requests.detail-panel.pretty-view.Description')}
+                  </div>
+                  <p className="text-xs">{tool.function.description}</p>
+                </div>
+              )}
+              {tool.function.parameters && (
+                <div>
+                  <div className="text-muted-foreground mb-0.5 text-[10px] font-medium uppercase">
+                    {t('pages.requests.detail-panel.pretty-view.Parameters')}
+                  </div>
+                  <pre className="bg-muted/50 max-h-48 overflow-auto rounded px-2 py-1 font-mono text-[10px] whitespace-pre-wrap break-all">
+                    {JSON.stringify(tool.function.parameters, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      ))}
+    </div>
+  )
 }

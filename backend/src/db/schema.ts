@@ -59,12 +59,58 @@ export const UpstreamTable = pgTable("upstreams", {
   deleted: boolean("deleted").notNull().default(false),
 });
 
+/**
+ * Tool call in assistant message (OpenAI format)
+ */
+export type ToolCallType = {
+  id: string;
+  type: "function";
+  function: {
+    name: string;
+    arguments: string;
+  };
+};
+
+/**
+ * Tool definition (OpenAI format)
+ */
+export type ToolDefinitionType = {
+  type: "function";
+  function: {
+    name: string;
+    description?: string;
+    parameters?: Record<string, unknown>;
+  };
+};
+
+/**
+ * Message content part (for multi-part messages)
+ */
+export type MessageContentPartType =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string; detail?: string } };
+
+/**
+ * Completion message type - supports full OpenAI message format
+ */
+export type CompletionsMessageType = {
+  role: string;
+  content?: string | MessageContentPartType[] | null;
+  // For assistant messages with tool calls
+  tool_calls?: ToolCallType[];
+  // For tool messages (results)
+  tool_call_id?: string;
+  // For function messages (legacy)
+  name?: string;
+};
+
 export type CompletionsPromptType = {
-  messages: {
-    role: string;
-    content: string;
-  }[];
+  messages: CompletionsMessageType[];
   n?: number;
+  // Tool definitions passed in the request
+  tools?: ToolDefinitionType[];
+  // Tool choice configuration
+  tool_choice?: "auto" | "none" | "required" | { type: "function"; function: { name: string } };
   // Extra body fields passed through to upstream
   extraBody?: Record<string, unknown>;
   // Extra headers passed through to upstream
@@ -73,7 +119,9 @@ export type CompletionsPromptType = {
 
 export type CompletionsCompletionType = {
   role?: string; // null in stream api
-  content?: string;
+  content?: string | null;
+  // Tool calls made by the assistant
+  tool_calls?: ToolCallType[];
 }[];
 
 export const CompletionsStatusEnum = pgEnum("completions_status", [

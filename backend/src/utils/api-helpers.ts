@@ -5,6 +5,7 @@
 
 import { consola } from "consola";
 import type { InternalResponse, ModelWithProvider } from "@/adapters/types";
+import type { ToolCallType } from "@/db/schema";
 
 const logger = consola.withTag("api-helpers");
 
@@ -135,6 +136,31 @@ export function extractContentText(response: InternalResponse): string {
   }
   result += parts.join("");
   return result;
+}
+
+/**
+ * Extract tool calls from internal response
+ * Converts internal ToolUseContentBlock to OpenAI ToolCallType format
+ */
+export function extractToolCalls(
+  response: InternalResponse,
+): ToolCallType[] | undefined {
+  const toolCalls: ToolCallType[] = [];
+
+  for (const block of response.content) {
+    if (block.type === "tool_use") {
+      toolCalls.push({
+        id: block.id,
+        type: "function",
+        function: {
+          name: block.name,
+          arguments: JSON.stringify(block.input),
+        },
+      });
+    }
+  }
+
+  return toolCalls.length > 0 ? toolCalls : undefined;
 }
 
 // =============================================================================

@@ -15,10 +15,16 @@ import { getModelsWithProviderBySystemName } from "@/db";
 import { apiKeyPlugin, type ApiKey } from "@/plugins/apiKeyPlugin";
 import { apiKeyRateLimitPlugin, consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
+import type {
+  CompletionsMessageType,
+  ToolDefinitionType,
+  ToolCallType,
+} from "@/db/schema";
 import {
   extractUpstreamHeaders,
   selectModel,
   extractContentText,
+  extractToolCalls,
   parseModelProvider,
   PROVIDER_HEADER,
 } from "@/utils/api-helpers";
@@ -58,7 +64,9 @@ const tChatCompletionCreate = t.Object(
 function buildCompletionRecord(
   requestedModel: string,
   modelId: number,
-  messages: Array<{ role: string; content: string }>,
+  messages: CompletionsMessageType[],
+  tools?: ToolDefinitionType[],
+  toolChoice?: "auto" | "none" | "required" | { type: "function"; function: { name: string } },
   extraBody?: Record<string, unknown>,
   extraHeaders?: Record<string, string>,
 ): Completion {
@@ -67,10 +75,9 @@ function buildCompletionRecord(
     upstreamId: undefined,
     modelId,
     prompt: {
-      messages: messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      messages,
+      tools,
+      tool_choice: toolChoice,
       extraBody,
       extraHeaders,
     },
@@ -162,10 +169,14 @@ async function handleNonStreamingRequest(
   completion.status = "completed";
   completion.ttft = Date.now() - begin;
   completion.duration = Date.now() - begin;
+
+  // Extract tool calls from response
+  const toolCalls = extractToolCalls(internalResponse);
   completion.completion = [
     {
       role: "assistant",
-      content: extractContentText(internalResponse),
+      content: extractContentText(internalResponse) || null,
+      tool_calls: toolCalls,
     },
   ];
   addCompletions(completion, bearer).catch(() => {
@@ -282,6 +293,10 @@ async function* handleStreamingRequest(
   let inputTokens = -1;
   let outputTokens = -1;
 
+  // Track tool calls during streaming
+  const streamToolCalls: Map<number, ToolCallType> = new Map();
+  const toolCallArguments: Map<number, string[]> = new Map();
+
   try {
     const chunks = upstreamAdapter.parseStreamResponse(resp);
 
@@ -292,7 +307,21 @@ async function* handleStreamingRequest(
       }
 
       // Collect content for completion record
-      if (chunk.type === "content_block_delta") {
+      if (chunk.type === "content_block_start") {
+        // Track new tool call block
+        if (chunk.contentBlock?.type === "tool_use") {
+          const index = chunk.index ?? 0;
+          streamToolCalls.set(index, {
+            id: chunk.contentBlock.id,
+            type: "function",
+            function: {
+              name: chunk.contentBlock.name,
+              arguments: "",
+            },
+          });
+          toolCallArguments.set(index, []);
+        }
+      } else if (chunk.type === "content_block_delta") {
         if (chunk.delta?.type === "text_delta" && chunk.delta.text) {
           textParts.push(chunk.delta.text);
         } else if (
@@ -300,6 +329,21 @@ async function* handleStreamingRequest(
           chunk.delta.thinking
         ) {
           thinkingParts.push(chunk.delta.thinking);
+        } else if (chunk.delta?.type === "input_json_delta" && chunk.delta.partialJson) {
+          // Collect tool call arguments
+          const index = chunk.index ?? 0;
+          const args = toolCallArguments.get(index);
+          if (args) {
+            args.push(chunk.delta.partialJson);
+          }
+        }
+      } else if (chunk.type === "content_block_stop") {
+        // Finalize tool call arguments
+        const index = chunk.index ?? 0;
+        const toolCall = streamToolCalls.get(index);
+        const args = toolCallArguments.get(index);
+        if (toolCall && args) {
+          toolCall.function.arguments = args.join("");
         }
       }
 
@@ -321,14 +365,23 @@ async function* handleStreamingRequest(
       }
     }
 
+    // Collect final tool calls
+    const finalToolCalls: ToolCallType[] | undefined =
+      streamToolCalls.size > 0
+        ? Array.from(streamToolCalls.values())
+        : undefined;
+
     // Finalize completion record
+    const contentText =
+      (thinkingParts.length > 0
+        ? `<think>${thinkingParts.join("")}</think>\n`
+        : "") + textParts.join("");
+
     completion.completion = [
       {
-        role: undefined,
-        content:
-          (thinkingParts.length > 0
-            ? `<think>${thinkingParts.join("")}</think>\n`
-            : "") + textParts.join(""),
+        role: "assistant",
+        content: contentText || null,
+        tool_calls: finalToolCalls,
       },
     ];
     completion.promptTokens = inputTokens;
@@ -477,11 +530,23 @@ export const completionsApi = new Elysia({
       const { url: upstreamUrl, init: upstreamInit } =
         upstreamAdapter.buildRequest(internalRequest, provider);
 
-      // Build completion record for logging
+      // Extract tools and tool_choice from request body for logging
+      const rawBody = body as Record<string, unknown>;
+      const tools = rawBody.tools as ToolDefinitionType[] | undefined;
+      const toolChoice = rawBody.tool_choice as
+        | "auto"
+        | "none"
+        | "required"
+        | { type: "function"; function: { name: string } }
+        | undefined;
+
+      // Build completion record for logging (with full message data)
       const completion = buildCompletionRecord(
         body.model,
         modelConfig.id,
-        body.messages,
+        rawBody.messages as CompletionsMessageType[],
+        tools,
+        toolChoice,
         internalRequest.extraParams,
         extraHeaders,
       );

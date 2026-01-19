@@ -20,6 +20,7 @@ import {
   filterCandidates,
   extractContentText,
   parseModelProvider,
+  processFailoverError,
   PROVIDER_HEADER,
 } from "@/utils/api-helpers";
 import { addCompletions, type Completion } from "@/utils/completions";
@@ -434,7 +435,6 @@ export const responsesApi = new Elysia({
         );
 
         if (!result.success) {
-          // Build completion record for logging
           const completion = buildCompletionRecord(
             body.model,
             result.provider?.model.id ?? candidates[0]?.model.id,
@@ -442,58 +442,14 @@ export const responsesApi = new Elysia({
             internalRequest.extraParams,
             extraHeaders,
           );
-          completion.status = "failed";
 
-          // Non-retriable HTTP error from upstream - forward the response
-          if (result.response) {
-            logger.warn("Non-retriable upstream error for streaming request", {
-              status: result.response.status,
-              provider: result.provider?.provider.name,
-            });
-            const errorSummary = result.errors
-              .map((e) => `${e.providerName}: ${e.error}`)
-              .join("; ");
-            addCompletions(completion, bearer, {
-              level: "error",
-              message: `Upstream error (non-retriable): ${errorSummary}`,
-              details: {
-                type: "completionError",
-                data: {
-                  type: "upstreamError",
-                  msg: result.finalError,
-                },
-              },
-            }).catch(() => {
-              logger.error("Failed to log completion after upstream error");
-            });
+          const errorResult = await processFailoverError(result, completion, bearer, "streaming");
 
-            set.status = result.response.status;
-            const responseBody = await result.response.text();
-            yield responseBody;
+          if (errorResult.type === "upstream_error") {
+            set.status = errorResult.status;
+            yield errorResult.body;
             return;
           }
-
-          // All providers failed with retriable errors or network errors
-          logger.error("All providers failed for streaming request", {
-            errors: result.errors,
-            totalAttempts: result.totalAttempts,
-          });
-          const errorSummary = result.errors
-            .map((e) => `${e.providerName}: ${e.error}`)
-            .join("; ");
-          addCompletions(completion, bearer, {
-            level: "error",
-            message: `All providers failed (${result.totalAttempts} attempts): ${errorSummary}`,
-            details: {
-              type: "completionError",
-              data: {
-                type: "failoverExhausted",
-                msg: result.finalError,
-              },
-            },
-          }).catch(() => {
-            logger.error("Failed to log completion after failover exhaustion");
-          });
 
           set.status = 502;
           yield JSON.stringify({
@@ -515,7 +471,6 @@ export const responsesApi = new Elysia({
           return;
         }
 
-        // Check if response has body
         if (!result.response.body) {
           set.status = 500;
           yield JSON.stringify({
@@ -557,7 +512,6 @@ export const responsesApi = new Elysia({
         );
 
         if (!result.success) {
-          // Build completion record for logging
           const completion = buildCompletionRecord(
             body.model,
             result.provider?.model.id ?? candidates[0]?.model.id,
@@ -565,58 +519,14 @@ export const responsesApi = new Elysia({
             internalRequest.extraParams,
             extraHeaders,
           );
-          completion.status = "failed";
 
-          // Non-retriable HTTP error from upstream - forward the response
-          if (result.response) {
-            logger.warn("Non-retriable upstream error for non-streaming request", {
-              status: result.response.status,
-              provider: result.provider?.provider.name,
-            });
-            const errorSummary = result.errors
-              .map((e) => `${e.providerName}: ${e.error}`)
-              .join("; ");
-            addCompletions(completion, bearer, {
-              level: "error",
-              message: `Upstream error (non-retriable): ${errorSummary}`,
-              details: {
-                type: "completionError",
-                data: {
-                  type: "upstreamError",
-                  msg: result.finalError,
-                },
-              },
-            }).catch(() => {
-              logger.error("Failed to log completion after upstream error");
-            });
+          const errorResult = await processFailoverError(result, completion, bearer, "non-streaming");
 
-            set.status = result.response.status;
-            const responseBody = await result.response.text();
-            yield responseBody;
+          if (errorResult.type === "upstream_error") {
+            set.status = errorResult.status;
+            yield errorResult.body;
             return;
           }
-
-          // All providers failed with retriable errors or network errors
-          logger.error("All providers failed for non-streaming request", {
-            errors: result.errors,
-            totalAttempts: result.totalAttempts,
-          });
-          const errorSummary = result.errors
-            .map((e) => `${e.providerName}: ${e.error}`)
-            .join("; ");
-          addCompletions(completion, bearer, {
-            level: "error",
-            message: `All providers failed (${result.totalAttempts} attempts): ${errorSummary}`,
-            details: {
-              type: "completionError",
-              data: {
-                type: "failoverExhausted",
-                msg: result.finalError,
-              },
-            },
-          }).catch(() => {
-            logger.error("Failed to log completion after failover exhaustion");
-          });
 
           set.status = 502;
           yield JSON.stringify({

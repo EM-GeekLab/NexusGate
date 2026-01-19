@@ -118,10 +118,15 @@ export function isRetriableNetworkError(
   if (errorCode && config.retriableErrorCodes.includes(errorCode)) {
     return true;
   }
+  // Handle AbortController timeout errors (AbortError)
+  if (error.name === "AbortError") {
+    return true;
+  }
   // Check error message for common network issues
   const message = error.message.toLowerCase();
   return (
     message.includes("timeout") ||
+    message.includes("aborted") ||
     message.includes("econnreset") ||
     message.includes("econnrefused") ||
     message.includes("network") ||
@@ -384,13 +389,15 @@ export function selectMultipleCandidates(
 
   const result: ModelWithProvider[] = [];
   const remaining = [...candidates];
+  // Calculate total weight once and update incrementally
+  let totalWeight = remaining.reduce((sum, c) => sum + c.model.weight, 0);
 
   for (let i = 0; i < count && remaining.length > 0; i++) {
-    const totalWeight = remaining.reduce((sum, c) => sum + c.model.weight, 0);
     const random = Math.random() * totalWeight;
 
     let cumulative = 0;
-    let selectedIndex = 0;
+    // Default to the last element as a fallback for floating point edge cases
+    let selectedIndex = remaining.length - 1;
     for (let j = 0; j < remaining.length; j++) {
       const item = remaining[j];
       if (item) {
@@ -402,10 +409,10 @@ export function selectMultipleCandidates(
       }
     }
 
-    const selected = remaining[selectedIndex];
+    const [selected] = remaining.splice(selectedIndex, 1);
     if (selected) {
       result.push(selected);
-      remaining.splice(selectedIndex, 1);
+      totalWeight -= selected.model.weight;
     }
   }
 

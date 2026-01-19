@@ -109,7 +109,7 @@ const tChatCompletionCreate = t.Object(
  */
 function buildCompletionRecord(
   requestedModel: string,
-  modelId: number,
+  modelId: number | undefined,
   messages: CompletionsMessageType[],
   tools?: ToolDefinitionType[],
   toolChoice?: ToolChoiceType,
@@ -482,7 +482,7 @@ export const completionsApi = new Elysia({
           // Build completion record for logging
           const completion = buildCompletionRecord(
             body.model,
-            result.provider?.model.id ?? candidates[0]?.model.id ?? 0,
+            result.provider?.model.id ?? candidates[0]?.model.id,
             body.messages as CompletionsMessageType[],
             body.tools as ToolDefinitionType[] | undefined,
             body.tool_choice as ToolChoiceType | undefined,
@@ -586,7 +586,8 @@ export const completionsApi = new Elysia({
             apiKeyRecord ?? null,
             begin,
           );
-        } catch {
+        } catch (error) {
+          logger.error("Stream processing error", error);
           set.status = 500;
           yield JSON.stringify({ error: "Stream processing error" });
         }
@@ -602,7 +603,7 @@ export const completionsApi = new Elysia({
           // Build completion record for logging
           const completion = buildCompletionRecord(
             body.model,
-            result.provider?.model.id ?? candidates[0]?.model.id ?? 0,
+            result.provider?.model.id ?? candidates[0]?.model.id,
             body.messages as CompletionsMessageType[],
             body.tools as ToolDefinitionType[] | undefined,
             body.tool_choice as ToolChoiceType | undefined,

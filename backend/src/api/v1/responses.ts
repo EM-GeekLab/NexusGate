@@ -112,7 +112,7 @@ const tResponseApiCreate = t.Object(
  */
 function buildCompletionRecord(
   requestedModel: string,
-  modelId: number,
+  modelId: number | undefined,
   input: unknown,
   extraBody?: Record<string, unknown>,
   extraHeaders?: Record<string, string>,
@@ -437,7 +437,7 @@ export const responsesApi = new Elysia({
           // Build completion record for logging
           const completion = buildCompletionRecord(
             body.model,
-            result.provider?.model.id ?? candidates[0]?.model.id ?? 0,
+            result.provider?.model.id ?? candidates[0]?.model.id,
             body.input,
             internalRequest.extraParams,
             extraHeaders,
@@ -543,9 +543,10 @@ export const responsesApi = new Elysia({
             apiKeyRecord ?? null,
             begin,
           );
-        } catch {
+        } catch (error) {
+          logger.error("Stream processing error", error);
           set.status = 500;
-          yield `data: ${JSON.stringify({ type: "error", error: { type: "server_error", message: "Stream processing error" } })}\n\n`;
+          yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { code: "internal_error", message: "Stream processing error", param: null, help_url: null } })}\n\n`;
         }
       } else {
         // Non-streaming request with failover
@@ -559,7 +560,7 @@ export const responsesApi = new Elysia({
           // Build completion record for logging
           const completion = buildCompletionRecord(
             body.model,
-            result.provider?.model.id ?? candidates[0]?.model.id ?? 0,
+            result.provider?.model.id ?? candidates[0]?.model.id,
             body.input,
             internalRequest.extraParams,
             extraHeaders,

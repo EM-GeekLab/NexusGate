@@ -123,7 +123,7 @@ const tAnthropicMessageCreate = t.Object(
  */
 function buildCompletionRecord(
   requestedModel: string,
-  modelId: number,
+  modelId: number | undefined,
   messages: Array<{ role: string; content: unknown }>,
   extraBody?: Record<string, unknown>,
   extraHeaders?: Record<string, string>,
@@ -421,7 +421,7 @@ export const messagesApi = new Elysia({
           // Build completion record for logging
           const completion = buildCompletionRecord(
             body.model,
-            result.provider?.model.id ?? candidates[0]?.model.id ?? 0,
+            result.provider?.model.id ?? candidates[0]?.model.id,
             body.messages,
             internalRequest.extraParams,
             extraHeaders,
@@ -527,7 +527,8 @@ export const messagesApi = new Elysia({
             apiKeyRecord ?? null,
             begin,
           );
-        } catch {
+        } catch (error) {
+          logger.error("Stream processing error", error);
           set.status = 500;
           yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: "Stream processing error" } })}\n\n`;
         }
@@ -543,7 +544,7 @@ export const messagesApi = new Elysia({
           // Build completion record for logging
           const completion = buildCompletionRecord(
             body.model,
-            result.provider?.model.id ?? candidates[0]?.model.id ?? 0,
+            result.provider?.model.id ?? candidates[0]?.model.id,
             body.messages,
             internalRequest.extraParams,
             extraHeaders,

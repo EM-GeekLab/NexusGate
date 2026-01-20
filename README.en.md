@@ -1,6 +1,6 @@
 <div align="center">
 
-![Banner](./assets/img/banner-en.png)
+![Banner](./assets/img/banner-en.svg)
 
 # NexusGate
 
@@ -30,9 +30,13 @@ Designed for AI developers and enterprise administrators, NexusGate features an 
 ## ✨ Key Features
 
 - **Comprehensive LLM Management**: Focus on your AI applications through a unified management system to improve quality, reduce costs, decrease latency, and ensure security. Compatible with all mainstream large language model services and inference frameworks.
-- **Evaluation and Iteration**: Leverage powerful tools and insights to analyze, modify, and iterate platform-integrated LLM applications.
+- **Multi-Provider Support**: Supports multiple LLM providers including OpenAI, Anthropic, Azure OpenAI, Ollama, and the new OpenAI Responses API format.
+- **Function Calling Support**: Full support for tool definitions, function calls (tool_calls), and tool results logging and display, making it easy to debug Agent applications.
+- **Intelligent Load Balancing**: Weighted random load balancing to distribute traffic across multiple providers.
+- **Automatic Failover**: Automatically switches to backup providers when one fails, with exponential backoff retry strategy.
 - **Production Monitoring**: Record all production interactions for monitoring, analysis, debugging, and optimization.
 - **Enterprise-Grade Management**: Manage applications or business systems with one click, providing metering and auditing of LLM content.
+- **Kubernetes Native**: Provides K8s Operator for automatic API key management in Kubernetes environments.
 
 ## 🐳 Quick Start
 
@@ -124,7 +128,7 @@ If you are using Windows, please download [quick-start.bat](https://github.com/E
    # ======================
    # Service Configuration
    # ======================
-   # Web service external port (optional, default 8080)
+   # Web service external port (optional, default 3000 if not set, recommended 8080)
    WEB_PORT=8080
    EOF
    ```
@@ -135,7 +139,7 @@ If you are using Windows, please download [quick-start.bat](https://github.com/E
    | -------------------- | -------- | -------------------------------------------- | ----------------------- |
    | `POSTGRES_PASSWORD`  | ✅       | Database password, recommend strong password | `MySecurePass123!`      |
    | `ADMIN_SUPER_SECRET` | ✅       | Admin login key                              | `admin_key_2024_secure` |
-   | `WEB_PORT`           | ❌       | Web service port                             | `8080`                  |
+   | `WEB_PORT`           | ❌       | Web service port (default 3000 if not set)   | `8080`                  |
 
    > ⚠️ **Security Warning**:
    >
@@ -326,12 +330,16 @@ We're constantly adding new features and capabilities to NexusGate. Here's what 
 - [ ] 📊 Enhanced Analytics: Expand our monitoring metrics including success rates, request volumes, token usage statistics, request completion rates, Agent usage rankings, model usage rankings, error analysis, full-chain latency, inference latency, and throughput measurements.
 - [x] 🔄 Prometheus Integration: Create comprehensive overview dashboards by integrating with external Prometheus instances to monitor server hardware, inference frameworks, and other information sources.
 - [x] 🚦 Traffic Control: Implement fine-grained traffic management for each API key, including quotas and priorities for specific models, enabling administrators to precisely control resource allocation.
+- [x] ⚖️ Intelligent Load Balancing: Weighted random load balancing to distribute traffic across multiple providers.
+- [x] 🔁 Automatic Failover: Automatically switches to backup providers when one fails, with exponential backoff retry strategy.
+- [x] 🛠️ Function Calling Support: Full support for OpenAI-format tool definitions, function calls (tool_calls), and tool results logging and display.
+- [x] ☸️ Kubernetes Operator: Provides K8s Operator for automatic API key management in Kubernetes environments.
 - [ ] 💡 Manual Reporting SDK: Develop SDKs for more granular tracking that can be embedded directly in developer code, enabling more detailed monitoring such as end-user analytics.
 - [ ] 👍 Feedback System: Build robust feedback mechanisms to collect and analyze user responses to AI-generated content.
 - [ ] 💬 Prompt Management: Create tools for prompt creation, optimization, and batch testing, helping developers craft more effective interactions with LLMs.
   - [ ] 🧠 Automated Evaluation: Leverage LLMs to automatically evaluate outputs and provide quality metrics without human intervention.
   - [ ] 📚 Dataset Creation and Fine-tuning: Implement dataset management and model fine-tuning pipelines, one-click import to [LLaMa Factory](https://github.com/hiyouga/LLaMA-Factory) for fine-tuning, and monitoring using [SwanLab](https://github.com/SwanHubX/SwanLab).
-- [ ] 🛠️ Tool Integration: Add capabilities to models without built-in tools (like web search) by implementing functionality at the gateway layer and exposing it through standard API interfaces.
+- [ ] 🌐 Gateway-Layer Tool Integration: Add capabilities to models without built-in tools (like web search) by implementing functionality at the gateway layer and exposing it through standard API interfaces.
 
 ## 📝 License
 

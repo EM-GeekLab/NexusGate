@@ -1,0 +1,136 @@
+<svg width="900" height="320" viewBox="0 0 900 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Light gradient background -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="50%" style="stop-color:#f0fdfa"/>
+      <stop offset="100%" style="stop-color:#ecfeff"/>
+    </linearGradient>
+
+    <!-- Soft colored blobs -->
+    <radialGradient id="pinkBlob" cx="0%" cy="100%" r="60%">
+      <stop offset="0%" style="stop-color:#f0abfc;stop-opacity:0.4"/>
+      <stop offset="60%" style="stop-color:#e879f9;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#f0abfc;stop-opacity:0"/>
+    </radialGradient>
+
+    <radialGradient id="cyanBlob" cx="100%" cy="0%" r="60%">
+      <stop offset="0%" style="stop-color:#67e8f9;stop-opacity:0.35"/>
+      <stop offset="60%" style="stop-color:#22d3ee;stop-opacity:0.1"/>
+      <stop offset="100%" style="stop-color:#67e8f9;stop-opacity:0"/>
+    </radialGradient>
+
+    <radialGradient id="blueBlob" cx="50%" cy="30%" r="40%">
+      <stop offset="0%" style="stop-color:#a5b4fc;stop-opacity:0.2"/>
+      <stop offset="100%" style="stop-color:#818cf8;stop-opacity:0"/>
+    </radialGradient>
+
+    <!-- Card shadow filter -->
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#94a3b8" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="320" fill="url(#bgGradient)"/>
+
+  <!-- Colored blobs for gradient effect -->
+  <rect width="900" height="320" fill="url(#pinkBlob)"/>
+  <rect width="900" height="320" fill="url(#cyanBlob)"/>
+  <rect width="900" height="320" fill="url(#blueBlob)"/>
+
+  <!-- Logo - directly embedded from logo.svg, centered and scaled to 48x48 -->
+  <g transform="translate(426, 24) scale(1.5)" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round">
+    <path d="M31.997 8.001v15.997a8.003 8.003 0 0 1-7.999 7.998H8.002a8.002 8.002 0 0 1-7.999-7.998V8a8.002 8.002 0 0 1 8-7.997h15.995c4.414 0 8 3.584 8 7.997Z" fill="#000"/>
+    <circle cx="12" cy="4.5" r="2.5" style="fill:none;stroke:#fff;stroke-width:2px" transform="matrix(.9 0 0 .9 5.2 5.2)"/>
+    <path d="m10.2 6.3-3.9 3.9" style="fill:none;fill-rule:nonzero;stroke:#fff;stroke-width:2px" transform="matrix(.9 0 0 .9 5.2 5.2)"/>
+    <circle cx="4.5" cy="12" r="2.5" style="fill:none;stroke:#fff;stroke-width:2px" transform="matrix(.9 0 0 .9 5.2 5.2)"/>
+    <path d="M7 12h10" style="fill:none;fill-rule:nonzero;stroke:#fff;stroke-width:2px" transform="matrix(.9 0 0 .9 5.2 5.2)"/>
+    <circle cx="19.5" cy="12" r="2.5" style="fill:none;stroke:#fff;stroke-width:2px" transform="matrix(.9 0 0 .9 5.2 5.2)"/>
+    <path d="m13.8 17.7 3.9-3.9" style="fill:none;fill-rule:nonzero;stroke:#fff;stroke-width:2px" transform="matrix(.9 0 0 .9 5.2 5.2)"/>
+    <circle cx="12" cy="19.5" r="2.5" style="fill:none;stroke:#fff;stroke-width:2px" transform="matrix(.9 0 0 .9 5.2 5.2)"/>
+  </g>
+
+  <!-- Title: NexusGate - centered -->
+  <text x="450" y="115" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="40" font-weight="700" fill="#1e293b" text-anchor="middle" letter-spacing="0.5">
+    NexusGate
+  </text>
+
+  <!-- Subtitle - centered -->
+  <text x="450" y="150" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="500" fill="#64748b" text-anchor="middle" letter-spacing="1.5">
+    AI AGENT MONITORING &amp; MANAGEMENT PLATFORM
+  </text>
+
+  <!-- Feature cards - centered -->
+  <g transform="translate(90, 180)">
+    <!-- Card 1: Monitor -->
+    <g transform="translate(0, 0)">
+      <rect width="108" height="88" rx="14" fill="white" filter="url(#cardShadow)"/>
+      <rect width="108" height="88" rx="14" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+      <g transform="translate(38, 18)">
+        <rect x="0" y="6" width="32" height="22" rx="3" fill="none" stroke="#3b82f6" stroke-width="2"/>
+        <path d="M 8 16 L 13 12 L 19 19 L 25 10" stroke="#3b82f6" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <text x="54" y="68" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#475569" text-anchor="middle">Monitoring</text>
+    </g>
+
+    <!-- Card 2: Log -->
+    <g transform="translate(128, 0)">
+      <rect width="108" height="88" rx="14" fill="white" filter="url(#cardShadow)"/>
+      <rect width="108" height="88" rx="14" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+      <g transform="translate(38, 18)">
+        <rect x="2" y="4" width="28" height="26" rx="4" fill="none" stroke="#8b5cf6" stroke-width="2"/>
+        <line x1="9" y1="12" x2="23" y2="12" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round"/>
+        <line x1="9" y1="18" x2="20" y2="18" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round"/>
+        <line x1="9" y1="24" x2="22" y2="24" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      <text x="54" y="68" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#475569" text-anchor="middle">Logging</text>
+    </g>
+
+    <!-- Card 3: Multi-model -->
+    <g transform="translate(256, 0)">
+      <rect width="108" height="88" rx="14" fill="white" filter="url(#cardShadow)"/>
+      <rect width="108" height="88" rx="14" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+      <g transform="translate(38, 18)">
+        <circle cx="10" cy="10" r="8" fill="none" stroke="#ec4899" stroke-width="2"/>
+        <circle cx="22" cy="10" r="8" fill="none" stroke="#3b82f6" stroke-width="2"/>
+        <circle cx="16" cy="22" r="8" fill="none" stroke="#8b5cf6" stroke-width="2"/>
+      </g>
+      <text x="54" y="68" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#475569" text-anchor="middle">Multi-Model</text>
+    </g>
+
+    <!-- Card 4: Analytics -->
+    <g transform="translate(384, 0)">
+      <rect width="108" height="88" rx="14" fill="white" filter="url(#cardShadow)"/>
+      <rect width="108" height="88" rx="14" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+      <g transform="translate(38, 18)">
+        <rect x="2" y="20" width="7" height="12" rx="2" fill="#ec4899"/>
+        <rect x="13" y="14" width="7" height="18" rx="2" fill="#8b5cf6"/>
+        <rect x="24" y="6" width="7" height="26" rx="2" fill="#3b82f6"/>
+      </g>
+      <text x="54" y="68" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#475569" text-anchor="middle">Analytics</text>
+    </g>
+
+    <!-- Card 5: Rate Limit -->
+    <g transform="translate(512, 0)">
+      <rect width="108" height="88" rx="14" fill="white" filter="url(#cardShadow)"/>
+      <rect width="108" height="88" rx="14" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+      <g transform="translate(38, 18)">
+        <circle cx="16" cy="16" r="13" fill="none" stroke="#10b981" stroke-width="2"/>
+        <path d="M 16 7 L 16 16 L 23 16" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      <text x="54" y="68" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#475569" text-anchor="middle">Rate Limit</text>
+    </g>
+
+    <!-- Card 6: API -->
+    <g transform="translate(640, 0)">
+      <rect width="108" height="88" rx="14" fill="white" filter="url(#cardShadow)"/>
+      <rect width="108" height="88" rx="14" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+      <g transform="translate(38, 18)">
+        <path d="M 6 10 L 14 18 L 6 26" stroke="#f59e0b" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 26 10 L 18 18 L 26 26" stroke="#f59e0b" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <text x="54" y="68" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#475569" text-anchor="middle">One-Line SDK</text>
+    </g>
+  </g>
+</svg>

@@ -218,8 +218,6 @@ if /i "%confirm%"=="y" (
     exit /b 0
 )
 
-goto :eof
-
 REM 创建环境变量文件
 :create_env_file
 if exist ".env" (

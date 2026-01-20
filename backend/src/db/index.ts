@@ -91,6 +91,46 @@ export async function listApiKeys(all = false): Promise<ApiKey[]> {
 }
 
 /**
+ * find api key by external id (for K8s Operator integration)
+ * @param externalId external system identifier (e.g., k8s/cluster/namespace/appName)
+ * @returns db record of api key, null if not found
+ */
+export async function findApiKeyByExternalId(
+  externalId: string,
+): Promise<ApiKey | null> {
+  logger.debug("findApiKeyByExternalId", externalId);
+  const r = await db
+    .select()
+    .from(schema.ApiKeysTable)
+    .where(eq(schema.ApiKeysTable.externalId, externalId));
+  const [first] = r;
+  return first ?? null;
+}
+
+/**
+ * list api keys by source (e.g., 'operator' for K8s managed keys)
+ * @param source the source of api keys to filter by
+ * @param includeRevoked whether to include revoked keys
+ * @returns db records of api keys
+ */
+export async function listApiKeysBySource(
+  source: schema.ApiKeySourceEnumType,
+  includeRevoked = false,
+): Promise<ApiKey[]> {
+  logger.debug("listApiKeysBySource", source, includeRevoked);
+  return await db
+    .select()
+    .from(schema.ApiKeysTable)
+    .where(
+      and(
+        eq(schema.ApiKeysTable.source, source),
+        includeRevoked ? undefined : not(schema.ApiKeysTable.revoked),
+      ),
+    )
+    .orderBy(asc(schema.ApiKeysTable.id));
+}
+
+/**
  * insert api key into database, or update if already exists
  * @param c parameters of api key to insert or update
  * @returns db record of api key

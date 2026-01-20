@@ -179,7 +179,31 @@ export const adminApiKey = new Elysia()
 
       // First, try to find existing key
       const existing = await findApiKeyByExternalId(externalId);
-      if (existing && !existing.revoked) {
+      if (existing) {
+        if (existing.revoked) {
+          // Key exists but is revoked - reactivate it
+          const reactivated = await updateApiKey({
+            key: existing.key,
+            revoked: false,
+            comment: body.comment ?? existing.comment,
+            rpmLimit: body.rpmLimit ?? existing.rpmLimit,
+            tpmLimit: body.tpmLimit ?? existing.tpmLimit,
+            updatedAt: new Date(),
+          });
+
+          if (reactivated === null) {
+            return status(500, "Failed to reactivate key");
+          }
+
+          return {
+            key: reactivated.key,
+            id: reactivated.id,
+            created: false,
+            externalId: reactivated.externalId,
+          };
+        }
+
+        // Key exists and is active - return it (idempotent behavior)
         return {
           key: existing.key,
           id: existing.id,
@@ -188,27 +212,49 @@ export const adminApiKey = new Elysia()
         };
       }
 
-      // Create new key
-      const key = generateApiKey();
-      const r = await upsertApiKey({
-        key,
-        externalId,
-        comment: body.comment,
-        source: "operator",
-        rpmLimit: body.rpmLimit ?? 50,
-        tpmLimit: body.tpmLimit ?? 50000,
-      });
+      // Key does not exist - try to create it, handling race conditions
+      try {
+        const key = generateApiKey();
+        const r = await upsertApiKey({
+          key,
+          externalId,
+          comment: body.comment,
+          source: "operator",
+          rpmLimit: body.rpmLimit ?? 50,
+          tpmLimit: body.tpmLimit ?? 50000,
+        });
 
-      if (r === null) {
-        return status(500, "Failed to create key");
+        if (r === null) {
+          return status(500, "Failed to create key");
+        }
+
+        return {
+          key: r.key,
+          id: r.id,
+          created: true,
+          externalId: r.externalId,
+        };
+      } catch (e: unknown) {
+        // Handle race condition: if insert fails due to unique constraint on external_id,
+        // another concurrent request created it. Fetch and return it.
+        if (
+          e instanceof Error &&
+          "code" in e &&
+          (e as { code: string }).code === "23505"
+        ) {
+          const raceExisting = await findApiKeyByExternalId(externalId);
+          if (raceExisting) {
+            return {
+              key: raceExisting.key,
+              id: raceExisting.id,
+              created: false,
+              externalId: raceExisting.externalId,
+            };
+          }
+        }
+        // For other errors, or if refetch fails, return 500
+        return status(500, "Failed to create or retrieve key");
       }
-
-      return {
-        key: r.key,
-        id: r.id,
-        created: true,
-        externalId: r.externalId,
-      };
     },
     {
       params: t.Object({

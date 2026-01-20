@@ -220,8 +220,8 @@ export const adminApiKey = new Elysia()
           externalId,
           comment: body.comment,
           source: "operator",
-          rpmLimit: body.rpmLimit ?? 50,
-          tpmLimit: body.tpmLimit ?? 50000,
+          rpmLimit: body.rpmLimit,
+          tpmLimit: body.tpmLimit,
         });
 
         if (r === null) {

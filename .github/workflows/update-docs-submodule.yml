@@ -1,0 +1,55 @@
+name: Update Docs Submodule
+
+on:
+  repository_dispatch:
+    types: [docs-updated]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'Manual update'
+
+jobs:
+  update-submodule:
+    runs-on: ubuntu-latest
+    # Requires manual approval - configure "production" environment in repo settings
+    # Settings > Environments > New environment > "production" > Add reviewers
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update docs submodule
+        run: |
+          git submodule update --remote --merge docs
+
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected in docs submodule"
+          fi
+
+      - name: Commit and push
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git add docs
+          git commit -m "chore: update docs submodule to latest
+
+          Triggered by: ${{ github.event_name }}
+          ${{ github.event.client_payload.message || inputs.reason || '' }}"
+          git push

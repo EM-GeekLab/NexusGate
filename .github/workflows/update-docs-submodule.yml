@@ -31,7 +31,10 @@ jobs:
 
       - name: Update docs submodule
         run: |
-          git submodule update --remote --merge docs
+          cd docs
+          git fetch origin main
+          git checkout origin/main
+          cd ..
 
       - name: Check for changes
         id: check

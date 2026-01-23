@@ -56,13 +56,10 @@ const navItems = [
   },
 ]
 
-const externalLinks = [
-  {
-    icon: <BookOpenIcon className="size-4" />,
-    title: i18n.t('components.app.app-sidebar.Documentation'),
-    href: '/docs',
-  },
-]
+function getDocsUrl() {
+  const lang = i18n.language?.startsWith('zh') ? 'zh' : 'en'
+  return `/docs/${lang}`
+}
 
 export function AppSidebar() {
   const { t } = useTranslation()
@@ -117,19 +114,21 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 )
               })}
-              {externalLinks.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton tooltip={{ children: item.title }} asChild className="h-10 gap-3 rounded-lg px-3">
-                    <a href={item.href} target="_blank" rel="noopener noreferrer">
-                      {item.icon}
-                      <span className="flex items-center gap-1">
-                        {item.title}
-                        <ExternalLinkIcon className="size-3 opacity-50" />
-                      </span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip={{ children: t('components.app.app-sidebar.Documentation') }}
+                  asChild
+                  className="h-10 gap-3 rounded-lg px-3"
+                >
+                  <a href={getDocsUrl()} target="_blank" rel="noopener noreferrer">
+                    <BookOpenIcon className="size-4" />
+                    <span className="flex items-center gap-1">
+                      {t('components.app.app-sidebar.Documentation')}
+                      <ExternalLinkIcon className="size-3 opacity-50" />
+                    </span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

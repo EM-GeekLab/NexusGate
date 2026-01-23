@@ -4,7 +4,16 @@ import { swagger } from "@elysiajs/swagger";
 // Note: @elysiajs/static is disabled in current Bun version, using manual file serving instead
 import { consola } from "consola";
 import { Elysia } from "elysia";
-import { exists, readFile, stat } from "node:fs/promises";
+import { access, readFile, stat } from "node:fs/promises";
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
 import { join } from "node:path";
 import { routes } from "@/api";
 import { loggerPlugin } from "@/plugins/loggerPlugin";

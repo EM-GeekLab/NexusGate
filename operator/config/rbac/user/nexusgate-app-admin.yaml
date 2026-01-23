@@ -1,0 +1,32 @@
+# ClusterRole for users who can manage NexusGateApp resources
+# This role should be bound to users/groups who need to provision AI capabilities
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nexusgate-app-admin
+  labels:
+    app.kubernetes.io/name: nexusgate-operator
+    app.kubernetes.io/component: rbac
+rules:
+  - apiGroups: ["gateway.nexusgate.io"]
+    resources: ["nexusgateapps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["gateway.nexusgate.io"]
+    resources: ["nexusgateapps/status"]
+    verbs: ["get"]
+---
+# ClusterRole for read-only access to NexusGateApp resources
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nexusgate-app-viewer
+  labels:
+    app.kubernetes.io/name: nexusgate-operator
+    app.kubernetes.io/component: rbac
+rules:
+  - apiGroups: ["gateway.nexusgate.io"]
+    resources: ["nexusgateapps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["gateway.nexusgate.io"]
+    resources: ["nexusgateapps/status"]
+    verbs: ["get"]

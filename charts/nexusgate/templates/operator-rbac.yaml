@@ -1,0 +1,88 @@
+{{- if .Values.operator.enabled }}
+# Operator ServiceAccount
+{{- if .Values.operator.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "nexusgate.operator.serviceAccountName" . }}
+  labels:
+    {{- include "nexusgate.operator.labels" . | nindent 4 }}
+{{- end }}
+---
+# Operator ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "nexusgate.fullname" . }}-operator-role
+  labels:
+    {{- include "nexusgate.operator.labels" . | nindent 4 }}
+rules:
+  # NexusGateApp resources
+  - apiGroups: ["gateway.nexusgate.io"]
+    resources: ["nexusgateapps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["gateway.nexusgate.io"]
+    resources: ["nexusgateapps/status"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["gateway.nexusgate.io"]
+    resources: ["nexusgateapps/finalizers"]
+    verbs: ["update"]
+  # Secret management
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Event recording
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  # Leader election
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# Operator ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "nexusgate.fullname" . }}-operator-rolebinding
+  labels:
+    {{- include "nexusgate.operator.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "nexusgate.operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "nexusgate.fullname" . }}-operator-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# User ClusterRole for managing NexusGateApps
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "nexusgate.fullname" . }}-app-admin
+  labels:
+    {{- include "nexusgate.operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["gateway.nexusgate.io"]
+    resources: ["nexusgateapps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["gateway.nexusgate.io"]
+    resources: ["nexusgateapps/status"]
+    verbs: ["get"]
+---
+# User ClusterRole for viewing NexusGateApps
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "nexusgate.fullname" . }}-app-viewer
+  labels:
+    {{- include "nexusgate.operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["gateway.nexusgate.io"]
+    resources: ["nexusgateapps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["gateway.nexusgate.io"]
+    resources: ["nexusgateapps/status"]
+    verbs: ["get"]
+{{- end }}

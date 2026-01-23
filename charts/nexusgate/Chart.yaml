@@ -1,0 +1,34 @@
+apiVersion: v2
+name: nexusgate
+description: A Helm chart for NexusGate - OpenAI-compatible API Gateway for LLM providers
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+home: https://github.com/EM-GeekLab/NexusGate
+sources:
+  - https://github.com/EM-GeekLab/NexusGate
+
+maintainers:
+  - name: EM-GeekLab
+    url: https://github.com/EM-GeekLab
+
+keywords:
+  - ai
+  - llm
+  - openai
+  - api-gateway
+  - kubernetes
+
+dependencies:
+  # PostgreSQL for persistent storage
+  - name: postgresql
+    version: "16.4.1"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+
+  # Redis for rate limiting and caching
+  - name: redis
+    version: "20.6.2"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled

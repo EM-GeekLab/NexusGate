@@ -1,0 +1,93 @@
+
+╔═══════════════════════════════════════════════════════════════════╗
+║                   NexusGate has been installed!                    ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+Thank you for installing {{ .Chart.Name }}.
+
+Your release is named: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+=== Getting Started ===
+
+1. Get the application URL:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "nexusgate.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "NexusGate URL: http://$NODE_IP:$NODE_PORT"
+{{- else if contains "LoadBalancer" .Values.service.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+        You can watch the status by running:
+  kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "nexusgate.fullname" . }}
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "nexusgate.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "NexusGate URL: http://$SERVICE_IP:{{ .Values.service.port }}"
+{{- else if contains "ClusterIP" .Values.service.type }}
+  # Port-forward to access NexusGate locally:
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "nexusgate.fullname" . }} 3000:{{ .Values.service.port }}
+
+  # Then access at: http://localhost:3000
+{{- end }}
+
+2. Get the admin API key:
+{{- if .Values.nexusgate.existingSecret }}
+  kubectl get secret --namespace {{ .Release.Namespace }} {{ .Values.nexusgate.existingSecret }} -o jsonpath="{.data.{{ .Values.nexusgate.existingSecretKey | default "admin-key" }}}" | base64 -d
+{{- else }}
+  kubectl get secret --namespace {{ .Release.Namespace }} {{ include "nexusgate.fullname" . }}-admin -o jsonpath="{.data.admin-key}" | base64 -d
+{{- end }}
+
+=== Kubernetes DNS (In-Cluster Access) ===
+
+Other pods in the cluster can access NexusGate using:
+
+  - Short form:  http://{{ include "nexusgate.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}
+  - Full form:   http://{{ include "nexusgate.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+For OpenAI-compatible API calls, use:
+  OPENAI_API_BASE=http://{{ include "nexusgate.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/v1
+
+=== Quick Test ===
+
+# Test the health endpoint
+curl http://localhost:3000/health
+
+# Test chat completions (replace YOUR_API_KEY)
+curl -X POST http://localhost:3000/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+
+{{- if .Values.operator.enabled }}
+
+=== NexusGate Operator ===
+
+The NexusGate Operator is enabled. You can now create NexusGateApp resources
+to automatically provision API keys:
+
+  apiVersion: gateway.nexusgate.io/v1alpha1
+  kind: NexusGateApp
+  metadata:
+    name: my-app
+  spec:
+    appName: "my-app"
+    secretRef:
+      name: my-app-api-key
+      key: OPENAI_API_KEY
+
+{{- end }}
+
+=== Documentation ===
+
+For more information, visit:
+  https://github.com/EM-GeekLab/NexusGate
+
+Happy proxying! 🚀

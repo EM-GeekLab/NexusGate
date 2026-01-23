@@ -1,5 +1,14 @@
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import { ArrowUpDownIcon, BoxIcon, ChartPieIcon, LayoutGridIcon, SettingsIcon, WaypointsIcon } from 'lucide-react'
+import {
+  ArrowUpDownIcon,
+  BookOpenIcon,
+  BoxIcon,
+  ChartPieIcon,
+  ExternalLinkIcon,
+  LayoutGridIcon,
+  SettingsIcon,
+  WaypointsIcon,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
@@ -44,6 +53,14 @@ const navItems = [
     icon: <SettingsIcon className="size-4" />,
     title: i18n.t('components.app.app-sidebar.Settings'),
     href: '/settings',
+  },
+]
+
+const externalLinks = [
+  {
+    icon: <BookOpenIcon className="size-4" />,
+    title: i18n.t('components.app.app-sidebar.Documentation'),
+    href: '/docs',
   },
 ]
 
@@ -100,6 +117,19 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 )
               })}
+              {externalLinks.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton tooltip={{ children: item.title }} asChild className="h-10 gap-3 rounded-lg px-3">
+                    <a href={item.href} target="_blank" rel="noopener noreferrer">
+                      {item.icon}
+                      <span className="flex items-center gap-1">
+                        {item.title}
+                        <ExternalLinkIcon className="size-3 opacity-50" />
+                      </span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -13,6 +13,7 @@
   "components.app.app-sidebar.Embeddings": "向量化",
   "components.app.app-sidebar.Applications": "应用",
   "components.app.app-sidebar.Settings": "模型",
+  "components.app.app-sidebar.Documentation": "文档",
   "components.app.app-sidebar.NexusGate": "NexusGate",
   "components.app.app-sidebar.LLMGateway": "大语言模型网关",
   "components.app.auth-dialog.InvalidSecret": "无效密钥",

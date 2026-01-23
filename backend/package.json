@@ -8,7 +8,7 @@
     "build": "bun check && NODE_ENV=production COMMIT_SHA=$(git rev-parse HEAD) bun build src/index.ts --target bun --outdir out/ --env='COMMIT_SHA*'",
     "check:tsgo": "tsgo -p tsconfig.check.json",
     "check": "tsc -p tsconfig.check.json",
-    "dev": "COMMIT_SHA=$(git rev-parse HEAD) CONSOLA_LEVEL=9999 FRONTEND_DIR=../frontend/dist bun --watch --hot --no-clear-screen --inspect src/index.ts",
+    "dev": "COMMIT_SHA=$(git rev-parse HEAD) CONSOLA_LEVEL=9999 FRONTEND_DIR=../frontend/dist DOCS_DIR=docs/client bun --watch --hot --no-clear-screen --inspect src/index.ts",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
     "lint": "oxlint --type-aware"

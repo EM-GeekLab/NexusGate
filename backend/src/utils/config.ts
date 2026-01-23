@@ -142,3 +142,4 @@ export const FORCILY_ADD_API_KEYS = env(
 );
 
 export const FRONTEND_DIR = env("frontend dir", z.coerce.string(), "dist");
+export const DOCS_DIR = env("docs dir", z.coerce.string(), "docs");

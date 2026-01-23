@@ -13,6 +13,7 @@
   "components.app.app-sidebar.Embeddings": "Embeddings",
   "components.app.app-sidebar.Applications": "Applications",
   "components.app.app-sidebar.Settings": "Models",
+  "components.app.app-sidebar.Documentation": "Documentation",
   "components.app.app-sidebar.NexusGate": "NexusGate",
   "components.app.app-sidebar.LLMGateway": "LLM Gateway",
   "components.app.auth-dialog.InvalidSecret": "Invalid secret",

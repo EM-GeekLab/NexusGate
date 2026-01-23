@@ -19,6 +19,9 @@ dist/
 out/
 coverage
 
+# Docs build output (generated from docs/ workspace)
+backend/docs/
+
 .turbo
 
 # Python test code (local testing only)

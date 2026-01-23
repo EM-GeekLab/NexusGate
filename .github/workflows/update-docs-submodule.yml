@@ -10,6 +10,9 @@ on:
         required: false
         default: 'Manual update'
 
+permissions:
+  contents: write
+
 jobs:
   update-submodule:
     runs-on: ubuntu-latest

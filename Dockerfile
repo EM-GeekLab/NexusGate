@@ -21,7 +21,7 @@ WORKDIR /app
 COPY --from=builder /app/backend/out/index.js /app/index.js
 COPY --from=builder /app/backend/drizzle /app/drizzle
 COPY --from=builder /app/frontend/dist /app/dist
-COPY --from=builder /app/backend/docs/client /app/docs
+COPY --from=builder /app/backend/docs /app/docs
 
 ENV NODE_ENV=production
 LABEL org.opencontainers.image.source="https://github.com/EM-GeekLab/NexusGate"

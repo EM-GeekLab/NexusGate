@@ -1,10 +1,10 @@
 import { cors } from "@elysiajs/cors";
 import { serverTiming } from "@elysiajs/server-timing";
-import { staticPlugin } from "@elysiajs/static";
 import { swagger } from "@elysiajs/swagger";
+// Note: @elysiajs/static is disabled in current Bun version, using manual file serving instead
 import { consola } from "consola";
 import { Elysia } from "elysia";
-import { exists, readFile } from "node:fs/promises";
+import { exists, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { routes } from "@/api";
 import { loggerPlugin } from "@/plugins/loggerPlugin";
@@ -19,6 +19,53 @@ import { initConfig } from "./utils/init";
 
 await initConfig();
 
+const mimeTypes: Record<string, string> = {
+  js: "application/javascript",
+  mjs: "application/javascript",
+  css: "text/css",
+  json: "application/json",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+  ico: "image/x-icon",
+  woff: "font/woff",
+  woff2: "font/woff2",
+  ttf: "font/ttf",
+  eot: "application/vnd.ms-fontobject",
+  map: "application/json",
+  html: "text/html",
+  txt: "text/plain",
+  xml: "application/xml",
+  webp: "image/webp",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  pdf: "application/pdf",
+};
+
+function getMimeType(filePath: string): string {
+  const ext = filePath.split(".").pop()?.toLowerCase();
+  return mimeTypes[ext || ""] || "application/octet-stream";
+}
+
+async function serveStaticFile(filePath: string) {
+  try {
+    const fileStat = await stat(filePath);
+    if (fileStat.isFile()) {
+      const content = await readFile(filePath);
+      return new Response(content, {
+        headers: { "Content-Type": getMimeType(filePath) },
+      });
+    }
+  } catch {
+    // File doesn't exist or can't be read
+  }
+  return null;
+}
+
 async function docsPlugin(dir: string) {
   if (!(await exists(dir))) {
     return undefined;
@@ -29,22 +76,18 @@ async function docsPlugin(dir: string) {
     : undefined;
 
   return new Elysia({ name: "docsPlugin" })
-    .use(
-      staticPlugin({
-        assets: dir,
-        alwaysStatic: true,
-        indexHTML: false,
-        prefix: "/docs",
-      }),
-    )
+    // Handle TanStack Start's __tsr static server function cache requests
+    // These are requested from root path, not /docs/
+    .get("/__tsr/*", async ({ path, status }) => {
+      const response = await serveStaticFile(join(dir, path));
+      return response || status(404);
+    })
     .get("/docs", ({ status }) => {
       if (!indexHtml) {
         return status(404);
       }
       return new Response(indexHtml, {
-        headers: {
-          "Content-Type": "text/html",
-        },
+        headers: { "Content-Type": "text/html" },
       });
     })
     .get("/docs/*", async ({ path, status }) => {
@@ -52,44 +95,14 @@ async function docsPlugin(dir: string) {
         return status(404);
       }
       const subPath = path.replace("/docs", "");
-      // Check if there's an exact file at this path (for static assets)
       const exactPath = join(dir, subPath);
-      if (await exists(exactPath)) {
-        // Let staticPlugin handle static files - return undefined to pass through
-        // But Elysia doesn't support pass-through, so we return 404 for assets
-        // The staticPlugin should have already handled this, but if we're here
-        // it means there's a routing conflict - check if it's not a directory
-        const stat = await import("node:fs/promises").then((fs) =>
-          fs.stat(exactPath).catch(() => null),
-        );
-        if (stat && stat.isFile()) {
-          // This is a static file that should be served by staticPlugin
-          // Since we can't pass through, return 404 and staticPlugin won't help
-          // We need to serve it ourselves
-          const content = await readFile(exactPath);
-          const ext = subPath.split(".").pop()?.toLowerCase();
-          const mimeTypes: Record<string, string> = {
-            js: "application/javascript",
-            css: "text/css",
-            json: "application/json",
-            png: "image/png",
-            jpg: "image/jpeg",
-            jpeg: "image/jpeg",
-            gif: "image/gif",
-            svg: "image/svg+xml",
-            ico: "image/x-icon",
-            woff: "font/woff",
-            woff2: "font/woff2",
-            ttf: "font/ttf",
-            eot: "application/vnd.ms-fontobject",
-            map: "application/json",
-          };
-          const contentType = mimeTypes[ext || ""] || "application/octet-stream";
-          return new Response(content, {
-            headers: { "Content-Type": contentType },
-          });
-        }
+
+      // Try to serve as static file
+      const staticResponse = await serveStaticFile(exactPath);
+      if (staticResponse) {
+        return staticResponse;
       }
+
       // Check if there's a specific HTML file for this path (directory with index.html)
       const specificHtmlPath = join(dir, subPath, "index.html");
       if (await exists(specificHtmlPath)) {
@@ -98,6 +111,7 @@ async function docsPlugin(dir: string) {
           headers: { "Content-Type": "text/html" },
         });
       }
+
       // Fall back to main index.html for SPA routing
       return new Response(indexHtml, {
         headers: { "Content-Type": "text/html" },
@@ -115,42 +129,36 @@ async function spaPlugin(dir: string) {
     : undefined;
 
   return new Elysia({ name: "spaPlugin" })
-    .use(
-      staticPlugin({
-        assets: dir,
-        alwaysStatic: true,
-        indexHTML: false, // workaround until https://github.com/elysiajs/elysia-static/pull/57 is merged
-        prefix: "/",
-      }),
-    )
-    .get("/*", ({ headers: { accept }, path, status }) => {
-      // Skip /docs routes - they're handled by docsPlugin
-      if (path.startsWith("/docs")) {
-        return status(404);
-      }
-      if (!indexHtml) {
-        return status(404);
-      }
-      if (
-        typeof accept === "string" &&
-        !["text/html", "*/*"].some((type) => accept.includes(type))
-      ) {
-        return status(404);
-      }
-      return new Response(indexHtml, {
-        headers: {
-          "Content-Type": "text/html",
-        },
-      });
-    })
     .get("/", ({ status }) => {
       if (!indexHtml) {
         return status(404);
       }
       return new Response(indexHtml, {
-        headers: {
-          "Content-Type": "text/html",
-        },
+        headers: { "Content-Type": "text/html" },
+      });
+    })
+    .get("/*", async ({ path, status }) => {
+      // Skip /docs and /__tsr routes - they're handled by docsPlugin
+      if (path.startsWith("/docs") || path.startsWith("/__tsr")) {
+        return status(404);
+      }
+      // Skip API routes
+      if (path.startsWith("/api") || path.startsWith("/v1")) {
+        return status(404);
+      }
+
+      // Try to serve as static file first
+      const staticResponse = await serveStaticFile(join(dir, path));
+      if (staticResponse) {
+        return staticResponse;
+      }
+
+      // Fall back to index.html for SPA routing
+      if (!indexHtml) {
+        return status(404);
+      }
+      return new Response(indexHtml, {
+        headers: { "Content-Type": "text/html" },
       });
     });
 }

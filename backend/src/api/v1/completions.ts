@@ -614,31 +614,35 @@ export const completionsApi = new Elysia({
           if (request.signal.aborted) {
             // Client disconnected - save as aborted
             completion.status = "aborted";
-            addCompletions(completion, bearer, {
-              level: "info",
-              message: "Client disconnected during non-streaming response",
-              details: {
-                type: "completionError",
-                data: { type: "aborted", msg: errorMsg },
-              },
-            }).catch((logError: unknown) => {
+            try {
+              await addCompletions(completion, bearer, {
+                level: "info",
+                message: "Client disconnected during non-streaming response",
+                details: {
+                  type: "completionError",
+                  data: { type: "aborted", msg: errorMsg },
+                },
+              });
+            } catch (logError: unknown) {
               logger.error("Failed to log aborted completion after processing error", logError);
-            });
+            }
             // Return nothing for aborted requests
             return;
           } else {
             logger.error("Failed to process response", error);
             completion.status = "failed";
-            addCompletions(completion, bearer, {
-              level: "error",
-              message: `Response processing error: ${errorMsg}`,
-              details: {
-                type: "completionError",
-                data: { type: "processingError", msg: errorMsg },
-              },
-            }).catch((logError: unknown) => {
+            try {
+              await addCompletions(completion, bearer, {
+                level: "error",
+                message: `Response processing error: ${errorMsg}`,
+                details: {
+                  type: "completionError",
+                  data: { type: "processingError", msg: errorMsg },
+                },
+              });
+            } catch (logError: unknown) {
               logger.error("Failed to log completion after processing error", logError);
-            });
+            }
             set.status = 500;
             return { error: "Failed to process response" };
           }

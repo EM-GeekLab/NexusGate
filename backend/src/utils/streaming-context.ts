@@ -3,7 +3,6 @@
  * Ensures completion records are saved even when client disconnects
  */
 
-import { consola } from "consola";
 import type {
   CompletionsStatusEnumType,
   ToolCallType,
@@ -11,8 +10,6 @@ import type {
 import { addCompletions, type Completion } from "@/utils/completions";
 import { consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
 import type { ApiKey } from "@/plugins/apiKeyPlugin";
-
-const logger = consola.withTag("streamingContext");
 
 /**
  * StreamingContext manages the state of a streaming response.
@@ -24,7 +21,6 @@ export class StreamingContext {
   private apiKeyRecord: ApiKey | null;
   private begin: number;
   private saved = false;
-  private abortHandler: (() => void) | null = null;
   private signal?: AbortSignal;
 
   // Accumulated data during streaming
@@ -52,22 +48,12 @@ export class StreamingContext {
     this.begin = begin;
     this.signal = signal;
 
-    // Register abort handler to save completion when client disconnects
-    if (signal) {
-      this.abortHandler = () => {
-        logger.info("Client disconnected, saving partial completion");
-        this.saveCompletion("aborted", "Client disconnected").catch((saveError: unknown) => {
-          const errorMessage = saveError instanceof Error ? saveError.message : String(saveError);
-          logger.error("Failed to save aborted completion", errorMessage);
-        });
-      };
-      signal.addEventListener("abort", this.abortHandler);
-      // Handle case where signal is already aborted before listener registration
-      // (AbortSignal spec: addEventListener won't trigger for already-aborted signals)
-      if (signal.aborted) {
-        this.abortHandler();
-      }
-    }
+    // Note: We don't save immediately on abort anymore.
+    // Instead, we continue processing chunks from upstream and save the full
+    // response when the stream ends. This ensures we capture all data even
+    // when the client disconnects mid-stream.
+    // The abort status is checked via isAborted() and the final save uses
+    // "aborted" status if the client disconnected.
   }
 
   /**
@@ -161,9 +147,7 @@ export class StreamingContext {
    * Clean up resources
    */
   cleanup(): void {
-    if (this.signal && this.abortHandler) {
-      this.signal.removeEventListener("abort", this.abortHandler);
-      this.abortHandler = null;
-    }
+    // No-op now since we don't register abort handlers anymore
+    // Kept for API compatibility
   }
 }

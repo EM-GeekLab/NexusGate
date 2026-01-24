@@ -251,15 +251,12 @@ async function* processStreamingResponse(
     const chunks = upstreamAdapter.parseStreamResponse(resp);
 
     for await (const chunk of chunks) {
-      // Check if client has disconnected
-      if (ctx.isAborted()) {
-        logger.debug("Client aborted, stopping stream processing");
-        break;
-      }
+      // Check if client has disconnected (but continue processing to collect all data)
+      const clientAborted = ctx.isAborted();
 
       ctx.recordTTFT();
 
-      // Collect content for completion record
+      // Collect content for completion record (always, even if client aborted)
       if (chunk.type === "content_block_start") {
         // Track new tool call block
         if (chunk.contentBlock?.type === "tool_use") {
@@ -320,26 +317,33 @@ async function* processStreamingResponse(
         ctx.outputTokens = chunk.usage.outputTokens;
       }
 
-      // Convert to OpenAI format and yield
-      const serialized = responseAdapter.serializeStreamChunk(chunk);
-      if (serialized) {
-        yield serialized;
-      }
+      // Only yield to client if not aborted (client is still listening)
+      if (!clientAborted) {
+        // Convert to OpenAI format and yield
+        const serialized = responseAdapter.serializeStreamChunk(chunk);
+        if (serialized) {
+          yield serialized;
+        }
 
-      // Handle message_stop
-      if (chunk.type === "message_stop") {
-        yield responseAdapter.getDoneMarker();
+        // Handle message_stop
+        if (chunk.type === "message_stop") {
+          yield responseAdapter.getDoneMarker();
+        }
       }
     }
 
     // Handle case where no chunks were received
-    if (ctx.isFirstChunk && !ctx.isAborted()) {
+    if (ctx.isFirstChunk) {
       throw new Error("No chunk received from upstream");
     }
 
-    // Save completed completion (if not already saved by abort handler)
+    // Save completion with appropriate status
     if (!ctx.isSaved()) {
-      await ctx.saveCompletion("completed");
+      if (ctx.isAborted()) {
+        await ctx.saveCompletion("aborted", "Client disconnected");
+      } else {
+        await ctx.saveCompletion("completed");
+      }
     }
   } catch (error) {
     // Only log error if not due to client abort
@@ -347,14 +351,21 @@ async function* processStreamingResponse(
       logger.error("Stream processing error", error);
     }
 
-    // Save failed completion (if not already saved by abort handler)
+    // Save failed completion
     if (!ctx.isSaved()) {
-      await ctx.saveCompletion("failed", String(error));
+      if (ctx.isAborted()) {
+        // If client aborted and we got an error, still save as aborted with the error info
+        await ctx.saveCompletion("aborted", `Client disconnected, stream error: ${String(error)}`);
+      } else {
+        await ctx.saveCompletion("failed", String(error));
+      }
     }
 
-    throw error;
+    // Only re-throw if client is still connected
+    if (!ctx.isAborted()) {
+      throw error;
+    }
   } finally {
-    // Clean up abort handler
     ctx.cleanup();
   }
 }

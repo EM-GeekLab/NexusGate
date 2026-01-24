@@ -4,6 +4,7 @@
  */
 
 import type {
+  ImageContentBlock,
   InternalContentBlock,
   InternalMessage,
   InternalRequest,
@@ -137,8 +138,14 @@ function convertContentBlock(
     }
 
     case "image":
-      // Images not supported in MVP
-      return null;
+      return {
+        type: "image",
+        source: {
+          type: "base64",
+          mediaType: block.source?.media_type,
+          data: block.source?.data,
+        },
+      } as ImageContentBlock;
 
     default:
       return null;

@@ -4,6 +4,7 @@
  */
 
 import type {
+  ImageContentBlock,
   InternalContentBlock,
   InternalMessage,
   InternalRequest,
@@ -23,9 +24,18 @@ import type {
 // OpenAI Request/Response Types
 // =============================================================================
 
+interface OpenAIContentPart {
+  type: "text" | "image_url";
+  text?: string;
+  image_url?: {
+    url: string;
+    detail?: "auto" | "low" | "high";
+  };
+}
+
 interface OpenAIMessage {
   role: "system" | "user" | "assistant" | "tool";
-  content: string | null;
+  content: string | OpenAIContentPart[] | null;
   name?: string;
   tool_calls?: OpenAIToolCall[];
   tool_call_id?: string;
@@ -126,6 +136,24 @@ interface OpenAIToolCallDelta {
 // =============================================================================
 
 /**
+ * Convert image source to OpenAI image URL format
+ */
+function convertImageToUrl(block: ImageContentBlock): string {
+  if (block.source.type === "url" && block.source.url) {
+    return block.source.url;
+  }
+  // Convert base64 to data URL
+  return `data:${block.source.mediaType || "image/jpeg"};base64,${block.source.data}`;
+}
+
+/**
+ * Check if content blocks contain any images
+ */
+function hasImages(content: InternalContentBlock[]): boolean {
+  return content.some((b) => b.type === "image");
+}
+
+/**
  * Convert internal message to OpenAI format
  */
 function convertMessage(msg: InternalMessage): OpenAIMessage {
@@ -168,14 +196,42 @@ function convertMessage(msg: InternalMessage): OpenAIMessage {
     };
   }
 
-  // Regular messages
-  const content =
-    typeof msg.content === "string"
-      ? msg.content
-      : msg.content
-          .filter((b) => b.type === "text")
-          .map((b) => b.text)
-          .join("");
+  // Handle string content
+  if (typeof msg.content === "string") {
+    return {
+      role: msg.role,
+      content: msg.content,
+    };
+  }
+
+  // Handle content array - check if it contains images
+  if (hasImages(msg.content)) {
+    // Build content array with text and image_url parts
+    const contentParts: OpenAIContentPart[] = [];
+    for (const block of msg.content) {
+      if (block.type === "text") {
+        contentParts.push({ type: "text", text: block.text });
+      } else if (block.type === "image") {
+        contentParts.push({
+          type: "image_url",
+          image_url: {
+            url: convertImageToUrl(block),
+            detail: block.detail,
+          },
+        });
+      }
+    }
+    return {
+      role: msg.role,
+      content: contentParts,
+    };
+  }
+
+  // Text-only content array - join as string
+  const content = msg.content
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("");
 
   return {
     role: msg.role,

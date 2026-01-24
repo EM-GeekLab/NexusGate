@@ -46,13 +46,28 @@ export interface ToolResultContentBlock {
 }
 
 /**
+ * Image content block - represents an image input for vision models
+ */
+export interface ImageContentBlock {
+  type: "image";
+  source: {
+    type: "base64" | "url";
+    mediaType?: string; // "image/jpeg", "image/png", etc.
+    data?: string; // base64 data (when type is "base64")
+    url?: string; // image URL (when type is "url")
+  };
+  detail?: "auto" | "low" | "high"; // OpenAI vision detail level
+}
+
+/**
  * Union type for all content blocks
  */
 export type InternalContentBlock =
   | TextContentBlock
   | ThinkingContentBlock
   | ToolUseContentBlock
-  | ToolResultContentBlock;
+  | ToolResultContentBlock
+  | ImageContentBlock;
 
 // =============================================================================
 // Message Types

@@ -94,6 +94,9 @@ function convertContentBlock(
     case "tool_result":
       // Tool results are not included in Anthropic assistant responses
       return null;
+    case "image":
+      // Images are not included in assistant responses (only in requests)
+      return null;
   }
 }
 

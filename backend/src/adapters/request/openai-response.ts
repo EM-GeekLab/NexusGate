@@ -4,6 +4,8 @@
  */
 
 import type {
+  ImageContentBlock,
+  InternalContentBlock,
   InternalMessage,
   InternalRequest,
   InternalToolDefinition,
@@ -102,13 +104,39 @@ const KNOWN_FIELDS = new Set([
 // =============================================================================
 
 /**
- * Convert Response API content parts to string
+ * Convert Response API content parts to string or content blocks
  */
-function convertContentParts(parts: ResponseApiContentPart[]): string {
-  return parts
-    .filter((p) => p.type === "input_text" || p.type === "text")
-    .map((p) => p.text || "")
-    .join("");
+function convertContentParts(
+  parts: ResponseApiContentPart[],
+): string | InternalContentBlock[] {
+  const hasImages = parts.some((p) => p.type === "input_image");
+
+  if (!hasImages) {
+    // Simple case: text only
+    return parts
+      .filter((p) => p.type === "input_text" || p.type === "text")
+      .map((p) => p.text || "")
+      .join("");
+  }
+
+  // Complex case: includes images
+  const blocks: InternalContentBlock[] = [];
+  for (const part of parts) {
+    if (part.type === "input_text" || part.type === "text") {
+      if (part.text) {
+        blocks.push({ type: "text", text: part.text });
+      }
+    } else if (part.type === "input_image" && part.image_url) {
+      blocks.push({
+        type: "image",
+        source: {
+          type: "url",
+          url: part.image_url,
+        },
+      } as ImageContentBlock);
+    }
+  }
+  return blocks;
 }
 
 /**

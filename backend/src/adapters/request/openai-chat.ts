@@ -4,6 +4,7 @@
  */
 
 import type {
+  ImageContentBlock,
   InternalContentBlock,
   InternalMessage,
   InternalRequest,
@@ -122,13 +123,21 @@ function convertContent(
   if (typeof content === "string") {
     return content;
   }
-  // Array of content parts - currently only support text (images not supported yet)
+  // Array of content parts - support text and image_url
   const blocks: InternalContentBlock[] = [];
   for (const part of content) {
     if (part.type === "text" && part.text) {
       blocks.push({ type: "text", text: part.text });
+    } else if (part.type === "image_url" && part.image_url) {
+      blocks.push({
+        type: "image",
+        source: {
+          type: "url",
+          url: part.image_url.url,
+        },
+        detail: part.image_url.detail,
+      } as ImageContentBlock);
     }
-    // Skip image_url parts for now (not supported in MVP)
   }
 
   const [firstBlock] = blocks;

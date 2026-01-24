@@ -4,6 +4,7 @@
  */
 
 import type {
+  ImageContentBlock,
   InternalContentBlock,
   InternalMessage,
   InternalRequest,
@@ -22,8 +23,10 @@ import type {
 // =============================================================================
 
 interface ResponseApiContentPart {
-  type: "input_text" | "output_text" | "refusal";
+  type: "input_text" | "output_text" | "refusal" | "input_image";
   text?: string;
+  image_url?: string;
+  detail?: "auto" | "low" | "high";
 }
 
 interface ResponseApiInputItem {
@@ -103,6 +106,24 @@ interface ResponseApiStreamEvent {
 // =============================================================================
 
 /**
+ * Convert image source to URL format
+ */
+function convertImageToUrl(block: ImageContentBlock): string {
+  if (block.source.type === "url" && block.source.url) {
+    return block.source.url;
+  }
+  // Convert base64 to data URL
+  return `data:${block.source.mediaType || "image/jpeg"};base64,${block.source.data}`;
+}
+
+/**
+ * Check if content blocks contain any images
+ */
+function hasImages(content: InternalContentBlock[]): boolean {
+  return content.some((b) => b.type === "image");
+}
+
+/**
  * Convert internal message to Response API input item
  */
 function convertMessage(msg: InternalMessage): ResponseApiInputItem | null {
@@ -126,14 +147,42 @@ function convertMessage(msg: InternalMessage): ResponseApiInputItem | null {
     };
   }
 
-  // Regular messages
-  const content =
-    typeof msg.content === "string"
-      ? msg.content
-      : msg.content
-          .filter((b) => b.type === "text")
-          .map((b) => b.text)
-          .join("");
+  // Handle string content
+  if (typeof msg.content === "string") {
+    return {
+      type: "message",
+      role: msg.role,
+      content: msg.content,
+    };
+  }
+
+  // Handle content array - check if it contains images
+  if (hasImages(msg.content)) {
+    // Build content array with input_text and input_image parts
+    const contentParts: ResponseApiContentPart[] = [];
+    for (const block of msg.content) {
+      if (block.type === "text") {
+        contentParts.push({ type: "input_text", text: block.text });
+      } else if (block.type === "image") {
+        contentParts.push({
+          type: "input_image",
+          image_url: convertImageToUrl(block),
+          detail: block.detail,
+        });
+      }
+    }
+    return {
+      type: "message",
+      role: msg.role,
+      content: contentParts,
+    };
+  }
+
+  // Text-only content - join as string
+  const content = msg.content
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("");
 
   return {
     type: "message",

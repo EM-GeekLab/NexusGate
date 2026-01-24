@@ -536,13 +536,123 @@ export async function finalizeReqIdOnError(
 }
 
 // =============================================================================
+// Consolidated ReqId Handling Helpers
+// =============================================================================
+
+/**
+ * Result of ReqId extraction and validation
+ */
+export type ReqIdExtractionResult =
+  | { type: "valid"; reqId: string }
+  | { type: "empty"; reqId: null }
+  | { type: "error"; status: number; body: Record<string, unknown> };
+
+/**
+ * Extract, validate, and return ReqId with proper error responses
+ *
+ * Consolidates the extraction + validation + error response building pattern
+ *
+ * @param headers - Request headers
+ * @param apiFormat - API format for error response formatting
+ * @returns Extraction result with reqId or error response
+ */
+export function extractAndValidateReqId(
+  headers: Headers,
+  apiFormat: ApiFormat,
+): ReqIdExtractionResult {
+  const extraction = extractReqId(headers);
+
+  if (extraction.type === "too_long" || extraction.type === "invalid_characters") {
+    const errorResponse = buildReqIdValidationErrorResponse(extraction, apiFormat);
+    return { type: "error", status: errorResponse.status, body: errorResponse.body };
+  }
+
+  if (extraction.type === "valid") {
+    return { type: "valid", reqId: extraction.value };
+  }
+
+  return { type: "empty", reqId: null };
+}
+
+/**
+ * Result of handling ReqId check result
+ */
+export type ReqIdHandleResult =
+  | { type: "cache_hit"; response: Record<string, unknown> }
+  | { type: "in_flight"; status: 409; retryAfter: number; response: Record<string, unknown> }
+  | { type: "continue"; context: ReqIdContext | null };
+
+/**
+ * Handle ReqId check result - returns early response or context to continue
+ *
+ * Consolidates cache_hit handling, in_flight handling, and context building
+ *
+ * @param result - Result from checkReqId
+ * @param reqId - The extracted reqId (or null)
+ * @param apiKeyId - API key ID for the request
+ * @param apiFormat - API format for response formatting
+ * @returns Handle result indicating how to proceed
+ */
+export async function handleReqIdResult(
+  result: ReqIdCheckResult,
+  reqId: string | null,
+  apiKeyId: number,
+  apiFormat: ApiFormat,
+): Promise<ReqIdHandleResult> {
+  // Handle cache hit - return cached response
+  if (result.type === "cache_hit") {
+    const sourceCompletion = result.completion;
+
+    // Record the cache hit (best-effort)
+    try {
+      await recordCacheHit(sourceCompletion, apiKeyId);
+    } catch (error) {
+      logger.warn("Failed to record cache hit", error);
+    }
+
+    // Return cached response if available, otherwise reconstruct
+    const response = sourceCompletion.cachedResponse
+      ? (sourceCompletion.cachedResponse.body as Record<string, unknown>)
+      : buildCachedResponseByFormat(sourceCompletion, apiFormat);
+
+    return { type: "cache_hit", response };
+  }
+
+  // Handle in-flight - return 409 Conflict
+  if (result.type === "in_flight") {
+    if (!reqId) {
+      throw new Error("Invariant violated: reqId is null for in_flight result");
+    }
+
+    return {
+      type: "in_flight",
+      status: 409,
+      retryAfter: result.retryAfter,
+      response: buildInFlightErrorResponse(reqId, result.inFlight, result.retryAfter, apiFormat),
+    };
+  }
+
+  // Build context for new_request or no_reqid
+  const context: ReqIdContext | null = (result.type === "new_request" && reqId)
+    ? {
+        reqId,
+        apiKeyId,
+        preCreatedCompletionId: result.completionId,
+        apiFormat,
+      }
+    : null;
+
+  return { type: "continue", context };
+}
+
+// =============================================================================
 // ReqId Validation Error Responses
 // =============================================================================
 
 /**
  * Build error response for invalid ReqId (too long or invalid characters)
  */
-export function buildReqIdValidationErrorResponse(
+function buildReqIdValidationErrorResponse(
   extraction: ExtractReqIdResult,
   format: ApiFormat,
 ): { status: number; body: Record<string, unknown> } {

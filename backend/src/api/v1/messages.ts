@@ -34,11 +34,8 @@ import {
   checkReqId,
   finalizeReqId,
   finalizeReqIdOnError,
-  recordCacheHit,
-  buildInFlightErrorResponse,
-  extractReqId,
-  buildReqIdValidationErrorResponse,
-  buildCachedResponseByFormat,
+  extractAndValidateReqId,
+  handleReqIdResult,
   type ApiFormat,
   type ReqIdContext,
 } from "@/utils/reqIdHandler";
@@ -481,15 +478,14 @@ export const messagesApi = new Elysia({
       const reqHeaders = request.headers;
       const begin = Date.now();
 
-      // Extract ReqId for request deduplication
+      // Extract and validate ReqId for request deduplication
       const apiFormat: ApiFormat = "anthropic";
-      const reqIdExtraction = extractReqId(reqHeaders);
-      if (reqIdExtraction.type === "too_long" || reqIdExtraction.type === "invalid_characters") {
-        const errorResponse = buildReqIdValidationErrorResponse(reqIdExtraction, apiFormat);
-        set.status = errorResponse.status;
-        return errorResponse.body;
+      const reqIdExtraction = extractAndValidateReqId(reqHeaders, apiFormat);
+      if (reqIdExtraction.type === "error") {
+        set.status = reqIdExtraction.status;
+        return reqIdExtraction.body;
       }
-      const reqId = reqIdExtraction.type === "valid" ? reqIdExtraction.value : null;
+      const reqId = reqIdExtraction.reqId;
 
       // Parse model@provider format and extract provider from header
       const { systemName, targetProvider } = parseModelProvider(
@@ -559,48 +555,25 @@ export const messagesApi = new Elysia({
         isStream,
       });
 
-      // Handle cache hit - return cached response
-      if (reqIdResult.type === "cache_hit") {
-        const sourceCompletion = reqIdResult.completion;
-        // Record the cache hit (best-effort; do not block returning cached response)
-        try {
-          await recordCacheHit(sourceCompletion, apiKeyRecord.id);
-        } catch (error) {
-          logger.warn("Failed to record cache hit", error);
-        }
+      // Handle ReqId result (cache_hit, in_flight, or continue)
+      const reqIdHandleResult = await handleReqIdResult(
+        reqIdResult,
+        reqId,
+        apiKeyRecord.id,
+        apiFormat,
+      );
 
-        // Return cached response if available, otherwise reconstruct
-        if (sourceCompletion.cachedResponse) {
-          return sourceCompletion.cachedResponse.body as Record<string, unknown>;
-        }
-        return buildCachedResponseByFormat(sourceCompletion, apiFormat);
+      if (reqIdHandleResult.type === "cache_hit") {
+        return reqIdHandleResult.response;
       }
 
-      // Handle in-flight - return 409 Conflict
-      if (reqIdResult.type === "in_flight") {
-        // reqId is guaranteed non-null here since checkReqId only returns in_flight when reqId is provided
-        if (!reqId) {
-          throw new Error("Invariant violated: reqId is null for in_flight result");
-        }
-        set.status = 409;
-        set.headers["Retry-After"] = String(reqIdResult.retryAfter);
-        return buildInFlightErrorResponse(
-          reqId,
-          reqIdResult.inFlight,
-          reqIdResult.retryAfter,
-          apiFormat,
-        );
+      if (reqIdHandleResult.type === "in_flight") {
+        set.status = reqIdHandleResult.status;
+        set.headers["Retry-After"] = String(reqIdHandleResult.retryAfter);
+        return reqIdHandleResult.response;
       }
 
-      // For new_request, we have a pre-created completionId - build ReqId context
-      const reqIdContext: ReqIdContext | null = (reqIdResult.type === "new_request" && reqId)
-        ? {
-            reqId,
-            apiKeyId: apiKeyRecord.id,
-            preCreatedCompletionId: reqIdResult.completionId,
-            apiFormat,
-          }
-        : null;
+      const reqIdContext = reqIdHandleResult.context;
 
       // Parse request using Anthropic adapter
       const requestAdapter = getRequestAdapter("anthropic");

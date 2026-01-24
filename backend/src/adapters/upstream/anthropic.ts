@@ -202,13 +202,14 @@ function convertMessage(msg: InternalMessage): AnthropicMessage | null {
         cache_control: block.cacheControl,
       });
     } else if (block.type === "image") {
-      if (block.source.type === "base64") {
+      // Only push image blocks with valid data
+      if (block.source.type === "base64" && block.source.data) {
         content.push({
           type: "image",
           source: {
             type: "base64",
             media_type: block.source.mediaType || "image/jpeg",
-            data: block.source.data || "",
+            data: block.source.data,
           },
         });
       } else if (block.source.type === "url" && block.source.url) {

@@ -26,9 +26,10 @@ interface AnthropicContentBlock {
   text?: string;
   thinking?: string;
   source?: {
-    type: "base64";
-    media_type: string;
-    data: string;
+    type: "base64" | "url";
+    media_type?: string;
+    data?: string;
+    url?: string;
   };
   id?: string;
   name?: string;
@@ -138,6 +139,17 @@ function convertContentBlock(
     }
 
     case "image":
+      // Handle both base64 and URL source types
+      if (block.source?.type === "url" && block.source.url) {
+        return {
+          type: "image",
+          source: {
+            type: "url",
+            url: block.source.url,
+          },
+        } as ImageContentBlock;
+      }
+      // Default to base64
       return {
         type: "image",
         source: {

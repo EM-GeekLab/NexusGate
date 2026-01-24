@@ -56,12 +56,17 @@ export class StreamingContext {
     if (signal) {
       this.abortHandler = () => {
         logger.info("Client disconnected, saving partial completion");
-        this.saveCompletion("aborted").catch((saveError: unknown) => {
+        this.saveCompletion("aborted", "Client disconnected").catch((saveError: unknown) => {
           const errorMessage = saveError instanceof Error ? saveError.message : String(saveError);
           logger.error("Failed to save aborted completion", errorMessage);
         });
       };
       signal.addEventListener("abort", this.abortHandler);
+      // Handle case where signal is already aborted before listener registration
+      // (AbortSignal spec: addEventListener won't trigger for already-aborted signals)
+      if (signal.aborted) {
+        this.abortHandler();
+      }
     }
   }
 
@@ -135,9 +140,12 @@ export class StreamingContext {
       await addCompletions(this.completion, this.bearer);
     }
 
-    // Consume tokens for TPM rate limiting (only if we have valid counts)
-    if (this.apiKeyRecord && this.inputTokens > 0 && this.outputTokens > 0) {
-      const totalTokens = this.inputTokens + this.outputTokens;
+    // Consume tokens for TPM rate limiting
+    // Use Math.max(0, ...) to handle -1 (unknown) values and ensure partial usage is charged
+    const inputTokens = Math.max(0, this.inputTokens);
+    const outputTokens = Math.max(0, this.outputTokens);
+    const totalTokens = inputTokens + outputTokens;
+    if (this.apiKeyRecord && totalTokens > 0) {
       await consumeTokens(this.apiKeyRecord.id, this.apiKeyRecord.tpmLimit, totalTokens);
     }
   }

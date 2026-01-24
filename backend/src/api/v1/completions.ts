@@ -342,7 +342,10 @@ async function* processStreamingResponse(
       await ctx.saveCompletion("completed");
     }
   } catch (error) {
-    logger.error("Stream processing error", error);
+    // Only log error if not due to client abort
+    if (!ctx.isAborted()) {
+      logger.error("Stream processing error", error);
+    }
 
     // Save failed completion (if not already saved by abort handler)
     if (!ctx.isSaved()) {
@@ -617,8 +620,21 @@ export const completionsApi = new Elysia({
           );
           yield response;
         } catch (error) {
-          // Don't log error if it's due to client abort
-          if (!request.signal.aborted) {
+          // Handle error based on whether client aborted
+          if (request.signal.aborted) {
+            // Client disconnected - save as aborted if not already saved
+            if (completion.status === "pending") {
+              completion.status = "aborted";
+              await addCompletions(completion, bearer, {
+                level: "info",
+                message: "Client disconnected during non-streaming response",
+                details: {
+                  type: "completionError",
+                  data: { type: "aborted", msg: String(error ?? "Client disconnected") },
+                },
+              });
+            }
+          } else {
             logger.error("Failed to process response", error);
             completion.status = "failed";
             await addCompletions(completion, bearer, {

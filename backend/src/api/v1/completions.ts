@@ -43,6 +43,7 @@ import {
   recordCacheHit,
   buildInFlightErrorResponse,
   extractReqId,
+  REQID_MAX_LENGTH,
   type ApiFormat,
 } from "@/utils/reqIdHandler";
 
@@ -497,7 +498,18 @@ export const completionsApi = new Elysia({
       const begin = Date.now();
 
       // Extract ReqId for request deduplication
-      const reqId = extractReqId(reqHeaders);
+      const reqIdExtraction = extractReqId(reqHeaders);
+      if (reqIdExtraction.type === "too_long") {
+        set.status = 400;
+        return {
+          error: {
+            message: `X-NexusGate-ReqId exceeds maximum length of ${REQID_MAX_LENGTH} characters (got ${reqIdExtraction.length})`,
+            type: "invalid_request_error",
+            code: "reqid_too_long",
+          },
+        };
+      }
+      const reqId = reqIdExtraction.type === "valid" ? reqIdExtraction.value : null;
       const apiFormat: ApiFormat = "openai-chat";
 
       // Parse model@provider format and extract provider from header

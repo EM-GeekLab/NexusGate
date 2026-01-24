@@ -36,6 +36,7 @@ import {
   recordCacheHit,
   buildInFlightErrorResponse,
   extractReqId,
+  REQID_MAX_LENGTH,
   type ApiFormat,
 } from "@/utils/reqIdHandler";
 import type { CachedResponseType } from "@/db/schema";
@@ -468,7 +469,18 @@ export const messagesApi = new Elysia({
       const begin = Date.now();
 
       // Extract ReqId for request deduplication
-      const reqId = extractReqId(reqHeaders);
+      const reqIdExtraction = extractReqId(reqHeaders);
+      if (reqIdExtraction.type === "too_long") {
+        set.status = 400;
+        return {
+          type: "error",
+          error: {
+            type: "invalid_request_error",
+            message: `X-NexusGate-ReqId exceeds maximum length of ${REQID_MAX_LENGTH} characters (got ${reqIdExtraction.length})`,
+          },
+        };
+      }
+      const reqId = reqIdExtraction.type === "valid" ? reqIdExtraction.value : null;
       const apiFormat: ApiFormat = "anthropic";
 
       // Parse model@provider format and extract provider from header

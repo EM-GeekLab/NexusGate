@@ -309,25 +309,38 @@ export function buildInFlightErrorResponse(
 }
 
 /**
- * Extract ReqId from request headers
+ * Maximum length for ReqId (database schema constraint)
+ */
+export const REQID_MAX_LENGTH = 127;
+
+/**
+ * Result type for extractReqId
+ */
+export type ExtractReqIdResult =
+  | { type: "valid"; value: string }
+  | { type: "empty" }
+  | { type: "too_long"; length: number };
+
+/**
+ * Extract and validate ReqId from request headers
  *
  * @param headers - Request headers
- * @returns The ReqId value or null if not present
+ * @returns Extraction result indicating valid value, empty, or error
  */
-export function extractReqId(headers: Headers): string | null {
+export function extractReqId(headers: Headers): ExtractReqIdResult {
   const reqId = headers.get(REQID_HEADER);
   if (!reqId) {
-    return null;
+    return { type: "empty" };
   }
   // Trim first, then validate
   const trimmedReqId = reqId.trim();
   if (trimmedReqId === "") {
-    return null;
+    return { type: "empty" };
   }
   // Validate ReqId length (max 127 chars as per schema)
-  if (trimmedReqId.length > 127) {
-    logger.warn("ReqId too long, truncating", { length: trimmedReqId.length });
-    return trimmedReqId.substring(0, 127);
+  if (trimmedReqId.length > REQID_MAX_LENGTH) {
+    logger.warn("ReqId too long", { length: trimmedReqId.length, maxLength: REQID_MAX_LENGTH });
+    return { type: "too_long", length: trimmedReqId.length };
   }
-  return trimmedReqId;
+  return { type: "valid", value: trimmedReqId };
 }

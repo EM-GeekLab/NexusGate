@@ -112,8 +112,11 @@ function convertImageToUrl(block: ImageContentBlock): string {
   if (block.source.type === "url" && block.source.url) {
     return block.source.url;
   }
-  // Convert base64 to data URL
-  return `data:${block.source.mediaType || "image/jpeg"};base64,${block.source.data}`;
+  // Convert base64 to data URL - only if data is present
+  if (block.source.type === "base64" && block.source.data) {
+    return `data:${block.source.mediaType || "image/jpeg"};base64,${block.source.data}`;
+  }
+  return "";
 }
 
 /**
@@ -164,11 +167,15 @@ function convertMessage(msg: InternalMessage): ResponseApiInputItem | null {
       if (block.type === "text") {
         contentParts.push({ type: "input_text", text: block.text });
       } else if (block.type === "image") {
-        contentParts.push({
-          type: "input_image",
-          image_url: convertImageToUrl(block),
-          detail: block.detail,
-        });
+        // Only include images with valid data
+        const imageUrl = convertImageToUrl(block);
+        if (imageUrl) {
+          contentParts.push({
+            type: "input_image",
+            image_url: imageUrl,
+            detail: block.detail,
+          });
+        }
       }
     }
     return {

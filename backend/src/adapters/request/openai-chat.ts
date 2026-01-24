@@ -128,7 +128,7 @@ function convertContent(
   for (const part of content) {
     if (part.type === "text" && part.text) {
       blocks.push({ type: "text", text: part.text });
-    } else if (part.type === "image_url" && part.image_url) {
+    } else if (part.type === "image_url" && part.image_url?.url) {
       blocks.push({
         type: "image",
         source: {

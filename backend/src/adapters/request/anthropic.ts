@@ -149,15 +149,19 @@ function convertContentBlock(
           },
         } as ImageContentBlock;
       }
-      // Default to base64
-      return {
-        type: "image",
-        source: {
-          type: "base64",
-          mediaType: block.source?.media_type,
-          data: block.source?.data,
-        },
-      } as ImageContentBlock;
+      // Default to base64 - only if data is present
+      if (block.source?.data) {
+        return {
+          type: "image",
+          source: {
+            type: "base64",
+            mediaType: block.source.media_type,
+            data: block.source.data,
+          },
+        } as ImageContentBlock;
+      }
+      // Skip images with missing data
+      return null;
 
     default:
       return null;

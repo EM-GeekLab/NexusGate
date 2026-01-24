@@ -5,6 +5,7 @@
 
 import type {
   ImageContentBlock,
+  ImageSource,
   InternalContentBlock,
   InternalMessage,
   InternalRequest,
@@ -14,6 +15,35 @@ import type {
   ToolResultContentBlock,
   ToolUseContentBlock,
 } from "../types";
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * Parse a data URL into base64 source, or return URL source for regular URLs
+ * Data URL format: data:[<mediatype>][;base64],<data>
+ */
+function parseImageUrl(url: string): ImageSource {
+  if (url.startsWith("data:")) {
+    // Parse data URL: data:image/jpeg;base64,/9j/4AAQ...
+    const match = url.match(/^data:([^;,]+)?(?:;base64)?,(.*)$/);
+    if (match) {
+      const mediaType = match[1] || "image/jpeg";
+      const data = match[2] || "";
+      return {
+        type: "base64",
+        mediaType,
+        data,
+      };
+    }
+  }
+  // Regular URL
+  return {
+    type: "url",
+    url,
+  };
+}
 
 // =============================================================================
 // OpenAI Chat Request Types
@@ -129,12 +159,11 @@ function convertContent(
     if (part.type === "text" && part.text) {
       blocks.push({ type: "text", text: part.text });
     } else if (part.type === "image_url" && part.image_url?.url) {
+      // Parse URL - handles both regular URLs and data URLs (base64)
+      const source = parseImageUrl(part.image_url.url);
       blocks.push({
         type: "image",
-        source: {
-          type: "url",
-          url: part.image_url.url,
-        },
+        source,
         detail: part.image_url.detail,
       } as ImageContentBlock);
     }

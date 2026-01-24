@@ -672,6 +672,18 @@ export const completionsApi = new Elysia({
 
           const errorResult = await processFailoverError(result, completion, bearer, "streaming");
 
+          // Finalize pre-created completion if ReqId was used
+          if (preCreatedCompletionId && reqId && apiKeyRecord) {
+            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
+              status: "failed",
+              promptTokens: 0,
+              completionTokens: 0,
+              completion: [],
+              ttft: -1,
+              duration: Date.now() - begin,
+            });
+          }
+
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
             return JSON.parse(errorResult.body) as Record<string, unknown>;
@@ -688,11 +700,33 @@ export const completionsApi = new Elysia({
         }
 
         if (!result.response || !result.provider) {
+          // Finalize pre-created completion if ReqId was used
+          if (preCreatedCompletionId && reqId && apiKeyRecord) {
+            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
+              status: "failed",
+              promptTokens: 0,
+              completionTokens: 0,
+              completion: [],
+              ttft: -1,
+              duration: Date.now() - begin,
+            });
+          }
           set.status = 500;
           return { error: "Internal server error" };
         }
 
         if (!result.response.body) {
+          // Finalize pre-created completion if ReqId was used
+          if (preCreatedCompletionId && reqId && apiKeyRecord) {
+            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
+              status: "failed",
+              promptTokens: 0,
+              completionTokens: 0,
+              completion: [],
+              ttft: -1,
+              duration: Date.now() - begin,
+            });
+          }
           set.status = 500;
           return { error: "No body in response" };
         }
@@ -763,6 +797,18 @@ export const completionsApi = new Elysia({
 
           const errorResult = await processFailoverError(result, completion, bearer, "non-streaming");
 
+          // Finalize pre-created completion if ReqId was used
+          if (preCreatedCompletionId && reqId && apiKeyRecord) {
+            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
+              status: "failed",
+              promptTokens: 0,
+              completionTokens: 0,
+              completion: [],
+              ttft: -1,
+              duration: Date.now() - begin,
+            });
+          }
+
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
             return JSON.parse(errorResult.body) as Record<string, unknown>;
@@ -779,6 +825,17 @@ export const completionsApi = new Elysia({
         }
 
         if (!result.response || !result.provider) {
+          // Finalize pre-created completion if ReqId was used
+          if (preCreatedCompletionId && reqId && apiKeyRecord) {
+            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
+              status: "failed",
+              promptTokens: 0,
+              completionTokens: 0,
+              completion: [],
+              ttft: -1,
+              duration: Date.now() - begin,
+            });
+          }
           set.status = 500;
           return { error: "Internal server error" };
         }

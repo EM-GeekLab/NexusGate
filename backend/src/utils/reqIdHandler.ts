@@ -236,7 +236,8 @@ export function buildCacheHitRecord(
     status: "cache_hit",
     ttft: 0,
     duration: 0,
-    reqId: sourceCompletion.reqId,
+    // Note: reqId is intentionally omitted to avoid unique constraint violations
+    // cache_hit records don't need their own reqId since they reference sourceCompletionId
     sourceCompletionId: sourceCompletion.id,
     apiFormat: sourceCompletion.apiFormat,
   };
@@ -254,12 +255,7 @@ export async function recordCacheHit(
   apiKeyId: number,
 ): Promise<Completion | null> {
   const record = buildCacheHitRecord(sourceCompletion, apiKeyId);
-  // Use insertCompletion instead of createPendingCompletion to avoid ReqId conflicts
-  // since cache_hit records share the same ReqId as the source
-  return await insertCompletion({
-    ...record,
-    reqId: null, // Don't set ReqId on cache_hit records to avoid unique constraint
-  });
+  return await insertCompletion(record);
 }
 
 /**
@@ -313,13 +309,18 @@ export function buildInFlightErrorResponse(
  */
 export function extractReqId(headers: Headers): string | null {
   const reqId = headers.get(REQID_HEADER);
-  if (!reqId || reqId.trim() === "") {
+  if (!reqId) {
+    return null;
+  }
+  // Trim first, then validate
+  const trimmedReqId = reqId.trim();
+  if (trimmedReqId === "") {
     return null;
   }
   // Validate ReqId length (max 127 chars as per schema)
-  if (reqId.length > 127) {
-    logger.warn("ReqId too long, truncating", { length: reqId.length });
-    return reqId.substring(0, 127);
+  if (trimmedReqId.length > 127) {
+    logger.warn("ReqId too long, truncating", { length: trimmedReqId.length });
+    return trimmedReqId.substring(0, 127);
   }
-  return reqId.trim();
+  return trimmedReqId;
 }

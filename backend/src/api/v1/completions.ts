@@ -737,7 +737,7 @@ export const completionsApi = new Elysia({
             // Don't log error if it's due to client abort
             if (!streamSignal.aborted) {
               logger.error("Stream processing error", error);
-              set.status = 500;
+              // Note: HTTP status cannot be changed after streaming has started
               yield JSON.stringify({ error: "Stream processing error" });
             }
           }

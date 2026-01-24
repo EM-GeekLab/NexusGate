@@ -178,6 +178,14 @@ function convertMessage(msg: InternalMessage): ResponseApiInputItem | null {
         }
       }
     }
+    // Ensure we don't send empty content array to API
+    if (contentParts.length === 0) {
+      return {
+        type: "message",
+        role: msg.role,
+        content: "",
+      };
+    }
     return {
       type: "message",
       role: msg.role,

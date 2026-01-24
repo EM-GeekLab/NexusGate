@@ -228,6 +228,13 @@ function convertMessage(msg: InternalMessage): OpenAIMessage {
         }
       }
     }
+    // Ensure we don't send empty content array to API
+    if (contentParts.length === 0) {
+      return {
+        role: msg.role,
+        content: "",
+      };
+    }
     return {
       role: msg.role,
       content: contentParts,

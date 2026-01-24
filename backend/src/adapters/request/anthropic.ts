@@ -149,8 +149,8 @@ function convertContentBlock(
           },
         } as ImageContentBlock;
       }
-      // Default to base64 - only if data is present
-      if (block.source?.data) {
+      // Handle base64 - only if type matches and data is present
+      if (block.source?.type === "base64" && block.source.data) {
         return {
           type: "image",
           source: {

@@ -4,12 +4,26 @@
  */
 
 import type {
+  CachedResponseType,
   CompletionsStatusEnumType,
   ToolCallType,
 } from "@/db/schema";
 import { addCompletions, type Completion } from "@/utils/completions";
 import { consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
 import type { ApiKey } from "@/plugins/apiKeyPlugin";
+import { finalizeReqId } from "@/utils/reqIdHandler";
+
+/**
+ * ReqId context for request deduplication
+ */
+export interface StreamingReqIdContext {
+  reqId: string;
+  apiKeyId: number;
+  preCreatedCompletionId: number;
+  apiFormat: "openai-chat" | "openai-responses" | "anthropic";
+  /** Function to build the cached response from accumulated data */
+  buildCachedResponse?: (completion: Completion) => CachedResponseType;
+}
 
 /**
  * StreamingContext manages the state of a streaming response.
@@ -22,6 +36,7 @@ export class StreamingContext {
   private begin: number;
   private saved = false;
   private signal?: AbortSignal;
+  private reqIdContext?: StreamingReqIdContext;
 
   // Accumulated data during streaming
   textParts: string[] = [];
@@ -41,12 +56,14 @@ export class StreamingContext {
     apiKeyRecord: ApiKey | null,
     begin: number,
     signal?: AbortSignal,
+    reqIdContext?: StreamingReqIdContext,
   ) {
     this.completion = completion;
     this.bearer = bearer;
     this.apiKeyRecord = apiKeyRecord;
     this.begin = begin;
     this.signal = signal;
+    this.reqIdContext = reqIdContext;
 
     // Note: We don't save immediately on abort anymore.
     // Instead, we continue processing chunks from upstream and save the full
@@ -112,8 +129,21 @@ export class StreamingContext {
     this.completion.ttft = this.ttft;
     this.completion.duration = Date.now() - this.begin;
 
-    // Save to database
-    if (error) {
+    // Save to database - use finalizeReqId if ReqId context is present
+    if (this.reqIdContext) {
+      // Build cached response if callback is provided
+      const cachedResponse = this.reqIdContext.buildCachedResponse?.(this.completion);
+
+      await finalizeReqId(
+        this.reqIdContext.apiKeyId,
+        this.reqIdContext.reqId,
+        this.reqIdContext.preCreatedCompletionId,
+        {
+          ...this.completion,
+          cachedResponse,
+        },
+      );
+    } else if (error) {
       await addCompletions(this.completion, this.bearer, {
         level: status === "aborted" ? "info" : "error",
         message: `Stream ${status}: ${error}`,

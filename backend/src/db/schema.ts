@@ -151,8 +151,18 @@ export const CompletionsStatusEnum = pgEnum("completions_status", [
   "completed",
   "failed",
   "aborted",
+  "cache_hit",
 ]);
-export type CompletionsStatusEnumType = "pending" | "completed" | "failed" | "aborted";
+export type CompletionsStatusEnumType = "pending" | "completed" | "failed" | "aborted" | "cache_hit";
+
+/**
+ * Cached response type for ReqId deduplication
+ * Stores the serialized response for cache_hit returns
+ */
+export type CachedResponseType = {
+  body: unknown;
+  format: "openai-chat" | "openai-responses" | "anthropic";
+};
 
 export const CompletionsTable = pgTable("completions", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity().unique(),
@@ -176,6 +186,13 @@ export const CompletionsTable = pgTable("completions", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deleted: boolean("deleted").notNull().default(false),
   rating: real("rating"),
+  // ReqId deduplication fields
+  reqId: varchar("req_id", { length: 127 }),
+  sourceCompletionId: integer("source_completion_id").references(
+    (): AnyPgColumn => CompletionsTable.id,
+  ),
+  apiFormat: varchar("api_format", { length: 31 }),
+  cachedResponse: jsonb("cached_response").$type<CachedResponseType>(),
 });
 
 export const SrvLogsLevelEnum = pgEnum("srv_logs_level", [

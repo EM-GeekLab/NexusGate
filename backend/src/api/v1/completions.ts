@@ -19,6 +19,7 @@ import type {
   CompletionsMessageType,
   ToolDefinitionType,
   ToolChoiceType,
+  CachedResponseType,
 } from "@/db/schema";
 import {
   extractUpstreamHeaders,
@@ -36,6 +37,15 @@ import {
   selectMultipleCandidates,
   type FailoverConfig,
 } from "@/services/failover";
+import {
+  checkReqId,
+  finalizeReqId,
+  finalizeReqIdOnError,
+  extractAndValidateReqId,
+  handleReqIdResult,
+  type ApiFormat,
+  type ReqIdContext,
+} from "@/utils/reqIdHandler";
 
 const logger = consola.withTag("completionsApi");
 
@@ -160,6 +170,8 @@ function buildCompletionRecord(
   };
 }
 
+// ReqIdContext is imported from reqIdHandler
+
 /**
  * Process a successful non-streaming response
  * Ensures completion is saved to database before returning
@@ -172,6 +184,7 @@ async function processNonStreamingResponse(
   apiKeyRecord: ApiKey | null,
   begin: number,
   signal?: AbortSignal,
+  reqIdContext?: ReqIdContext,
 ): Promise<string> {
   // Parse response using upstream adapter
   const upstreamAdapter = getUpstreamAdapter(providerType);
@@ -197,21 +210,53 @@ async function processNonStreamingResponse(
     },
   ];
 
+  // Build cached response for ReqId deduplication
+  const cachedResponse: CachedResponseType = {
+    body: serialized,
+    format: "openai-chat",
+  };
+
   // Check if client disconnected during processing
   if (signal?.aborted) {
     completion.status = "aborted";
-    await addCompletions(completion, bearer, {
-      level: "info",
-      message: "Client disconnected during non-streaming response",
-      details: {
-        type: "completionError",
-        data: { type: "aborted", msg: "Client disconnected" },
-      },
-    });
+    if (reqIdContext) {
+      // Use finalizeReqId for ReqId requests
+      await finalizeReqId(
+        reqIdContext.apiKeyId,
+        reqIdContext.reqId,
+        reqIdContext.preCreatedCompletionId,
+        {
+          ...completion,
+          cachedResponse,
+        },
+      );
+    } else {
+      await addCompletions(completion, bearer, {
+        level: "info",
+        message: "Client disconnected during non-streaming response",
+        details: {
+          type: "completionError",
+          data: { type: "aborted", msg: "Client disconnected" },
+        },
+      });
+    }
   } else {
     completion.status = "completed";
-    // Use await to ensure database write completes before returning
-    await addCompletions(completion, bearer);
+    if (reqIdContext) {
+      // Use finalizeReqId for ReqId requests
+      await finalizeReqId(
+        reqIdContext.apiKeyId,
+        reqIdContext.reqId,
+        reqIdContext.preCreatedCompletionId,
+        {
+          ...completion,
+          cachedResponse,
+        },
+      );
+    } else {
+      // Use await to ensure database write completes before returning
+      await addCompletions(completion, bearer);
+    }
   }
 
   // Consume tokens for TPM rate limiting (post-flight)
@@ -237,6 +282,7 @@ async function* processStreamingResponse(
   apiKeyRecord: ApiKey | null,
   begin: number,
   signal?: AbortSignal,
+  reqIdContext?: ReqIdContext,
 ): AsyncGenerator<string, void, unknown> {
   // Get adapters
   const upstreamAdapter = getUpstreamAdapter(providerType);
@@ -244,8 +290,44 @@ async function* processStreamingResponse(
 
   logger.debug("parse stream completions response");
 
+  // Build streaming ReqId context if provided
+  const streamingReqIdContext = reqIdContext
+    ? {
+        reqId: reqIdContext.reqId,
+        apiKeyId: reqIdContext.apiKeyId,
+        preCreatedCompletionId: reqIdContext.preCreatedCompletionId,
+        apiFormat: reqIdContext.apiFormat,
+        buildCachedResponse: (comp: Completion): CachedResponseType => {
+          // For streaming, we build a complete non-streaming response for cache
+          return {
+            body: {
+              id: `chatcmpl-cache-${reqIdContext.preCreatedCompletionId}`,
+              object: "chat.completion",
+              created: Math.floor(Date.now() / 1000),
+              model: comp.model,
+              choices: comp.completion.map((c, i) => ({
+                index: i,
+                message: {
+                  role: c.role || "assistant",
+                  content: c.content,
+                  tool_calls: c.tool_calls,
+                },
+                finish_reason: c.tool_calls?.length ? "tool_calls" : "stop",
+              })),
+              usage: {
+                prompt_tokens: comp.promptTokens,
+                completion_tokens: comp.completionTokens,
+                total_tokens: comp.promptTokens + comp.completionTokens,
+              },
+            },
+            format: "openai-chat",
+          };
+        },
+      }
+    : undefined;
+
   // Create streaming context with abort handling
-  const ctx = new StreamingContext(completion, bearer, apiKeyRecord, begin, signal);
+  const ctx = new StreamingContext(completion, bearer, apiKeyRecord, begin, signal, streamingReqIdContext);
 
   // Track whether we've logged the client abort (to avoid duplicate logs)
   let loggedAbort = false;
@@ -398,7 +480,7 @@ export const completionsApi = new Elysia({
   .use(rateLimitPlugin)
   .post(
     "/completions",
-    async function* ({ body, set, bearer, request, apiKeyRecord }) {
+    async function ({ body, set, bearer, request, apiKeyRecord }) {
       if (bearer === undefined) {
         set.status = 500;
         return { error: "Internal server error" };
@@ -406,6 +488,15 @@ export const completionsApi = new Elysia({
 
       const reqHeaders = request.headers;
       const begin = Date.now();
+
+      // Extract and validate ReqId for request deduplication
+      const apiFormat: ApiFormat = "openai-chat";
+      const reqIdExtraction = extractAndValidateReqId(reqHeaders, apiFormat);
+      if (reqIdExtraction.type === "error") {
+        set.status = reqIdExtraction.status;
+        return reqIdExtraction.body;
+      }
+      const reqId = reqIdExtraction.reqId;
 
       // Parse model@provider format and extract provider from header
       const { systemName, targetProvider } = parseModelProvider(
@@ -457,6 +548,43 @@ export const completionsApi = new Elysia({
       // Extract extra headers for passthrough
       const extraHeaders = extractUpstreamHeaders(reqHeaders);
 
+      // Check ReqId for deduplication (if provided)
+      const isStream = body.stream === true;
+      const reqIdResult = await checkReqId(reqId, {
+        apiKeyId: apiKeyRecord.id,
+        model: body.model,
+        modelId: candidates[0]?.model.id,
+        prompt: {
+          messages: body.messages as CompletionsMessageType[],
+          tools: body.tools as ToolDefinitionType[] | undefined,
+          tool_choice: body.tool_choice as ToolChoiceType | undefined,
+          extraHeaders,
+        },
+        apiFormat,
+        endpoint: "/v1/chat/completions",
+        isStream,
+      });
+
+      // Handle ReqId result (cache_hit, in_flight, or continue)
+      const reqIdHandleResult = await handleReqIdResult(
+        reqIdResult,
+        reqId,
+        apiKeyRecord.id,
+        apiFormat,
+      );
+
+      if (reqIdHandleResult.type === "cache_hit") {
+        return reqIdHandleResult.response;
+      }
+
+      if (reqIdHandleResult.type === "in_flight") {
+        set.status = reqIdHandleResult.status;
+        set.headers["Retry-After"] = String(reqIdHandleResult.retryAfter);
+        return reqIdHandleResult.response;
+      }
+
+      const reqIdContext = reqIdHandleResult.context;
+
       // Parse request using adapter
       const requestAdapter = getRequestAdapter("openai-chat");
       const internalRequest = requestAdapter.parse(
@@ -484,7 +612,7 @@ export const completionsApi = new Elysia({
 
       // Handle streaming vs non-streaming
       if (internalRequest.stream) {
-        // Streaming request - use yield for streaming responses
+        // Streaming request - return an async generator
         if (body.n && body.n > 1) {
           set.status = 400;
           return { error: "Stream completions with n > 1 is not supported" };
@@ -510,6 +638,9 @@ export const completionsApi = new Elysia({
 
           const errorResult = await processFailoverError(result, completion, bearer, "streaming");
 
+          // Finalize pre-created completion if ReqId was used
+          await finalizeReqIdOnError(reqIdContext, begin);
+
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
             return JSON.parse(errorResult.body) as Record<string, unknown>;
@@ -526,11 +657,13 @@ export const completionsApi = new Elysia({
         }
 
         if (!result.response || !result.provider) {
+          await finalizeReqIdOnError(reqIdContext, begin);
           set.status = 500;
           return { error: "Internal server error" };
         }
 
         if (!result.response.body) {
+          await finalizeReqIdOnError(reqIdContext, begin);
           set.status = 500;
           return { error: "No body in response" };
         }
@@ -546,26 +679,33 @@ export const completionsApi = new Elysia({
           extraHeaders,
         );
 
-        try {
-          yield* processStreamingResponse(
-            result.response,
-            completion,
-            bearer,
-            providerType,
-            apiKeyRecord ?? null,
-            begin,
-            request.signal,
-          );
-        } catch (error) {
-          // Don't log error if it's due to client abort
-          if (!request.signal.aborted) {
-            logger.error("Stream processing error", error);
-            set.status = 500;
-            yield JSON.stringify({ error: "Stream processing error" });
+        // Return an async generator for streaming
+        const streamResponse = result.response;
+        const streamSignal = request.signal;
+        return (async function* () {
+          try {
+            yield* processStreamingResponse(
+              streamResponse,
+              completion,
+              bearer,
+              providerType,
+              apiKeyRecord ?? null,
+              begin,
+              streamSignal,
+              reqIdContext ?? undefined,
+            );
+          } catch (error) {
+            // Don't log error if it's due to client abort
+            if (!streamSignal.aborted) {
+              logger.error("Stream processing error", error);
+              // Note: HTTP status cannot be changed after streaming has started
+              // Use SSE format for error: data: {...}\n\n
+              yield `data: ${JSON.stringify({ error: { message: "Stream processing error", type: "server_error", code: "stream_error" } })}\n\n`;
+            }
           }
-        }
+        })();
       } else {
-        // Non-streaming request - use return for normal JSON response
+        // Non-streaming request - return JSON response directly
         const result = await executeWithFailover(
           candidates,
           buildRequestForProvider,
@@ -585,6 +725,9 @@ export const completionsApi = new Elysia({
 
           const errorResult = await processFailoverError(result, completion, bearer, "non-streaming");
 
+          // Finalize pre-created completion if ReqId was used
+          await finalizeReqIdOnError(reqIdContext, begin);
+
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
             return JSON.parse(errorResult.body) as Record<string, unknown>;
@@ -601,6 +744,7 @@ export const completionsApi = new Elysia({
         }
 
         if (!result.response || !result.provider) {
+          await finalizeReqIdOnError(reqIdContext, begin);
           set.status = 500;
           return { error: "Internal server error" };
         }
@@ -625,6 +769,7 @@ export const completionsApi = new Elysia({
             apiKeyRecord ?? null,
             begin,
             request.signal,
+            reqIdContext ?? undefined,
           );
           // Return parsed JSON object for proper content-type
           return JSON.parse(response) as Record<string, unknown>;

@@ -286,17 +286,35 @@ async function* processStreamingResponse(
         apiFormat: reqIdContext.apiFormat,
         buildCachedResponse: (comp: Completion): CachedResponseType => {
           // For streaming, build a complete non-streaming Anthropic response for cache
+          // Build content blocks including both text and tool_use
+          const contentBlocks: Array<Record<string, unknown>> = [];
+          for (const c of comp.completion) {
+            // Add text content if present
+            if (c.content) {
+              contentBlocks.push({ type: "text", text: c.content });
+            }
+            // Add tool_use blocks if present
+            if (c.tool_calls) {
+              for (const tc of c.tool_calls) {
+                contentBlocks.push({
+                  type: "tool_use",
+                  id: tc.id,
+                  name: tc.function.name,
+                  input: JSON.parse(tc.function.arguments || "{}"),
+                });
+              }
+            }
+          }
+          // Determine stop_reason based on content
+          const hasToolUse = contentBlocks.some((b) => b.type === "tool_use");
           return {
             body: {
               id: `msg-cache-${reqIdContext.preCreatedCompletionId}`,
               type: "message",
               role: "assistant",
-              content: comp.completion.map((c) => ({
-                type: "text",
-                text: c.content || "",
-              })),
+              content: contentBlocks.length > 0 ? contentBlocks : [{ type: "text", text: "" }],
               model: comp.model,
-              stop_reason: "end_turn",
+              stop_reason: hasToolUse ? "tool_use" : "end_turn",
               usage: {
                 input_tokens: comp.promptTokens,
                 output_tokens: comp.completionTokens,
@@ -566,16 +584,31 @@ export const messagesApi = new Elysia({
         }
 
         // Fallback: reconstruct Anthropic response
+        // Build content blocks including both text and tool_use
+        const contentBlocks: Array<Record<string, unknown>> = [];
+        for (const c of sourceCompletion.completion) {
+          if (c.content) {
+            contentBlocks.push({ type: "text", text: c.content });
+          }
+          if (c.tool_calls) {
+            for (const tc of c.tool_calls) {
+              contentBlocks.push({
+                type: "tool_use",
+                id: tc.id,
+                name: tc.function.name,
+                input: JSON.parse(tc.function.arguments || "{}"),
+              });
+            }
+          }
+        }
+        const hasToolUse = contentBlocks.some((b) => b.type === "tool_use");
         return {
           id: `msg-cache-${sourceCompletion.id}`,
           type: "message",
           role: "assistant",
-          content: sourceCompletion.completion.map((c) => ({
-            type: "text",
-            text: c.content || "",
-          })),
+          content: contentBlocks.length > 0 ? contentBlocks : [{ type: "text", text: "" }],
           model: sourceCompletion.model,
-          stop_reason: "end_turn",
+          stop_reason: hasToolUse ? "tool_use" : "end_turn",
           usage: {
             input_tokens: sourceCompletion.promptTokens,
             output_tokens: sourceCompletion.completionTokens,

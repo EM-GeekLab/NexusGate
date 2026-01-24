@@ -297,17 +297,46 @@ async function* processStreamingResponse(
         apiFormat: reqIdContext.apiFormat,
         buildCachedResponse: (comp: Completion): CachedResponseType => {
           // For streaming, build a complete non-streaming Response API response for cache
+          // Build output items including both messages and function_call
+          const outputItems: Array<Record<string, unknown>> = [];
+          for (const c of comp.completion) {
+            // Build content array for message
+            const content: Array<Record<string, unknown>> = [];
+            if (c.content) {
+              content.push({ type: "output_text", text: c.content });
+            }
+            // Add message output item if there's text content
+            if (content.length > 0) {
+              outputItems.push({
+                type: "message",
+                role: c.role || "assistant",
+                content,
+              });
+            }
+            // Add function_call output items for tool_calls
+            if (c.tool_calls) {
+              for (const tc of c.tool_calls) {
+                outputItems.push({
+                  type: "function_call",
+                  id: tc.id,
+                  call_id: tc.id,
+                  name: tc.function.name,
+                  arguments: tc.function.arguments || "{}",
+                });
+              }
+            }
+          }
           return {
             body: {
               id: `resp-cache-${reqIdContext.preCreatedCompletionId}`,
               object: "response",
               created_at: Math.floor(Date.now() / 1000),
               model: comp.model,
-              output: comp.completion.map((c) => ({
+              output: outputItems.length > 0 ? outputItems : [{
                 type: "message",
-                role: c.role || "assistant",
-                content: [{ type: "output_text", text: c.content || "" }],
-              })),
+                role: "assistant",
+                content: [{ type: "output_text", text: "" }],
+              }],
               usage: {
                 input_tokens: comp.promptTokens,
                 output_tokens: comp.completionTokens,
@@ -604,16 +633,42 @@ export const responsesApi = new Elysia({
         }
 
         // Fallback: reconstruct Response API response
+        // Build output items including both messages and function_call
+        const outputItems: Array<Record<string, unknown>> = [];
+        for (const c of sourceCompletion.completion) {
+          const content: Array<Record<string, unknown>> = [];
+          if (c.content) {
+            content.push({ type: "output_text", text: c.content });
+          }
+          if (content.length > 0) {
+            outputItems.push({
+              type: "message",
+              role: c.role || "assistant",
+              content,
+            });
+          }
+          if (c.tool_calls) {
+            for (const tc of c.tool_calls) {
+              outputItems.push({
+                type: "function_call",
+                id: tc.id,
+                call_id: tc.id,
+                name: tc.function.name,
+                arguments: tc.function.arguments || "{}",
+              });
+            }
+          }
+        }
         return {
           id: `resp-cache-${sourceCompletion.id}`,
           object: "response",
           created_at: Math.floor(sourceCompletion.createdAt.getTime() / 1000),
           model: sourceCompletion.model,
-          output: sourceCompletion.completion.map((c) => ({
+          output: outputItems.length > 0 ? outputItems : [{
             type: "message",
-            role: c.role || "assistant",
-            content: [{ type: "output_text", text: c.content || "" }],
-          })),
+            role: "assistant",
+            content: [{ type: "output_text", text: "" }],
+          }],
           usage: {
             input_tokens: sourceCompletion.promptTokens,
             output_tokens: sourceCompletion.completionTokens,

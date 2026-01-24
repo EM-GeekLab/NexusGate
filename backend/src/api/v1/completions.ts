@@ -467,6 +467,9 @@ export const completionsApi = new Elysia({
 
       // Handle streaming vs non-streaming
       if (internalRequest.stream) {
+        // Set content-type for SSE streaming
+        set.headers["Content-Type"] = "text/event-stream";
+
         if (body.n && body.n > 1) {
           set.status = 400;
           yield JSON.stringify({
@@ -554,6 +557,9 @@ export const completionsApi = new Elysia({
           }
         }
       } else {
+        // Set content-type for JSON response
+        set.headers["Content-Type"] = "application/json";
+
         // Non-streaming request with failover
         const result = await executeWithFailover(
           candidates,

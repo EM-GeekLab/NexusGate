@@ -408,6 +408,9 @@ export const messagesApi = new Elysia({
 
       // Handle streaming vs non-streaming
       if (internalRequest.stream) {
+        // Set content-type for SSE streaming
+        set.headers["Content-Type"] = "text/event-stream";
+
         // For streaming, use failover only for connection establishment
         const result = await executeWithFailover(
           candidates,
@@ -489,6 +492,9 @@ export const messagesApi = new Elysia({
           }
         }
       } else {
+        // Set content-type for JSON response
+        set.headers["Content-Type"] = "application/json";
+
         // Non-streaming request with failover
         const result = await executeWithFailover(
           candidates,

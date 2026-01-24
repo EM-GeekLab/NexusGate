@@ -4,7 +4,6 @@
  */
 
 import type {
-  ImageContentBlock,
   InternalContentBlock,
   InternalMessage,
   InternalRequest,
@@ -19,6 +18,7 @@ import type {
   ToolUseContentBlock,
   UpstreamAdapter,
 } from "../types";
+import { convertImageToUrl, hasImages } from "./utils";
 
 // =============================================================================
 // OpenAI Request/Response Types
@@ -134,27 +134,6 @@ interface OpenAIToolCallDelta {
 // =============================================================================
 // Conversion Functions
 // =============================================================================
-
-/**
- * Convert image source to OpenAI image URL format
- */
-function convertImageToUrl(block: ImageContentBlock): string {
-  if (block.source.type === "url" && block.source.url) {
-    return block.source.url;
-  }
-  // Convert base64 to data URL - only if data is present
-  if (block.source.type === "base64" && block.source.data) {
-    return `data:${block.source.mediaType || "image/jpeg"};base64,${block.source.data}`;
-  }
-  return "";
-}
-
-/**
- * Check if content blocks contain any images
- */
-function hasImages(content: InternalContentBlock[]): boolean {
-  return content.some((b) => b.type === "image");
-}
 
 /**
  * Convert internal message to OpenAI format

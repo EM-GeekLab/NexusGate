@@ -24,6 +24,7 @@ import {
   PROVIDER_HEADER,
 } from "@/utils/api-helpers";
 import { addCompletions, type Completion } from "@/utils/completions";
+import { StreamingContext } from "@/utils/streaming-context";
 import {
   executeWithFailover,
   selectMultipleCandidates,
@@ -164,6 +165,7 @@ function buildCompletionRecord(
 
 /**
  * Process a successful non-streaming response
+ * Ensures completion is saved to database before returning
  */
 async function processNonStreamingResponse(
   resp: Response,
@@ -172,6 +174,7 @@ async function processNonStreamingResponse(
   providerType: string,
   apiKeyRecord: ApiKey | null,
   begin: number,
+  signal?: AbortSignal,
 ): Promise<string> {
   // Parse response using upstream adapter
   const upstreamAdapter = getUpstreamAdapter(providerType);
@@ -184,7 +187,6 @@ async function processNonStreamingResponse(
   // Update completion record
   completion.promptTokens = internalResponse.usage.inputTokens;
   completion.completionTokens = internalResponse.usage.outputTokens;
-  completion.status = "completed";
   completion.ttft = Date.now() - begin;
   completion.duration = Date.now() - begin;
   completion.completion = [
@@ -193,9 +195,22 @@ async function processNonStreamingResponse(
       content: extractContentText(internalResponse),
     },
   ];
-  addCompletions(completion, bearer).catch(() => {
-    logger.error("Failed to log completion after non-streaming");
-  });
+
+  // Check if client disconnected during processing
+  if (signal?.aborted) {
+    completion.status = "aborted";
+    await addCompletions(completion, bearer, {
+      level: "info",
+      message: "Client disconnected during non-streaming response",
+      details: {
+        type: "completionError",
+        data: { type: "aborted", msg: "Client disconnected" },
+      },
+    });
+  } else {
+    completion.status = "completed";
+    await addCompletions(completion, bearer);
+  }
 
   // Consume tokens for TPM rate limiting (post-flight)
   // Only consume if token counts are valid (not -1 which indicates parsing failure)
@@ -209,6 +224,7 @@ async function processNonStreamingResponse(
 
 /**
  * Process a successful streaming response
+ * Uses StreamingContext to ensure completion is saved even on client disconnect
  * @yields SSE formatted strings
  */
 async function* processStreamingResponse(
@@ -218,6 +234,7 @@ async function* processStreamingResponse(
   providerType: string,
   apiKeyRecord: ApiKey | null,
   begin: number,
+  signal?: AbortSignal,
 ): AsyncGenerator<string, void, unknown> {
   // Get adapters
   const upstreamAdapter = getUpstreamAdapter(providerType);
@@ -225,38 +242,37 @@ async function* processStreamingResponse(
 
   logger.debug("parse stream responses");
 
-  let ttft = -1;
-  let isFirstChunk = true;
-  const textParts: string[] = [];
-  const thinkingParts: string[] = [];
-  let inputTokens = -1;
-  let outputTokens = -1;
+  // Create streaming context with abort handling
+  const ctx = new StreamingContext(completion, bearer, apiKeyRecord, begin, signal);
 
   try {
     const chunks = upstreamAdapter.parseStreamResponse(resp);
 
     for await (const chunk of chunks) {
-      if (isFirstChunk) {
-        isFirstChunk = false;
-        ttft = Date.now() - begin;
+      // Check if client has disconnected
+      if (ctx.isAborted()) {
+        logger.debug("Client aborted, stopping stream processing");
+        break;
       }
+
+      ctx.recordTTFT();
 
       // Collect content for completion record
       if (chunk.type === "content_block_delta") {
         if (chunk.delta?.type === "text_delta" && chunk.delta.text) {
-          textParts.push(chunk.delta.text);
+          ctx.textParts.push(chunk.delta.text);
         } else if (
           chunk.delta?.type === "thinking_delta" &&
           chunk.delta.thinking
         ) {
-          thinkingParts.push(chunk.delta.thinking);
+          ctx.thinkingParts.push(chunk.delta.thinking);
         }
       }
 
       // Collect usage info
       if (chunk.usage) {
-        inputTokens = chunk.usage.inputTokens;
-        outputTokens = chunk.usage.outputTokens;
+        ctx.inputTokens = chunk.usage.inputTokens;
+        ctx.outputTokens = chunk.usage.outputTokens;
       }
 
       // Convert to Response API format and yield
@@ -271,49 +287,27 @@ async function* processStreamingResponse(
       }
     }
 
-    // Finalize completion record
-    completion.completion = [
-      {
-        role: undefined,
-        content:
-          (thinkingParts.length > 0
-            ? `<think>${thinkingParts.join("")}</think>\n`
-            : "") + textParts.join(""),
-      },
-    ];
-    completion.promptTokens = inputTokens;
-    completion.completionTokens = outputTokens;
-    completion.status = "completed";
-    completion.ttft = ttft;
-    completion.duration = Date.now() - begin;
-    addCompletions(completion, bearer).catch(() => {
-      logger.error("Failed to log completion after streaming");
-    });
-
-    // Consume tokens for TPM rate limiting (post-flight)
-    if (apiKeyRecord && inputTokens > 0 && outputTokens > 0) {
-      const totalTokens = inputTokens + outputTokens;
-      await consumeTokens(apiKeyRecord.id, apiKeyRecord.tpmLimit, totalTokens);
+    // Handle case where no chunks were received
+    if (ctx.isFirstChunk && !ctx.isAborted()) {
+      throw new Error("No chunk received from upstream");
     }
 
-    // Handle case where no chunks were received
-    if (isFirstChunk) {
-      throw new Error("No chunk received from upstream");
+    // Save completed completion (if not already saved by abort handler)
+    if (!ctx.isSaved()) {
+      await ctx.saveCompletion("completed");
     }
   } catch (error) {
     logger.error("Stream processing error", error);
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: `Stream processing error: ${String(error)}`,
-      details: {
-        type: "completionError",
-        data: { type: "streamError", msg: String(error) },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion error after stream failure");
-    });
+
+    // Save failed completion (if not already saved by abort handler)
+    if (!ctx.isSaved()) {
+      await ctx.saveCompletion("failed", String(error));
+    }
+
     throw error;
+  } finally {
+    // Clean up abort handler
+    ctx.cleanup();
   }
 }
 
@@ -497,11 +491,15 @@ export const responsesApi = new Elysia({
             providerType,
             apiKeyRecord ?? null,
             begin,
+            request.signal,
           );
         } catch (error) {
-          logger.error("Stream processing error", error);
-          set.status = 500;
-          yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { code: "internal_error", message: "Stream processing error", param: null, help_url: null } })}\n\n`;
+          // Don't log error if it's due to client abort
+          if (!request.signal.aborted) {
+            logger.error("Stream processing error", error);
+            set.status = 500;
+            yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { code: "internal_error", message: "Stream processing error", param: null, help_url: null } })}\n\n`;
+          }
         }
       } else {
         // Non-streaming request with failover
@@ -565,26 +563,28 @@ export const responsesApi = new Elysia({
             providerType,
             apiKeyRecord ?? null,
             begin,
+            request.signal,
           );
           yield response;
         } catch (error) {
-          logger.error("Failed to process response", error);
-          completion.status = "failed";
-          addCompletions(completion, bearer, {
-            level: "error",
-            message: `Response processing error: ${String(error)}`,
-            details: {
-              type: "completionError",
-              data: { type: "processingError", msg: String(error) },
-            },
-          }).catch(() => {
-            logger.error("Failed to log completion after processing error");
-          });
-          set.status = 500;
-          yield JSON.stringify({
-            object: "error",
-            error: { type: "server_error", message: "Failed to process response" },
-          });
+          // Don't log error if it's due to client abort
+          if (!request.signal.aborted) {
+            logger.error("Failed to process response", error);
+            completion.status = "failed";
+            await addCompletions(completion, bearer, {
+              level: "error",
+              message: `Response processing error: ${String(error)}`,
+              details: {
+                type: "completionError",
+                data: { type: "processingError", msg: String(error) },
+              },
+            });
+            set.status = 500;
+            yield JSON.stringify({
+              object: "error",
+              error: { type: "server_error", message: "Failed to process response" },
+            });
+          }
         }
       }
     },

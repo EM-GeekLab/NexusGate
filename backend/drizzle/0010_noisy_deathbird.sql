@@ -1,0 +1,1 @@
+ALTER TYPE "public"."completions_status" ADD VALUE 'aborted';

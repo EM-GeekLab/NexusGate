@@ -71,6 +71,13 @@
       "when": 1768653472259,
       "tag": "0009_api_key_external_id",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1769256296714,
+      "tag": "0010_noisy_deathbird",
+      "breakpoints": true
     }
   ]
 }

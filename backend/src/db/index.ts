@@ -1310,7 +1310,12 @@ export async function createPendingCompletion(
     return first ?? null;
   } catch (error) {
     // Handle unique constraint violation (duplicate ReqId)
-    if (error instanceof Error && error.message.includes("unique")) {
+    // PostgreSQL error code 23505 = unique_violation
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      (error as { code: string }).code === "23505"
+    ) {
       logger.warn("Duplicate ReqId detected", c.reqId);
       return null;
     }

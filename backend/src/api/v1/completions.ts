@@ -18,7 +18,6 @@ import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import type {
   CompletionsMessageType,
   ToolDefinitionType,
-  ToolCallType,
   ToolChoiceType,
 } from "@/db/schema";
 import {
@@ -31,6 +30,7 @@ import {
   PROVIDER_HEADER,
 } from "@/utils/api-helpers";
 import { addCompletions, type Completion } from "@/utils/completions";
+import { StreamingContext } from "@/utils/streaming-context";
 import {
   executeWithFailover,
   selectMultipleCandidates,
@@ -162,6 +162,7 @@ function buildCompletionRecord(
 
 /**
  * Process a successful non-streaming response
+ * Ensures completion is saved to database before returning
  */
 async function processNonStreamingResponse(
   resp: Response,
@@ -170,6 +171,7 @@ async function processNonStreamingResponse(
   providerType: string,
   apiKeyRecord: ApiKey | null,
   begin: number,
+  signal?: AbortSignal,
 ): Promise<string> {
   // Parse response using upstream adapter
   const upstreamAdapter = getUpstreamAdapter(providerType);
@@ -182,7 +184,6 @@ async function processNonStreamingResponse(
   // Update completion record
   completion.promptTokens = internalResponse.usage.inputTokens;
   completion.completionTokens = internalResponse.usage.outputTokens;
-  completion.status = "completed";
   completion.ttft = Date.now() - begin;
   completion.duration = Date.now() - begin;
 
@@ -195,9 +196,23 @@ async function processNonStreamingResponse(
       tool_calls: toolCalls,
     },
   ];
-  addCompletions(completion, bearer).catch(() => {
-    logger.error("Failed to log completion after non-streaming");
-  });
+
+  // Check if client disconnected during processing
+  if (signal?.aborted) {
+    completion.status = "aborted";
+    await addCompletions(completion, bearer, {
+      level: "info",
+      message: "Client disconnected during non-streaming response",
+      details: {
+        type: "completionError",
+        data: { type: "aborted", msg: "Client disconnected" },
+      },
+    });
+  } else {
+    completion.status = "completed";
+    // Use await to ensure database write completes before returning
+    await addCompletions(completion, bearer);
+  }
 
   // Consume tokens for TPM rate limiting (post-flight)
   // Only consume if token counts are valid (not -1 which indicates parsing failure)
@@ -211,6 +226,7 @@ async function processNonStreamingResponse(
 
 /**
  * Process a successful streaming response
+ * Uses StreamingContext to ensure completion is saved even on client disconnect
  * @yields string chunks in OpenAI format
  */
 async function* processStreamingResponse(
@@ -220,6 +236,7 @@ async function* processStreamingResponse(
   providerType: string,
   apiKeyRecord: ApiKey | null,
   begin: number,
+  signal?: AbortSignal,
 ): AsyncGenerator<string, void, unknown> {
   // Get adapters
   const upstreamAdapter = getUpstreamAdapter(providerType);
@@ -227,38 +244,35 @@ async function* processStreamingResponse(
 
   logger.debug("parse stream completions response");
 
-  let ttft = -1;
-  let isFirstChunk = true;
-  const textParts: string[] = [];
-  const thinkingParts: string[] = [];
-  let inputTokens = -1;
-  let outputTokens = -1;
+  // Create streaming context with abort handling
+  const ctx = new StreamingContext(completion, bearer, apiKeyRecord, begin, signal);
 
-  // Track tool calls during streaming
-  // Use Map with tool call ID as key to avoid index collision issues
-  const streamToolCalls: Map<string, ToolCallType> = new Map();
-  const toolCallArguments: Map<string, string[]> = new Map();
-  // Track index-to-id mapping for chunks that only provide index
-  const indexToIdMap: Map<number, string> = new Map();
-  let nextToolCallIndex = 0;
+  // Track whether we've logged the client abort (to avoid duplicate logs)
+  let loggedAbort = false;
 
   try {
     const chunks = upstreamAdapter.parseStreamResponse(resp);
 
     for await (const chunk of chunks) {
-      if (isFirstChunk) {
-        isFirstChunk = false;
-        ttft = Date.now() - begin;
+      // Check if client has disconnected (but continue processing to collect all data)
+      const clientAborted = ctx.isAborted();
+
+      // Log client disconnect once when first detected
+      if (clientAborted && !loggedAbort) {
+        loggedAbort = true;
+        logger.info("Client disconnected during streaming, continuing to collect upstream data");
       }
 
-      // Collect content for completion record
+      ctx.recordTTFT();
+
+      // Collect content for completion record (always, even if client aborted)
       if (chunk.type === "content_block_start") {
         // Track new tool call block
         if (chunk.contentBlock?.type === "tool_use") {
           const toolId = chunk.contentBlock.id;
-          const index = chunk.index ?? nextToolCallIndex++;
-          indexToIdMap.set(index, toolId);
-          streamToolCalls.set(toolId, {
+          const index = chunk.index ?? ctx.nextToolCallIndex++;
+          ctx.indexToIdMap.set(index, toolId);
+          ctx.streamToolCalls.set(toolId, {
             id: toolId,
             type: "function",
             function: {
@@ -266,23 +280,23 @@ async function* processStreamingResponse(
               arguments: "",
             },
           });
-          toolCallArguments.set(toolId, []);
+          ctx.toolCallArguments.set(toolId, []);
         }
       } else if (chunk.type === "content_block_delta") {
         if (chunk.delta?.type === "text_delta" && chunk.delta.text) {
-          textParts.push(chunk.delta.text);
+          ctx.textParts.push(chunk.delta.text);
         } else if (
           chunk.delta?.type === "thinking_delta" &&
           chunk.delta.thinking
         ) {
-          thinkingParts.push(chunk.delta.thinking);
+          ctx.thinkingParts.push(chunk.delta.thinking);
         } else if (chunk.delta?.type === "input_json_delta" && chunk.delta.partialJson) {
           // Collect tool call arguments - lookup by index to get tool ID
           // Skip if index is missing to avoid data corruption
           if (chunk.index !== undefined) {
-            const toolId = indexToIdMap.get(chunk.index);
+            const toolId = ctx.indexToIdMap.get(chunk.index);
             if (toolId) {
-              const args = toolCallArguments.get(toolId);
+              const args = ctx.toolCallArguments.get(toolId);
               if (args) {
                 args.push(chunk.delta.partialJson);
               }
@@ -295,10 +309,10 @@ async function* processStreamingResponse(
         // Finalize tool call arguments - lookup by index to get tool ID
         // Skip if index is missing to avoid data corruption
         if (chunk.index !== undefined) {
-          const toolId = indexToIdMap.get(chunk.index);
+          const toolId = ctx.indexToIdMap.get(chunk.index);
           if (toolId) {
-            const toolCall = streamToolCalls.get(toolId);
-            const args = toolCallArguments.get(toolId);
+            const toolCall = ctx.streamToolCalls.get(toolId);
+            const args = ctx.toolCallArguments.get(toolId);
             if (toolCall && args) {
               toolCall.function.arguments = args.join("");
             }
@@ -308,74 +322,60 @@ async function* processStreamingResponse(
 
       // Collect usage info
       if (chunk.usage) {
-        inputTokens = chunk.usage.inputTokens;
-        outputTokens = chunk.usage.outputTokens;
+        ctx.inputTokens = chunk.usage.inputTokens;
+        ctx.outputTokens = chunk.usage.outputTokens;
       }
 
-      // Convert to OpenAI format and yield
-      const serialized = responseAdapter.serializeStreamChunk(chunk);
-      if (serialized) {
-        yield serialized;
+      // Only yield to client if not aborted (client is still listening)
+      if (!clientAborted) {
+        // Convert to OpenAI format and yield
+        const serialized = responseAdapter.serializeStreamChunk(chunk);
+        if (serialized) {
+          yield serialized;
+        }
+
+        // Handle message_stop
+        if (chunk.type === "message_stop") {
+          yield responseAdapter.getDoneMarker();
+        }
       }
-
-      // Handle message_stop
-      if (chunk.type === "message_stop") {
-        yield responseAdapter.getDoneMarker();
-      }
-    }
-
-    // Collect final tool calls
-    const finalToolCalls: ToolCallType[] | undefined =
-      streamToolCalls.size > 0
-        ? Array.from(streamToolCalls.values())
-        : undefined;
-
-    // Finalize completion record
-    const contentText =
-      (thinkingParts.length > 0
-        ? `<think>${thinkingParts.join("")}</think>\n`
-        : "") + textParts.join("");
-
-    completion.completion = [
-      {
-        role: "assistant",
-        content: contentText || null,
-        tool_calls: finalToolCalls,
-      },
-    ];
-    completion.promptTokens = inputTokens;
-    completion.completionTokens = outputTokens;
-    completion.status = "completed";
-    completion.ttft = ttft;
-    completion.duration = Date.now() - begin;
-    addCompletions(completion, bearer).catch((error: unknown) => {
-      logger.error("Failed to log completion after streaming", error);
-    });
-
-    // Consume tokens for TPM rate limiting (post-flight)
-    if (apiKeyRecord && inputTokens > 0 && outputTokens > 0) {
-      const totalTokens = inputTokens + outputTokens;
-      await consumeTokens(apiKeyRecord.id, apiKeyRecord.tpmLimit, totalTokens);
     }
 
     // Handle case where no chunks were received
-    if (isFirstChunk) {
+    if (ctx.isFirstChunk) {
       throw new Error("No chunk received from upstream");
     }
+
+    // Save completion with appropriate status
+    if (!ctx.isSaved()) {
+      if (ctx.isAborted()) {
+        await ctx.saveCompletion("aborted", "Client disconnected");
+      } else {
+        await ctx.saveCompletion("completed");
+      }
+    }
   } catch (error) {
-    logger.error("Stream processing error", error);
-    completion.status = "failed";
-    addCompletions(completion, bearer, {
-      level: "error",
-      message: `Stream processing error: ${String(error)}`,
-      details: {
-        type: "completionError",
-        data: { type: "streamError", msg: String(error) },
-      },
-    }).catch(() => {
-      logger.error("Failed to log completion after stream processing error");
-    });
-    throw error;
+    // Only log error if not due to client abort
+    if (!ctx.isAborted()) {
+      logger.error("Stream processing error", error);
+    }
+
+    // Save failed completion
+    if (!ctx.isSaved()) {
+      if (ctx.isAborted()) {
+        // If client aborted and we got an error, still save as aborted with the error info
+        await ctx.saveCompletion("aborted", `Client disconnected, stream error: ${String(error)}`);
+      } else {
+        await ctx.saveCompletion("failed", String(error));
+      }
+    }
+
+    // Only re-throw if client is still connected
+    if (!ctx.isAborted()) {
+      throw error;
+    }
+  } finally {
+    ctx.cleanup();
   }
 }
 
@@ -401,8 +401,7 @@ export const completionsApi = new Elysia({
     async function* ({ body, set, bearer, request, apiKeyRecord }) {
       if (bearer === undefined) {
         set.status = 500;
-        yield JSON.stringify({ error: "Internal server error" });
-        return;
+        return { error: "Internal server error" };
       }
 
       const reqHeaders = request.headers;
@@ -423,14 +422,13 @@ export const completionsApi = new Elysia({
       // Check if model exists
       if (modelsWithProviders.length === 0) {
         set.status = 404;
-        yield JSON.stringify({
+        return {
           error: {
             message: `Model '${systemName}' not found`,
             type: "invalid_request_error",
             code: "model_not_found",
           },
-        });
-        return;
+        };
       }
 
       // Filter candidates by target provider (if specified)
@@ -441,14 +439,13 @@ export const completionsApi = new Elysia({
 
       if (filteredCandidates.length === 0) {
         set.status = 404;
-        yield JSON.stringify({
+        return {
           error: {
             message: `No available provider for model '${systemName}'`,
             type: "invalid_request_error",
             code: "no_provider",
           },
-        });
-        return;
+        };
       }
 
       // Select candidates for failover (weighted random order)
@@ -487,12 +484,10 @@ export const completionsApi = new Elysia({
 
       // Handle streaming vs non-streaming
       if (internalRequest.stream) {
+        // Streaming request - use yield for streaming responses
         if (body.n && body.n > 1) {
           set.status = 400;
-          yield JSON.stringify({
-            error: "Stream completions with n > 1 is not supported",
-          });
-          return;
+          return { error: "Stream completions with n > 1 is not supported" };
         }
 
         // For streaming, use failover only for connection establishment
@@ -517,31 +512,27 @@ export const completionsApi = new Elysia({
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
-            yield errorResult.body;
-            return;
+            return JSON.parse(errorResult.body) as Record<string, unknown>;
           }
 
           set.status = 502;
-          yield JSON.stringify({
+          return {
             error: {
               message: "All upstream providers failed",
               type: "upstream_error",
               code: "all_providers_failed",
             },
-          });
-          return;
+          };
         }
 
         if (!result.response || !result.provider) {
           set.status = 500;
-          yield JSON.stringify({ error: "Internal server error" });
-          return;
+          return { error: "Internal server error" };
         }
 
         if (!result.response.body) {
           set.status = 500;
-          yield JSON.stringify({ error: "No body in response" });
-          return;
+          return { error: "No body in response" };
         }
 
         const providerType = result.provider.provider.type || "openai";
@@ -563,14 +554,18 @@ export const completionsApi = new Elysia({
             providerType,
             apiKeyRecord ?? null,
             begin,
+            request.signal,
           );
         } catch (error) {
-          logger.error("Stream processing error", error);
-          set.status = 500;
-          yield JSON.stringify({ error: "Stream processing error" });
+          // Don't log error if it's due to client abort
+          if (!request.signal.aborted) {
+            logger.error("Stream processing error", error);
+            set.status = 500;
+            yield JSON.stringify({ error: "Stream processing error" });
+          }
         }
       } else {
-        // Non-streaming request with failover
+        // Non-streaming request - use return for normal JSON response
         const result = await executeWithFailover(
           candidates,
           buildRequestForProvider,
@@ -592,25 +587,22 @@ export const completionsApi = new Elysia({
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
-            yield errorResult.body;
-            return;
+            return JSON.parse(errorResult.body) as Record<string, unknown>;
           }
 
           set.status = 502;
-          yield JSON.stringify({
+          return {
             error: {
               message: "All upstream providers failed",
               type: "upstream_error",
               code: "all_providers_failed",
             },
-          });
-          return;
+          };
         }
 
         if (!result.response || !result.provider) {
           set.status = 500;
-          yield JSON.stringify({ error: "Internal server error" });
-          return;
+          return { error: "Internal server error" };
         }
 
         const providerType = result.provider.provider.type || "openai";
@@ -632,23 +624,54 @@ export const completionsApi = new Elysia({
             providerType,
             apiKeyRecord ?? null,
             begin,
+            request.signal,
           );
-          yield response;
+          // Return parsed JSON object for proper content-type
+          return JSON.parse(response) as Record<string, unknown>;
         } catch (error) {
-          logger.error("Failed to process response", error);
-          completion.status = "failed";
-          addCompletions(completion, bearer, {
-            level: "error",
-            message: `Response processing error: ${String(error)}`,
-            details: {
-              type: "completionError",
-              data: { type: "processingError", msg: String(error) },
-            },
-          }).catch(() => {
-            logger.error("Failed to log completion after processing error");
-          });
-          set.status = 500;
-          yield JSON.stringify({ error: "Failed to process response" });
+          // Handle error based on whether client aborted
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          // Only save if completion wasn't already saved in processNonStreamingResponse
+          const alreadySaved = completion.status !== "pending";
+          if (request.signal.aborted) {
+            // Client disconnected - save as aborted (if not already saved)
+            if (!alreadySaved) {
+              completion.status = "aborted";
+              try {
+                await addCompletions(completion, bearer, {
+                  level: "info",
+                  message: "Client disconnected during non-streaming response",
+                  details: {
+                    type: "completionError",
+                    data: { type: "aborted", msg: errorMsg },
+                  },
+                });
+              } catch (logError: unknown) {
+                logger.error("Failed to log aborted completion after processing error", logError);
+              }
+            }
+            // Return nothing for aborted requests
+            return;
+          } else {
+            logger.error("Failed to process response", error);
+            if (!alreadySaved) {
+              completion.status = "failed";
+              try {
+                await addCompletions(completion, bearer, {
+                  level: "error",
+                  message: `Response processing error: ${errorMsg}`,
+                  details: {
+                    type: "completionError",
+                    data: { type: "processingError", msg: errorMsg },
+                  },
+                });
+              } catch (logError: unknown) {
+                logger.error("Failed to log completion after processing error", logError);
+              }
+            }
+            set.status = 500;
+            return { error: "Failed to process response" };
+          }
         }
       }
     },

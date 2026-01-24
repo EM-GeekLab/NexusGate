@@ -35,6 +35,11 @@ export const columns: ColumnDef<EmbeddingRequest>[] = [
             {i18n.t('pages.embeddings.columns.Failed')}
           </MiniIndicatorBadge>
         ))
+        .with('aborted', () => (
+          <MiniIndicatorBadge className="bg-amber-500">
+            {i18n.t('pages.embeddings.columns.Aborted')}
+          </MiniIndicatorBadge>
+        ))
         .exhaustive()
       return (
         <div className="flex items-center gap-2.5">

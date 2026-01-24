@@ -41,6 +41,9 @@ export const columns: ColumnDef<ChatRequest>[] = [
         .with('failed', () => (
           <MiniIndicatorBadge className="bg-destructive">{i18n.t('pages.requests.columns.Failed')}</MiniIndicatorBadge>
         ))
+        .with('aborted', () => (
+          <MiniIndicatorBadge className="bg-amber-500">{i18n.t('pages.requests.columns.Aborted')}</MiniIndicatorBadge>
+        ))
         .exhaustive()
       return (
         <div className="flex items-center gap-2.5">

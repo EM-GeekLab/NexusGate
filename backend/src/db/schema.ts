@@ -150,8 +150,9 @@ export const CompletionsStatusEnum = pgEnum("completions_status", [
   "pending",
   "completed",
   "failed",
+  "aborted",
 ]);
-export type CompletionsStatusEnumType = "pending" | "completed" | "failed";
+export type CompletionsStatusEnumType = "pending" | "completed" | "failed" | "aborted";
 
 export const CompletionsTable = pgTable("completions", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity().unique(),

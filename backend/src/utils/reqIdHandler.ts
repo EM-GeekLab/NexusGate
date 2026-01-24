@@ -314,12 +314,20 @@ export function buildInFlightErrorResponse(
 export const REQID_MAX_LENGTH = 127;
 
 /**
+ * Regex pattern for valid ReqId characters
+ * Allows alphanumeric, hyphens, underscores, dots, colons, and forward slashes
+ * This prevents control characters, null bytes, and other potentially problematic characters
+ */
+const REQID_VALID_PATTERN = /^[\w\-.:/]+$/;
+
+/**
  * Result type for extractReqId
  */
 export type ExtractReqIdResult =
   | { type: "valid"; value: string }
   | { type: "empty" }
-  | { type: "too_long"; length: number };
+  | { type: "too_long"; length: number }
+  | { type: "invalid_characters" };
 
 /**
  * Extract and validate ReqId from request headers
@@ -342,5 +350,260 @@ export function extractReqId(headers: Headers): ExtractReqIdResult {
     logger.warn("ReqId too long", { length: trimmedReqId.length, maxLength: REQID_MAX_LENGTH });
     return { type: "too_long", length: trimmedReqId.length };
   }
+  // Validate ReqId contains only allowed characters
+  if (!REQID_VALID_PATTERN.test(trimmedReqId)) {
+    logger.warn("ReqId contains invalid characters", { reqId: trimmedReqId });
+    return { type: "invalid_characters" };
+  }
   return { type: "valid", value: trimmedReqId };
+}
+
+// =============================================================================
+// Response Builders for Cache Hits
+// =============================================================================
+
+/**
+ * Build OpenAI Chat Completion format response from cached completion
+ */
+export function buildOpenAIChatResponse(completion: Completion): Record<string, unknown> {
+  return {
+    id: `chatcmpl-cache-${completion.id}`,
+    object: "chat.completion",
+    created: Math.floor(completion.createdAt.getTime() / 1000),
+    model: completion.model,
+    choices: completion.completion.map((c, i) => ({
+      index: i,
+      message: {
+        role: c.role || "assistant",
+        content: c.content,
+        tool_calls: c.tool_calls,
+      },
+      finish_reason: c.tool_calls?.length ? "tool_calls" : "stop",
+    })),
+    usage: {
+      prompt_tokens: completion.promptTokens,
+      completion_tokens: completion.completionTokens,
+      total_tokens: completion.promptTokens + completion.completionTokens,
+    },
+  };
+}
+
+/**
+ * Build Anthropic Messages format response from cached completion
+ */
+export function buildAnthropicResponse(completion: Completion): Record<string, unknown> {
+  // Build content blocks including both text and tool_use
+  const contentBlocks: Array<Record<string, unknown>> = [];
+  for (const c of completion.completion) {
+    // Add text content if present
+    if (c.content) {
+      contentBlocks.push({ type: "text", text: c.content });
+    }
+    // Add tool_use blocks if present
+    if (c.tool_calls) {
+      for (const tc of c.tool_calls) {
+        contentBlocks.push({
+          type: "tool_use",
+          id: tc.id,
+          name: tc.function.name,
+          input: JSON.parse(tc.function.arguments || "{}"),
+        });
+      }
+    }
+  }
+  // Determine stop_reason based on content
+  const hasToolUse = contentBlocks.some((b) => b.type === "tool_use");
+  return {
+    id: `msg-cache-${completion.id}`,
+    type: "message",
+    role: "assistant",
+    content: contentBlocks.length > 0 ? contentBlocks : [{ type: "text", text: "" }],
+    model: completion.model,
+    stop_reason: hasToolUse ? "tool_use" : "end_turn",
+    usage: {
+      input_tokens: completion.promptTokens,
+      output_tokens: completion.completionTokens,
+    },
+  };
+}
+
+/**
+ * Build OpenAI Responses API format response from cached completion
+ */
+export function buildOpenAIResponsesResponse(completion: Completion): Record<string, unknown> {
+  // Build output items including both messages and function_call
+  const outputItems: Array<Record<string, unknown>> = [];
+  for (const c of completion.completion) {
+    // Build content array for message
+    const content: Array<Record<string, unknown>> = [];
+    if (c.content) {
+      content.push({ type: "output_text", text: c.content });
+    }
+    // Add message output item if there's text content
+    if (content.length > 0) {
+      outputItems.push({
+        type: "message",
+        role: c.role || "assistant",
+        content,
+      });
+    }
+    // Add function_call output items for tool_calls
+    if (c.tool_calls) {
+      for (const tc of c.tool_calls) {
+        outputItems.push({
+          type: "function_call",
+          id: tc.id,
+          call_id: tc.id,
+          name: tc.function.name,
+          arguments: tc.function.arguments || "{}",
+        });
+      }
+    }
+  }
+  return {
+    id: `resp-cache-${completion.id}`,
+    object: "response",
+    created_at: Math.floor(completion.createdAt.getTime() / 1000),
+    model: completion.model,
+    output: outputItems.length > 0 ? outputItems : [{
+      type: "message",
+      role: "assistant",
+      content: [{ type: "output_text", text: "" }],
+    }],
+    usage: {
+      input_tokens: completion.promptTokens,
+      output_tokens: completion.completionTokens,
+      total_tokens: completion.promptTokens + completion.completionTokens,
+    },
+  };
+}
+
+/**
+ * Build cached response based on API format
+ */
+export function buildCachedResponseByFormat(
+  completion: Completion,
+  format: ApiFormat,
+): Record<string, unknown> {
+  switch (format) {
+    case "openai-chat":
+      return buildOpenAIChatResponse(completion);
+    case "anthropic":
+      return buildAnthropicResponse(completion);
+    case "openai-responses":
+      return buildOpenAIResponsesResponse(completion);
+  }
+}
+
+// =============================================================================
+// Error Finalization Helper
+// =============================================================================
+
+/**
+ * Context for ReqId request handling
+ */
+export interface ReqIdContext {
+  reqId: string;
+  apiKeyId: number;
+  preCreatedCompletionId: number;
+  apiFormat: ApiFormat;
+}
+
+/**
+ * Finalize a pre-created completion on error
+ *
+ * Helper function to reduce duplication in error handling paths
+ *
+ * @param context - ReqId context (or null if no ReqId)
+ * @param begin - Request start timestamp
+ */
+export async function finalizeReqIdOnError(
+  context: ReqIdContext | null | undefined,
+  begin: number,
+): Promise<void> {
+  if (!context) {
+    return;
+  }
+
+  await finalizeReqId(context.apiKeyId, context.reqId, context.preCreatedCompletionId, {
+    status: "failed",
+    promptTokens: 0,
+    completionTokens: 0,
+    completion: [],
+    ttft: -1,
+    duration: Date.now() - begin,
+  });
+}
+
+// =============================================================================
+// ReqId Validation Error Responses
+// =============================================================================
+
+/**
+ * Build error response for invalid ReqId (too long or invalid characters)
+ */
+export function buildReqIdValidationErrorResponse(
+  extraction: ExtractReqIdResult,
+  format: ApiFormat,
+): { status: number; body: Record<string, unknown> } {
+  if (extraction.type === "too_long") {
+    const message = `X-NexusGate-ReqId exceeds maximum length of ${REQID_MAX_LENGTH} characters (got ${extraction.length})`;
+    return {
+      status: 400,
+      body: buildValidationErrorBody(message, "reqid_too_long", format),
+    };
+  }
+
+  if (extraction.type === "invalid_characters") {
+    const message = "X-NexusGate-ReqId contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, colons, and forward slashes are allowed.";
+    return {
+      status: 400,
+      body: buildValidationErrorBody(message, "reqid_invalid_characters", format),
+    };
+  }
+
+  // Should not reach here, but provide a fallback
+  return {
+    status: 400,
+    body: buildValidationErrorBody("Invalid X-NexusGate-ReqId", "reqid_invalid", format),
+  };
+}
+
+/**
+ * Build validation error body in the appropriate format
+ */
+function buildValidationErrorBody(
+  message: string,
+  code: string,
+  format: ApiFormat,
+): Record<string, unknown> {
+  if (format === "anthropic") {
+    return {
+      type: "error",
+      error: {
+        type: "invalid_request_error",
+        message,
+      },
+    };
+  }
+
+  if (format === "openai-responses") {
+    return {
+      object: "error",
+      error: {
+        type: "invalid_request_error",
+        message,
+        code,
+      },
+    };
+  }
+
+  // openai-chat format
+  return {
+    error: {
+      message,
+      type: "invalid_request_error",
+      code,
+    },
+  };
 }

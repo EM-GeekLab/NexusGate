@@ -33,11 +33,14 @@ import {
 import {
   checkReqId,
   finalizeReqId,
+  finalizeReqIdOnError,
   recordCacheHit,
   buildInFlightErrorResponse,
   extractReqId,
-  REQID_MAX_LENGTH,
+  buildReqIdValidationErrorResponse,
+  buildCachedResponseByFormat,
   type ApiFormat,
+  type ReqIdContext,
 } from "@/utils/reqIdHandler";
 import type { CachedResponseType } from "@/db/schema";
 
@@ -173,15 +176,7 @@ function buildCompletionRecord(
   };
 }
 
-/**
- * ReqId context for request deduplication
- */
-interface ReqIdContext {
-  reqId: string;
-  apiKeyId: number;
-  preCreatedCompletionId: number;
-  apiFormat: ApiFormat;
-}
+// ReqIdContext is imported from reqIdHandler
 
 /**
  * Process a successful non-streaming response
@@ -515,20 +510,14 @@ export const responsesApi = new Elysia({
       const begin = Date.now();
 
       // Extract ReqId for request deduplication
+      const apiFormat: ApiFormat = "openai-responses";
       const reqIdExtraction = extractReqId(reqHeaders);
-      if (reqIdExtraction.type === "too_long") {
-        set.status = 400;
-        return {
-          object: "error",
-          error: {
-            type: "invalid_request_error",
-            message: `X-NexusGate-ReqId exceeds maximum length of ${REQID_MAX_LENGTH} characters (got ${reqIdExtraction.length})`,
-            code: "reqid_too_long",
-          },
-        };
+      if (reqIdExtraction.type === "too_long" || reqIdExtraction.type === "invalid_characters") {
+        const errorResponse = buildReqIdValidationErrorResponse(reqIdExtraction, apiFormat);
+        set.status = errorResponse.status;
+        return errorResponse.body;
       }
       const reqId = reqIdExtraction.type === "valid" ? reqIdExtraction.value : null;
-      const apiFormat: ApiFormat = "openai-responses";
 
       // Parse model@provider format and extract provider from header
       const { systemName, targetProvider } = parseModelProvider(
@@ -625,56 +614,14 @@ export const responsesApi = new Elysia({
         try {
           await recordCacheHit(sourceCompletion, apiKeyRecord.id);
         } catch (error) {
-          logger.error("Failed to record cache hit", error);
+          logger.warn("Failed to record cache hit", error);
         }
 
+        // Return cached response if available, otherwise reconstruct
         if (sourceCompletion.cachedResponse) {
           return sourceCompletion.cachedResponse.body as Record<string, unknown>;
         }
-
-        // Fallback: reconstruct Response API response
-        // Build output items including both messages and function_call
-        const outputItems: Array<Record<string, unknown>> = [];
-        for (const c of sourceCompletion.completion) {
-          const content: Array<Record<string, unknown>> = [];
-          if (c.content) {
-            content.push({ type: "output_text", text: c.content });
-          }
-          if (content.length > 0) {
-            outputItems.push({
-              type: "message",
-              role: c.role || "assistant",
-              content,
-            });
-          }
-          if (c.tool_calls) {
-            for (const tc of c.tool_calls) {
-              outputItems.push({
-                type: "function_call",
-                id: tc.id,
-                call_id: tc.id,
-                name: tc.function.name,
-                arguments: tc.function.arguments || "{}",
-              });
-            }
-          }
-        }
-        return {
-          id: `resp-cache-${sourceCompletion.id}`,
-          object: "response",
-          created_at: Math.floor(sourceCompletion.createdAt.getTime() / 1000),
-          model: sourceCompletion.model,
-          output: outputItems.length > 0 ? outputItems : [{
-            type: "message",
-            role: "assistant",
-            content: [{ type: "output_text", text: "" }],
-          }],
-          usage: {
-            input_tokens: sourceCompletion.promptTokens,
-            output_tokens: sourceCompletion.completionTokens,
-            total_tokens: sourceCompletion.promptTokens + sourceCompletion.completionTokens,
-          },
-        };
+        return buildCachedResponseByFormat(sourceCompletion, apiFormat);
       }
 
       // Handle in-flight - return 409 Conflict
@@ -693,9 +640,14 @@ export const responsesApi = new Elysia({
         );
       }
 
-      // For new_request, we have a pre-created completionId
-      const preCreatedCompletionId = reqIdResult.type === "new_request"
-        ? reqIdResult.completionId
+      // For new_request, we have a pre-created completionId - build ReqId context
+      const reqIdContext: ReqIdContext | null = (reqIdResult.type === "new_request" && reqId)
+        ? {
+            reqId,
+            apiKeyId: apiKeyRecord.id,
+            preCreatedCompletionId: reqIdResult.completionId,
+            apiFormat,
+          }
         : null;
 
       // Parse request using Response API adapter
@@ -744,16 +696,7 @@ export const responsesApi = new Elysia({
           const errorResult = await processFailoverError(result, completion, bearer, "streaming");
 
           // Finalize pre-created completion if ReqId was used
-          if (preCreatedCompletionId && reqId && apiKeyRecord) {
-            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
-              status: "failed",
-              promptTokens: 0,
-              completionTokens: 0,
-              completion: [],
-              ttft: -1,
-              duration: Date.now() - begin,
-            });
-          }
+          await finalizeReqIdOnError(reqIdContext, begin);
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
@@ -771,17 +714,7 @@ export const responsesApi = new Elysia({
         }
 
         if (!result.response || !result.provider) {
-          // Finalize pre-created completion if ReqId was used
-          if (preCreatedCompletionId && reqId && apiKeyRecord) {
-            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
-              status: "failed",
-              promptTokens: 0,
-              completionTokens: 0,
-              completion: [],
-              ttft: -1,
-              duration: Date.now() - begin,
-            });
-          }
+          await finalizeReqIdOnError(reqIdContext, begin);
           set.status = 500;
           return {
             object: "error",
@@ -790,17 +723,7 @@ export const responsesApi = new Elysia({
         }
 
         if (!result.response.body) {
-          // Finalize pre-created completion if ReqId was used
-          if (preCreatedCompletionId && reqId && apiKeyRecord) {
-            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
-              status: "failed",
-              promptTokens: 0,
-              completionTokens: 0,
-              completion: [],
-              ttft: -1,
-              duration: Date.now() - begin,
-            });
-          }
+          await finalizeReqIdOnError(reqIdContext, begin);
           set.status = 500;
           return {
             object: "error",
@@ -817,16 +740,6 @@ export const responsesApi = new Elysia({
           extraHeaders,
         );
 
-        // Build ReqId context if we have a pre-created completion
-        const streamReqIdContext = preCreatedCompletionId && reqId
-          ? {
-              reqId,
-              apiKeyId: apiKeyRecord.id,
-              preCreatedCompletionId,
-              apiFormat,
-            }
-          : undefined;
-
         // Return an async generator for streaming
         const streamResponse = result.response;
         const streamSignal = request.signal;
@@ -840,7 +753,7 @@ export const responsesApi = new Elysia({
               apiKeyRecord ?? null,
               begin,
               streamSignal,
-              streamReqIdContext,
+              reqIdContext ?? undefined,
             );
           } catch (error) {
             // Don't log error if it's due to client abort
@@ -871,16 +784,7 @@ export const responsesApi = new Elysia({
           const errorResult = await processFailoverError(result, completion, bearer, "non-streaming");
 
           // Finalize pre-created completion if ReqId was used
-          if (preCreatedCompletionId && reqId && apiKeyRecord) {
-            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
-              status: "failed",
-              promptTokens: 0,
-              completionTokens: 0,
-              completion: [],
-              ttft: -1,
-              duration: Date.now() - begin,
-            });
-          }
+          await finalizeReqIdOnError(reqIdContext, begin);
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
@@ -898,17 +802,7 @@ export const responsesApi = new Elysia({
         }
 
         if (!result.response || !result.provider) {
-          // Finalize pre-created completion if ReqId was used
-          if (preCreatedCompletionId && reqId && apiKeyRecord) {
-            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
-              status: "failed",
-              promptTokens: 0,
-              completionTokens: 0,
-              completion: [],
-              ttft: -1,
-              duration: Date.now() - begin,
-            });
-          }
+          await finalizeReqIdOnError(reqIdContext, begin);
           set.status = 500;
           return {
             object: "error",
@@ -925,16 +819,6 @@ export const responsesApi = new Elysia({
           extraHeaders,
         );
 
-        // Build ReqId context if we have a pre-created completion
-        const nonStreamReqIdContext = preCreatedCompletionId && reqId
-          ? {
-              reqId,
-              apiKeyId: apiKeyRecord.id,
-              preCreatedCompletionId,
-              apiFormat,
-            }
-          : undefined;
-
         try {
           const response = await processNonStreamingResponse(
             result.response,
@@ -944,7 +828,7 @@ export const responsesApi = new Elysia({
             apiKeyRecord ?? null,
             begin,
             request.signal,
-            nonStreamReqIdContext,
+            reqIdContext ?? undefined,
           );
           // Return parsed JSON object for proper content-type
           return JSON.parse(response) as Record<string, unknown>;

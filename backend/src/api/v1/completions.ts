@@ -40,11 +40,14 @@ import {
 import {
   checkReqId,
   finalizeReqId,
+  finalizeReqIdOnError,
   recordCacheHit,
   buildInFlightErrorResponse,
   extractReqId,
-  REQID_MAX_LENGTH,
+  buildReqIdValidationErrorResponse,
+  buildCachedResponseByFormat,
   type ApiFormat,
+  type ReqIdContext,
 } from "@/utils/reqIdHandler";
 
 const logger = consola.withTag("completionsApi");
@@ -170,15 +173,7 @@ function buildCompletionRecord(
   };
 }
 
-/**
- * ReqId context for request deduplication
- */
-interface ReqIdContext {
-  reqId: string;
-  apiKeyId: number;
-  preCreatedCompletionId: number;
-  apiFormat: ApiFormat;
-}
+// ReqIdContext is imported from reqIdHandler
 
 /**
  * Process a successful non-streaming response
@@ -498,19 +493,14 @@ export const completionsApi = new Elysia({
       const begin = Date.now();
 
       // Extract ReqId for request deduplication
+      const apiFormat: ApiFormat = "openai-chat";
       const reqIdExtraction = extractReqId(reqHeaders);
-      if (reqIdExtraction.type === "too_long") {
-        set.status = 400;
-        return {
-          error: {
-            message: `X-NexusGate-ReqId exceeds maximum length of ${REQID_MAX_LENGTH} characters (got ${reqIdExtraction.length})`,
-            type: "invalid_request_error",
-            code: "reqid_too_long",
-          },
-        };
+      if (reqIdExtraction.type === "too_long" || reqIdExtraction.type === "invalid_characters") {
+        const errorResponse = buildReqIdValidationErrorResponse(reqIdExtraction, apiFormat);
+        set.status = errorResponse.status;
+        return errorResponse.body;
       }
       const reqId = reqIdExtraction.type === "valid" ? reqIdExtraction.value : null;
-      const apiFormat: ApiFormat = "openai-chat";
 
       // Parse model@provider format and extract provider from header
       const { systemName, targetProvider } = parseModelProvider(
@@ -586,36 +576,14 @@ export const completionsApi = new Elysia({
         try {
           await recordCacheHit(sourceCompletion, apiKeyRecord.id);
         } catch (error) {
-          logger.error("Failed to record cache hit", error);
+          logger.warn("Failed to record cache hit", error);
         }
 
-        // Return cached response
+        // Return cached response if available, otherwise reconstruct
         if (sourceCompletion.cachedResponse) {
           return sourceCompletion.cachedResponse.body as Record<string, unknown>;
         }
-
-        // Fallback: reconstruct response from completion data
-        const reconstructed = {
-          id: `chatcmpl-cache-${sourceCompletion.id}`,
-          object: "chat.completion",
-          created: Math.floor(sourceCompletion.createdAt.getTime() / 1000),
-          model: sourceCompletion.model,
-          choices: sourceCompletion.completion.map((c, i) => ({
-            index: i,
-            message: {
-              role: c.role || "assistant",
-              content: c.content,
-              tool_calls: c.tool_calls,
-            },
-            finish_reason: c.tool_calls?.length ? "tool_calls" : "stop",
-          })),
-          usage: {
-            prompt_tokens: sourceCompletion.promptTokens,
-            completion_tokens: sourceCompletion.completionTokens,
-            total_tokens: sourceCompletion.promptTokens + sourceCompletion.completionTokens,
-          },
-        };
-        return reconstructed;
+        return buildCachedResponseByFormat(sourceCompletion, apiFormat);
       }
 
       // Handle in-flight - return 409 Conflict
@@ -634,9 +602,14 @@ export const completionsApi = new Elysia({
         );
       }
 
-      // For new_request, we have a pre-created completionId
-      const preCreatedCompletionId = reqIdResult.type === "new_request"
-        ? reqIdResult.completionId
+      // For new_request, we have a pre-created completionId - build ReqId context
+      const reqIdContext: ReqIdContext | null = (reqIdResult.type === "new_request" && reqId)
+        ? {
+            reqId,
+            apiKeyId: apiKeyRecord.id,
+            preCreatedCompletionId: reqIdResult.completionId,
+            apiFormat,
+          }
         : null;
 
       // Parse request using adapter
@@ -693,16 +666,7 @@ export const completionsApi = new Elysia({
           const errorResult = await processFailoverError(result, completion, bearer, "streaming");
 
           // Finalize pre-created completion if ReqId was used
-          if (preCreatedCompletionId && reqId && apiKeyRecord) {
-            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
-              status: "failed",
-              promptTokens: 0,
-              completionTokens: 0,
-              completion: [],
-              ttft: -1,
-              duration: Date.now() - begin,
-            });
-          }
+          await finalizeReqIdOnError(reqIdContext, begin);
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
@@ -720,33 +684,13 @@ export const completionsApi = new Elysia({
         }
 
         if (!result.response || !result.provider) {
-          // Finalize pre-created completion if ReqId was used
-          if (preCreatedCompletionId && reqId && apiKeyRecord) {
-            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
-              status: "failed",
-              promptTokens: 0,
-              completionTokens: 0,
-              completion: [],
-              ttft: -1,
-              duration: Date.now() - begin,
-            });
-          }
+          await finalizeReqIdOnError(reqIdContext, begin);
           set.status = 500;
           return { error: "Internal server error" };
         }
 
         if (!result.response.body) {
-          // Finalize pre-created completion if ReqId was used
-          if (preCreatedCompletionId && reqId && apiKeyRecord) {
-            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
-              status: "failed",
-              promptTokens: 0,
-              completionTokens: 0,
-              completion: [],
-              ttft: -1,
-              duration: Date.now() - begin,
-            });
-          }
+          await finalizeReqIdOnError(reqIdContext, begin);
           set.status = 500;
           return { error: "No body in response" };
         }
@@ -762,16 +706,6 @@ export const completionsApi = new Elysia({
           extraHeaders,
         );
 
-        // Build ReqId context if we have a pre-created completion
-        const streamReqIdContext = preCreatedCompletionId && reqId
-          ? {
-              reqId,
-              apiKeyId: apiKeyRecord.id,
-              preCreatedCompletionId,
-              apiFormat,
-            }
-          : undefined;
-
         // Return an async generator for streaming
         const streamResponse = result.response;
         const streamSignal = request.signal;
@@ -785,7 +719,7 @@ export const completionsApi = new Elysia({
               apiKeyRecord ?? null,
               begin,
               streamSignal,
-              streamReqIdContext,
+              reqIdContext ?? undefined,
             );
           } catch (error) {
             // Don't log error if it's due to client abort
@@ -819,16 +753,7 @@ export const completionsApi = new Elysia({
           const errorResult = await processFailoverError(result, completion, bearer, "non-streaming");
 
           // Finalize pre-created completion if ReqId was used
-          if (preCreatedCompletionId && reqId && apiKeyRecord) {
-            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
-              status: "failed",
-              promptTokens: 0,
-              completionTokens: 0,
-              completion: [],
-              ttft: -1,
-              duration: Date.now() - begin,
-            });
-          }
+          await finalizeReqIdOnError(reqIdContext, begin);
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
@@ -846,17 +771,7 @@ export const completionsApi = new Elysia({
         }
 
         if (!result.response || !result.provider) {
-          // Finalize pre-created completion if ReqId was used
-          if (preCreatedCompletionId && reqId && apiKeyRecord) {
-            await finalizeReqId(apiKeyRecord.id, reqId, preCreatedCompletionId, {
-              status: "failed",
-              promptTokens: 0,
-              completionTokens: 0,
-              completion: [],
-              ttft: -1,
-              duration: Date.now() - begin,
-            });
-          }
+          await finalizeReqIdOnError(reqIdContext, begin);
           set.status = 500;
           return { error: "Internal server error" };
         }
@@ -872,16 +787,6 @@ export const completionsApi = new Elysia({
           extraHeaders,
         );
 
-        // Build ReqId context if we have a pre-created completion
-        const nonStreamReqIdContext = preCreatedCompletionId && reqId
-          ? {
-              reqId,
-              apiKeyId: apiKeyRecord.id,
-              preCreatedCompletionId,
-              apiFormat,
-            }
-          : undefined;
-
         try {
           const response = await processNonStreamingResponse(
             result.response,
@@ -891,7 +796,7 @@ export const completionsApi = new Elysia({
             apiKeyRecord ?? null,
             begin,
             request.signal,
-            nonStreamReqIdContext,
+            reqIdContext ?? undefined,
           );
           // Return parsed JSON object for proper content-type
           return JSON.parse(response) as Record<string, unknown>;

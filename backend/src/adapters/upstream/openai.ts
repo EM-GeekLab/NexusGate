@@ -18,14 +18,24 @@ import type {
   ToolUseContentBlock,
   UpstreamAdapter,
 } from "../types";
+import { convertImageToUrl, hasImages } from "./utils";
 
 // =============================================================================
 // OpenAI Request/Response Types
 // =============================================================================
 
+interface OpenAIContentPart {
+  type: "text" | "image_url";
+  text?: string;
+  image_url?: {
+    url: string;
+    detail?: "auto" | "low" | "high";
+  };
+}
+
 interface OpenAIMessage {
   role: "system" | "user" | "assistant" | "tool";
-  content: string | null;
+  content: string | OpenAIContentPart[] | null;
   name?: string;
   tool_calls?: OpenAIToolCall[];
   tool_call_id?: string;
@@ -168,14 +178,53 @@ function convertMessage(msg: InternalMessage): OpenAIMessage {
     };
   }
 
-  // Regular messages
-  const content =
-    typeof msg.content === "string"
-      ? msg.content
-      : msg.content
-          .filter((b) => b.type === "text")
-          .map((b) => b.text)
-          .join("");
+  // Handle string content
+  if (typeof msg.content === "string") {
+    return {
+      role: msg.role,
+      content: msg.content,
+    };
+  }
+
+  // Handle content array - check if it contains images
+  if (hasImages(msg.content)) {
+    // Build content array with text and image_url parts
+    const contentParts: OpenAIContentPart[] = [];
+    for (const block of msg.content) {
+      if (block.type === "text") {
+        contentParts.push({ type: "text", text: block.text });
+      } else if (block.type === "image") {
+        // Only include images with valid data
+        const imageUrl = convertImageToUrl(block);
+        if (imageUrl) {
+          contentParts.push({
+            type: "image_url",
+            image_url: {
+              url: imageUrl,
+              detail: block.detail,
+            },
+          });
+        }
+      }
+    }
+    // Ensure we don't send empty content array to API
+    if (contentParts.length === 0) {
+      return {
+        role: msg.role,
+        content: "",
+      };
+    }
+    return {
+      role: msg.role,
+      content: contentParts,
+    };
+  }
+
+  // Text-only content array - join as string
+  const content = msg.content
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("");
 
   return {
     role: msg.role,

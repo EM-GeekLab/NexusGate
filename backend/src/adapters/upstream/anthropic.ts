@@ -26,6 +26,12 @@ interface AnthropicContentBlock {
   type: "text" | "image" | "tool_use" | "tool_result" | "thinking";
   text?: string;
   thinking?: string;
+  source?: {
+    type: "base64" | "url";
+    media_type?: string;
+    data?: string;
+    url?: string;
+  };
   id?: string;
   name?: string;
   input?: Record<string, unknown>;
@@ -195,6 +201,27 @@ function convertMessage(msg: InternalMessage): AnthropicMessage | null {
         text: block.text,
         cache_control: block.cacheControl,
       });
+    } else if (block.type === "image") {
+      // Only push image blocks with valid data
+      if (block.source.type === "base64" && block.source.data) {
+        content.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: block.source.mediaType || "image/jpeg",
+            data: block.source.data,
+          },
+        });
+      } else if (block.source.type === "url" && block.source.url) {
+        // Anthropic also supports URL source type
+        content.push({
+          type: "image",
+          source: {
+            type: "url",
+            url: block.source.url,
+          },
+        });
+      }
     }
   }
 

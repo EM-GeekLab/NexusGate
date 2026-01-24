@@ -16,14 +16,17 @@ import type {
   ToolUseContentBlock,
   UpstreamAdapter,
 } from "../types";
+import { convertImageToUrl, hasImages } from "./utils";
 
 // =============================================================================
 // Response API Types
 // =============================================================================
 
 interface ResponseApiContentPart {
-  type: "input_text" | "output_text" | "refusal";
+  type: "input_text" | "output_text" | "refusal" | "input_image";
   text?: string;
+  image_url?: string;
+  detail?: "auto" | "low" | "high";
 }
 
 interface ResponseApiInputItem {
@@ -126,14 +129,54 @@ function convertMessage(msg: InternalMessage): ResponseApiInputItem | null {
     };
   }
 
-  // Regular messages
-  const content =
-    typeof msg.content === "string"
-      ? msg.content
-      : msg.content
-          .filter((b) => b.type === "text")
-          .map((b) => b.text)
-          .join("");
+  // Handle string content
+  if (typeof msg.content === "string") {
+    return {
+      type: "message",
+      role: msg.role,
+      content: msg.content,
+    };
+  }
+
+  // Handle content array - check if it contains images
+  if (hasImages(msg.content)) {
+    // Build content array with input_text and input_image parts
+    const contentParts: ResponseApiContentPart[] = [];
+    for (const block of msg.content) {
+      if (block.type === "text") {
+        contentParts.push({ type: "input_text", text: block.text });
+      } else if (block.type === "image") {
+        // Only include images with valid data
+        const imageUrl = convertImageToUrl(block);
+        if (imageUrl) {
+          contentParts.push({
+            type: "input_image",
+            image_url: imageUrl,
+            detail: block.detail,
+          });
+        }
+      }
+    }
+    // Ensure we don't send empty content array to API
+    if (contentParts.length === 0) {
+      return {
+        type: "message",
+        role: msg.role,
+        content: "",
+      };
+    }
+    return {
+      type: "message",
+      role: msg.role,
+      content: contentParts,
+    };
+  }
+
+  // Text-only content - join as string
+  const content = msg.content
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("");
 
   return {
     type: "message",

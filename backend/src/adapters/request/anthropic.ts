@@ -4,6 +4,7 @@
  */
 
 import type {
+  ImageContentBlock,
   InternalContentBlock,
   InternalMessage,
   InternalRequest,
@@ -25,9 +26,10 @@ interface AnthropicContentBlock {
   text?: string;
   thinking?: string;
   source?: {
-    type: "base64";
-    media_type: string;
-    data: string;
+    type: "base64" | "url";
+    media_type?: string;
+    data?: string;
+    url?: string;
   };
   id?: string;
   name?: string;
@@ -137,7 +139,28 @@ function convertContentBlock(
     }
 
     case "image":
-      // Images not supported in MVP
+      // Handle both base64 and URL source types
+      if (block.source?.type === "url" && block.source.url) {
+        return {
+          type: "image",
+          source: {
+            type: "url",
+            url: block.source.url,
+          },
+        } as ImageContentBlock;
+      }
+      // Handle base64 - only if type matches and data is present
+      if (block.source?.type === "base64" && block.source.data) {
+        return {
+          type: "image",
+          source: {
+            type: "base64",
+            mediaType: block.source.media_type,
+            data: block.source.data,
+          },
+        } as ImageContentBlock;
+      }
+      // Skip images with missing data
       return null;
 
     default:

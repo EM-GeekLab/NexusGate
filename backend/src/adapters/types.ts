@@ -46,13 +46,37 @@ export interface ToolResultContentBlock {
 }
 
 /**
+ * Image source types - discriminated union for type safety
+ */
+export type ImageSource =
+  | {
+      type: "base64";
+      mediaType?: string; // "image/jpeg", "image/png", etc.
+      data: string;
+    }
+  | {
+      type: "url";
+      url: string;
+    };
+
+/**
+ * Image content block - represents an image input for vision models
+ */
+export interface ImageContentBlock {
+  type: "image";
+  source: ImageSource;
+  detail?: "auto" | "low" | "high"; // OpenAI vision detail level
+}
+
+/**
  * Union type for all content blocks
  */
 export type InternalContentBlock =
   | TextContentBlock
   | ThinkingContentBlock
   | ToolUseContentBlock
-  | ToolResultContentBlock;
+  | ToolResultContentBlock
+  | ImageContentBlock;
 
 // =============================================================================
 // Message Types

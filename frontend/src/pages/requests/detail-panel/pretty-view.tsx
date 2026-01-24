@@ -5,6 +5,7 @@ import {
   CopyIcon,
   ForwardIcon,
   HelpCircleIcon,
+  ImageIcon,
   ReplyIcon,
   WrenchIcon,
   TerminalIcon,
@@ -44,6 +45,15 @@ interface ToolDefinition {
     name: string
     description?: string
     parameters?: Record<string, unknown>
+  }
+}
+
+// Image content part type
+interface ImageContentPart {
+  type: 'image_url'
+  image_url: {
+    url: string
+    detail?: 'auto' | 'low' | 'high'
   }
 }
 
@@ -132,6 +142,9 @@ function MessageContent({ message }: { message: RequestMessage }) {
   // Check if this is an assistant message with tool calls
   const toolCalls = extendedMessage.tool_calls
 
+  // Extract images from content array
+  const images = getMessageImages(message)
+
   const { content, reasoning } = match(message)
     .with({ role: 'assistant' }, () => extractReasoning(messageText))
     .otherwise(() => ({ reasoning: null, content: messageText }))
@@ -147,6 +160,20 @@ function MessageContent({ message }: { message: RequestMessage }) {
       </h4>
       {reasoning && <ReasoningContent className="my-4" content={reasoning} />}
       {content && <Markdown text={content} />}
+      {images.length > 0 && (
+        <div className="mt-3 space-y-2">
+          <h5 className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+            <ImageIcon className="size-3" />
+            {t('pages.requests.detail-panel.pretty-view.Images', { defaultValue: 'Images' })}
+            <IndicatorBadge>{images.length}</IndicatorBadge>
+          </h5>
+          <div className="flex flex-wrap gap-2">
+            {images.map((image, index) => (
+              <ImageContentDisplay key={index} image={image} />
+            ))}
+          </div>
+        </div>
+      )}
       {toolCalls && toolCalls.length > 0 && (
         <div className="mt-3 space-y-2">
           <h5 className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
@@ -461,6 +488,74 @@ function getMessageText(message: RequestMessage): string {
           .join(''),
     )
     .otherwise(() => '')
+}
+
+/**
+ * Extract image content parts from a message
+ */
+function getMessageImages(message: RequestMessage): ImageContentPart[] {
+  // Handle case where content is an array
+  const content = (message as { content?: unknown }).content
+  if (!content || typeof content === 'string' || !Array.isArray(content)) {
+    return []
+  }
+
+  const images: ImageContentPart[] = []
+  for (const part of content) {
+    if (
+      part &&
+      typeof part === 'object' &&
+      'type' in part &&
+      part.type === 'image_url' &&
+      'image_url' in part &&
+      part.image_url &&
+      typeof part.image_url === 'object' &&
+      'url' in part.image_url
+    ) {
+      images.push({
+        type: 'image_url',
+        image_url: {
+          url: String(part.image_url.url),
+          detail: (part.image_url as { detail?: 'auto' | 'low' | 'high' }).detail,
+        },
+      })
+    }
+  }
+  return images
+}
+
+/**
+ * Component to display an image from a message
+ */
+function ImageContentDisplay({ image }: { image: ImageContentPart }) {
+  const { t } = useTranslation()
+  const { url, detail } = image.image_url
+
+  // Check if it's a data URL (base64)
+  const isDataUrl = url.startsWith('data:')
+
+  return (
+    <div className="border-border/50 overflow-hidden rounded-md border">
+      <a
+        href={isDataUrl ? undefined : url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={isDataUrl ? 'cursor-default' : 'cursor-pointer'}
+      >
+        <img
+          src={url}
+          alt={t('pages.requests.detail-panel.pretty-view.UserImage', { defaultValue: 'User provided image' })}
+          className="max-h-64 max-w-full object-contain"
+          loading="lazy"
+        />
+      </a>
+      {detail && (
+        <div className="bg-muted/50 text-muted-foreground border-t px-2 py-1 text-xs">
+          {t('pages.requests.detail-panel.pretty-view.ImageDetail', { defaultValue: 'Detail' })}: {detail}
+        </div>
+      )}
+    </div>
+  )
 }
 
 /**

@@ -72,11 +72,34 @@ const tToolChoice = t.Union([
   }),
 ]);
 
+// Content part schema - supports text and image_url
+const tContentPart = t.Union([
+  t.Object({
+    type: t.Literal("text"),
+    text: t.String(),
+  }),
+  t.Object({
+    type: t.Literal("image_url"),
+    image_url: t.Object({
+      url: t.String(),
+      detail: t.Optional(t.Union([
+        t.Literal("auto"),
+        t.Literal("low"),
+        t.Literal("high"),
+      ])),
+    }),
+  }),
+]);
+
 // Message schema - supports various message types
 const tMessage = t.Object(
   {
     role: t.String(),
-    content: t.Optional(t.Union([t.String(), t.Null()])),
+    content: t.Optional(t.Union([
+      t.String(),
+      t.Null(),
+      t.Array(tContentPart),
+    ])),
     tool_calls: t.Optional(t.Array(t.Object({
       id: t.String(),
       type: t.Literal("function"),

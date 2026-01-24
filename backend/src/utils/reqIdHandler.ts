@@ -93,6 +93,13 @@ export async function checkReqId(
   }
 
   // Step 2: Check Redis for in-flight request
+  // Note on race conditions when Redis is unavailable:
+  // Without Redis, concurrent requests with the same ReqId will both proceed to step 3
+  // (create pending completion). The database unique constraint on (api_key_id, req_id)
+  // will catch this - one request succeeds and the other fails with a constraint violation,
+  // triggering a re-check (lines 127-154). This means duplicate processing may occur briefly
+  // until one request claims the ReqId in the database. Redis provides faster in-flight
+  // detection but is not required for correctness.
   if (isRedisAvailable()) {
     const inFlight = await getInFlight(apiKeyId, reqId);
     if (inFlight) {
@@ -101,7 +108,7 @@ export async function checkReqId(
       return { type: "in_flight", inFlight, retryAfter };
     }
   } else {
-    logger.warn("Redis unavailable, skipping in-flight check");
+    logger.warn("Redis unavailable, skipping in-flight check - race conditions possible until DB constraint catches duplicates");
   }
 
   // Step 3: Create pending completion and mark as in-flight

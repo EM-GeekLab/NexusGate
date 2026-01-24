@@ -579,7 +579,12 @@ export const responsesApi = new Elysia({
       // Handle cache hit - return cached response
       if (reqIdResult.type === "cache_hit") {
         const sourceCompletion = reqIdResult.completion;
-        await recordCacheHit(sourceCompletion, apiKeyRecord.id);
+        // Record the cache hit (best-effort; do not block returning cached response)
+        try {
+          await recordCacheHit(sourceCompletion, apiKeyRecord.id);
+        } catch (error) {
+          logger.error("Failed to record cache hit", error);
+        }
 
         if (sourceCompletion.cachedResponse) {
           return sourceCompletion.cachedResponse.body as Record<string, unknown>;
@@ -606,10 +611,14 @@ export const responsesApi = new Elysia({
 
       // Handle in-flight - return 409 Conflict
       if (reqIdResult.type === "in_flight") {
+        // reqId is guaranteed non-null here since checkReqId only returns in_flight when reqId is provided
+        if (!reqId) {
+          throw new Error("Invariant violated: reqId is null for in_flight result");
+        }
         set.status = 409;
         set.headers["Retry-After"] = String(reqIdResult.retryAfter);
         return buildInFlightErrorResponse(
-          reqId!,
+          reqId,
           reqIdResult.inFlight,
           reqIdResult.retryAfter,
           apiFormat,

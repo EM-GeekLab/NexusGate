@@ -559,12 +559,13 @@ export const messagesApi = new Elysia({
             // Client disconnected - save as aborted if not already saved
             if (completion.status === "pending") {
               completion.status = "aborted";
+              const errorMsg = error instanceof Error ? error.message : "Client disconnected";
               await addCompletions(completion, bearer, {
                 level: "info",
                 message: "Client disconnected during non-streaming response",
                 details: {
                   type: "completionError",
-                  data: { type: "aborted", msg: String(error ?? "Client disconnected") },
+                  data: { type: "aborted", msg: errorMsg },
                 },
               });
             }

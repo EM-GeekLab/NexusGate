@@ -335,11 +335,10 @@ export const responsesApi = new Elysia({
     async function* ({ body, set, bearer, request, apiKeyRecord }) {
       if (bearer === undefined) {
         set.status = 500;
-        yield JSON.stringify({
+        return {
           object: "error",
           error: { type: "server_error", message: "Internal server error" },
-        });
-        return;
+        };
       }
 
       const reqHeaders = request.headers;
@@ -360,14 +359,13 @@ export const responsesApi = new Elysia({
       // Check if model exists
       if (modelsWithProviders.length === 0) {
         set.status = 404;
-        yield JSON.stringify({
+        return {
           object: "error",
           error: {
             type: "invalid_request_error",
             message: `Model '${systemName}' not found`,
           },
-        });
-        return;
+        };
       }
 
       // Filter candidates by target provider (if specified)
@@ -378,14 +376,13 @@ export const responsesApi = new Elysia({
 
       if (filteredCandidates.length === 0) {
         set.status = 404;
-        yield JSON.stringify({
+        return {
           object: "error",
           error: {
             type: "invalid_request_error",
             message: `No available provider for model '${systemName}'`,
           },
-        });
-        return;
+        };
       }
 
       // Select candidates for failover (weighted random order)
@@ -424,10 +421,7 @@ export const responsesApi = new Elysia({
 
       // Handle streaming vs non-streaming
       if (internalRequest.stream) {
-        // Set content-type for SSE streaming
-        set.headers["Content-Type"] = "text/event-stream";
-
-        // For streaming, use failover only for connection establishment
+        // Streaming request - use yield for streaming responses
         const result = await executeWithFailover(
           candidates,
           buildRequestForProvider,
@@ -447,37 +441,33 @@ export const responsesApi = new Elysia({
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
-            yield errorResult.body;
-            return;
+            return JSON.parse(errorResult.body) as Record<string, unknown>;
           }
 
           set.status = 502;
-          yield JSON.stringify({
+          return {
             object: "error",
             error: {
               type: "server_error",
               message: "All upstream providers failed",
             },
-          });
-          return;
+          };
         }
 
         if (!result.response || !result.provider) {
           set.status = 500;
-          yield JSON.stringify({
+          return {
             object: "error",
             error: { type: "server_error", message: "Internal server error" },
-          });
-          return;
+          };
         }
 
         if (!result.response.body) {
           set.status = 500;
-          yield JSON.stringify({
+          return {
             object: "error",
             error: { type: "server_error", message: "No body in response" },
-          });
-          return;
+          };
         }
 
         const providerType = result.provider.provider.type || "openai";
@@ -508,10 +498,7 @@ export const responsesApi = new Elysia({
           }
         }
       } else {
-        // Set content-type for JSON response
-        set.headers["Content-Type"] = "application/json";
-
-        // Non-streaming request with failover
+        // Non-streaming request - use return for normal JSON response
         const result = await executeWithFailover(
           candidates,
           buildRequestForProvider,
@@ -531,28 +518,25 @@ export const responsesApi = new Elysia({
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
-            yield errorResult.body;
-            return;
+            return JSON.parse(errorResult.body) as Record<string, unknown>;
           }
 
           set.status = 502;
-          yield JSON.stringify({
+          return {
             object: "error",
             error: {
               type: "server_error",
               message: "All upstream providers failed",
             },
-          });
-          return;
+          };
         }
 
         if (!result.response || !result.provider) {
           set.status = 500;
-          yield JSON.stringify({
+          return {
             object: "error",
             error: { type: "server_error", message: "Internal server error" },
-          });
-          return;
+          };
         }
 
         const providerType = result.provider.provider.type || "openai";
@@ -574,7 +558,8 @@ export const responsesApi = new Elysia({
             begin,
             request.signal,
           );
-          yield response;
+          // Return parsed JSON object for proper content-type
+          return JSON.parse(response) as Record<string, unknown>;
         } catch (error) {
           // Handle error based on whether client aborted
           const errorMsg = error instanceof Error ? error.message : String(error);
@@ -591,6 +576,8 @@ export const responsesApi = new Elysia({
             }).catch((logError: unknown) => {
               logger.error("Failed to log aborted completion after processing error", logError);
             });
+            // Return nothing for aborted requests
+            return;
           } else {
             logger.error("Failed to process response", error);
             completion.status = "failed";
@@ -605,10 +592,10 @@ export const responsesApi = new Elysia({
               logger.error("Failed to log completion after processing error", logError);
             });
             set.status = 500;
-            yield JSON.stringify({
+            return {
               object: "error",
               error: { type: "server_error", message: "Failed to process response" },
-            });
+            };
           }
         }
       }

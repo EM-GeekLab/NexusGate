@@ -264,7 +264,23 @@ async function* processStreamingResponse(
       ctx.recordTTFT();
 
       // Collect content for completion record (always, even if client aborted)
-      if (chunk.type === "content_block_delta") {
+      if (chunk.type === "content_block_start") {
+        // Track new tool call block
+        if (chunk.contentBlock?.type === "tool_use") {
+          const toolId = chunk.contentBlock.id;
+          const index = chunk.index ?? ctx.nextToolCallIndex++;
+          ctx.indexToIdMap.set(index, toolId);
+          ctx.streamToolCalls.set(toolId, {
+            id: toolId,
+            type: "function",
+            function: {
+              name: chunk.contentBlock.name,
+              arguments: "",
+            },
+          });
+          ctx.toolCallArguments.set(toolId, []);
+        }
+      } else if (chunk.type === "content_block_delta") {
         if (chunk.delta?.type === "text_delta" && chunk.delta.text) {
           ctx.textParts.push(chunk.delta.text);
         } else if (
@@ -272,6 +288,33 @@ async function* processStreamingResponse(
           chunk.delta.thinking
         ) {
           ctx.thinkingParts.push(chunk.delta.thinking);
+        } else if (chunk.delta?.type === "input_json_delta" && chunk.delta.partialJson) {
+          // Collect tool call arguments - lookup by index to get tool ID
+          // Skip if index is missing to avoid data corruption
+          if (chunk.index !== undefined) {
+            const toolId = ctx.indexToIdMap.get(chunk.index);
+            if (toolId) {
+              const args = ctx.toolCallArguments.get(toolId);
+              if (args) {
+                args.push(chunk.delta.partialJson);
+              }
+            }
+          } else {
+            logger.warn("Received input_json_delta without index, skipping");
+          }
+        }
+      } else if (chunk.type === "content_block_stop") {
+        // Finalize tool call arguments - lookup by index to get tool ID
+        // Skip if index is missing to avoid data corruption
+        if (chunk.index !== undefined) {
+          const toolId = ctx.indexToIdMap.get(chunk.index);
+          if (toolId) {
+            const toolCall = ctx.streamToolCalls.get(toolId);
+            const args = ctx.toolCallArguments.get(toolId);
+            if (toolCall && args) {
+              toolCall.function.arguments = args.join("");
+            }
+          }
         }
       }
 
@@ -583,37 +626,43 @@ export const responsesApi = new Elysia({
         } catch (error) {
           // Handle error based on whether client aborted
           const errorMsg = error instanceof Error ? error.message : String(error);
+          // Only save if completion wasn't already saved in processNonStreamingResponse
+          const alreadySaved = completion.status !== "pending";
           if (request.signal.aborted) {
-            // Client disconnected - save as aborted
-            completion.status = "aborted";
-            try {
-              await addCompletions(completion, bearer, {
-                level: "info",
-                message: "Client disconnected during non-streaming response",
-                details: {
-                  type: "completionError",
-                  data: { type: "aborted", msg: errorMsg },
-                },
-              });
-            } catch (logError: unknown) {
-              logger.error("Failed to log aborted completion after processing error", logError);
+            // Client disconnected - save as aborted (if not already saved)
+            if (!alreadySaved) {
+              completion.status = "aborted";
+              try {
+                await addCompletions(completion, bearer, {
+                  level: "info",
+                  message: "Client disconnected during non-streaming response",
+                  details: {
+                    type: "completionError",
+                    data: { type: "aborted", msg: errorMsg },
+                  },
+                });
+              } catch (logError: unknown) {
+                logger.error("Failed to log aborted completion after processing error", logError);
+              }
             }
             // Return nothing for aborted requests
             return;
           } else {
             logger.error("Failed to process response", error);
-            completion.status = "failed";
-            try {
-              await addCompletions(completion, bearer, {
-                level: "error",
-                message: `Response processing error: ${errorMsg}`,
-                details: {
-                  type: "completionError",
-                  data: { type: "processingError", msg: errorMsg },
-                },
-              });
-            } catch (logError: unknown) {
-              logger.error("Failed to log completion after processing error", logError);
+            if (!alreadySaved) {
+              completion.status = "failed";
+              try {
+                await addCompletions(completion, bearer, {
+                  level: "error",
+                  message: `Response processing error: ${errorMsg}`,
+                  details: {
+                    type: "completionError",
+                    data: { type: "processingError", msg: errorMsg },
+                  },
+                });
+              } catch (logError: unknown) {
+                logger.error("Failed to log completion after processing error", logError);
+              }
             }
             set.status = 500;
             return {

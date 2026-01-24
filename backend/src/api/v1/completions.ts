@@ -631,37 +631,43 @@ export const completionsApi = new Elysia({
         } catch (error) {
           // Handle error based on whether client aborted
           const errorMsg = error instanceof Error ? error.message : String(error);
+          // Only save if completion wasn't already saved in processNonStreamingResponse
+          const alreadySaved = completion.status !== "pending";
           if (request.signal.aborted) {
-            // Client disconnected - save as aborted
-            completion.status = "aborted";
-            try {
-              await addCompletions(completion, bearer, {
-                level: "info",
-                message: "Client disconnected during non-streaming response",
-                details: {
-                  type: "completionError",
-                  data: { type: "aborted", msg: errorMsg },
-                },
-              });
-            } catch (logError: unknown) {
-              logger.error("Failed to log aborted completion after processing error", logError);
+            // Client disconnected - save as aborted (if not already saved)
+            if (!alreadySaved) {
+              completion.status = "aborted";
+              try {
+                await addCompletions(completion, bearer, {
+                  level: "info",
+                  message: "Client disconnected during non-streaming response",
+                  details: {
+                    type: "completionError",
+                    data: { type: "aborted", msg: errorMsg },
+                  },
+                });
+              } catch (logError: unknown) {
+                logger.error("Failed to log aborted completion after processing error", logError);
+              }
             }
             // Return nothing for aborted requests
             return;
           } else {
             logger.error("Failed to process response", error);
-            completion.status = "failed";
-            try {
-              await addCompletions(completion, bearer, {
-                level: "error",
-                message: `Response processing error: ${errorMsg}`,
-                details: {
-                  type: "completionError",
-                  data: { type: "processingError", msg: errorMsg },
-                },
-              });
-            } catch (logError: unknown) {
-              logger.error("Failed to log completion after processing error", logError);
+            if (!alreadySaved) {
+              completion.status = "failed";
+              try {
+                await addCompletions(completion, bearer, {
+                  level: "error",
+                  message: `Response processing error: ${errorMsg}`,
+                  details: {
+                    type: "completionError",
+                    data: { type: "processingError", msg: errorMsg },
+                  },
+                });
+              } catch (logError: unknown) {
+                logger.error("Failed to log completion after processing error", logError);
+              }
             }
             set.status = 500;
             return { error: "Failed to process response" };

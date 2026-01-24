@@ -245,12 +245,21 @@ async function* processStreamingResponse(
   // Create streaming context with abort handling
   const ctx = new StreamingContext(completion, bearer, apiKeyRecord, begin, signal);
 
+  // Track whether we've logged the client abort (to avoid duplicate logs)
+  let loggedAbort = false;
+
   try {
     const chunks = upstreamAdapter.parseStreamResponse(resp);
 
     for await (const chunk of chunks) {
       // Check if client has disconnected (but continue processing to collect all data)
       const clientAborted = ctx.isAborted();
+
+      // Log client disconnect once when first detected
+      if (clientAborted && !loggedAbort) {
+        loggedAbort = true;
+        logger.info("Client disconnected during streaming, continuing to collect upstream data");
+      }
 
       ctx.recordTTFT();
 

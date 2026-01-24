@@ -1257,3 +1257,84 @@ export async function getEmbeddingsTimeSeries(
     avg_duration: string;
   }[];
 }
+
+// ============================================
+// ReqId Deduplication Operations
+// ============================================
+
+/**
+ * Find a completion by ReqId (for cache hit detection)
+ * Only returns completions that are not pending (completed, failed, aborted, cache_hit)
+ * @param apiKeyId the API key ID (ReqId is scoped per API key)
+ * @param reqId the client-provided request ID
+ * @returns completion record if found and not pending, null otherwise
+ */
+export async function findCompletionByReqId(
+  apiKeyId: number,
+  reqId: string,
+): Promise<Completion | null> {
+  logger.debug("findCompletionByReqId", apiKeyId, reqId);
+  const r = await db
+    .select()
+    .from(schema.CompletionsTable)
+    .where(
+      and(
+        eq(schema.CompletionsTable.apiKeyId, apiKeyId),
+        eq(schema.CompletionsTable.reqId, reqId),
+        not(schema.CompletionsTable.deleted),
+        // Only return non-pending completions (completed, failed, aborted, cache_hit)
+        not(eq(schema.CompletionsTable.status, "pending")),
+      ),
+    )
+    .limit(1);
+  const [first] = r;
+  return first ?? null;
+}
+
+/**
+ * Create a pending completion record with ReqId
+ * Used to reserve the ReqId before making the upstream request
+ * @param c completion data including reqId
+ * @returns the created completion record, null if ReqId already exists (unique constraint violation)
+ */
+export async function createPendingCompletion(
+  c: CompletionInsert,
+): Promise<Completion | null> {
+  logger.debug("createPendingCompletion", c.model, c.reqId);
+  try {
+    const r = await db
+      .insert(schema.CompletionsTable)
+      .values(c)
+      .returning();
+    const [first] = r;
+    return first ?? null;
+  } catch (error) {
+    // Handle unique constraint violation (duplicate ReqId)
+    if (error instanceof Error && error.message.includes("unique")) {
+      logger.warn("Duplicate ReqId detected", c.reqId);
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Update a completion record
+ * Used to update pending completions after upstream request completes
+ * @param id completion ID
+ * @param updates partial completion data to update
+ * @returns updated completion record, null if not found
+ */
+export async function updateCompletion(
+  id: number,
+  updates: Partial<CompletionInsert>,
+): Promise<Completion | null> {
+  logger.debug("updateCompletion", id);
+  const r = await db
+    .update(schema.CompletionsTable)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(eq(schema.CompletionsTable.id, id))
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}

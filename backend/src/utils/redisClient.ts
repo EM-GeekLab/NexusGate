@@ -99,6 +99,34 @@ class RedisClient {
   }
 
   /**
+   * Set a value in Redis only if the key does not exist (atomic SETNX)
+   * @param {string} key - Key to set
+   * @param {string | number} value - Value to store
+   * @param {number} ttlSeconds - Time to live in seconds
+   * @returns {Promise<boolean>} true if the key was set, false if it already existed
+   */
+  public async setnx(
+    key: string,
+    value: string | number,
+    ttlSeconds: number,
+  ): Promise<boolean> {
+    try {
+      // SET key value EX ttl NX - sets only if key doesn't exist
+      const result = await this.client.set(
+        key,
+        value.toString(),
+        "EX",
+        ttlSeconds,
+        "NX",
+      );
+      return result === "OK";
+    } catch (error) {
+      logger.error(`Redis setnx error: ${(error as Error).message}`);
+      return false;
+    }
+  }
+
+  /**
    * Execute a Lua script atomically
    * @param {string} script - Lua script to execute
    * @param {object} options - Keys and arguments for the script

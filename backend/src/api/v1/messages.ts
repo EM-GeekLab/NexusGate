@@ -30,6 +30,15 @@ import {
   selectMultipleCandidates,
   type FailoverConfig,
 } from "@/services/failover";
+import {
+  checkReqId,
+  finalizeReqId,
+  recordCacheHit,
+  buildInFlightErrorResponse,
+  extractReqId,
+  type ApiFormat,
+} from "@/utils/reqIdHandler";
+import type { CachedResponseType } from "@/db/schema";
 
 const logger = consola.withTag("messagesApi");
 
@@ -153,6 +162,16 @@ function buildCompletionRecord(
 }
 
 /**
+ * ReqId context for request deduplication
+ */
+interface ReqIdContext {
+  reqId: string;
+  apiKeyId: number;
+  preCreatedCompletionId: number;
+  apiFormat: ApiFormat;
+}
+
+/**
  * Process a successful non-streaming message response
  * Ensures completion is saved to database before returning
  */
@@ -164,6 +183,7 @@ async function processNonStreamingResponse(
   apiKeyRecord: ApiKey | null,
   begin: number,
   signal?: AbortSignal,
+  reqIdContext?: ReqIdContext,
 ): Promise<string> {
   // Parse response using upstream adapter
   const upstreamAdapter = getUpstreamAdapter(providerType);
@@ -185,20 +205,44 @@ async function processNonStreamingResponse(
     },
   ];
 
+  // Build cached response for ReqId deduplication
+  const cachedResponse: CachedResponseType = {
+    body: serialized,
+    format: "anthropic",
+  };
+
   // Check if client disconnected during processing
   if (signal?.aborted) {
     completion.status = "aborted";
-    await addCompletions(completion, bearer, {
-      level: "info",
-      message: "Client disconnected during non-streaming response",
-      details: {
-        type: "completionError",
-        data: { type: "aborted", msg: "Client disconnected" },
-      },
-    });
+    if (reqIdContext) {
+      await finalizeReqId(
+        reqIdContext.apiKeyId,
+        reqIdContext.reqId,
+        reqIdContext.preCreatedCompletionId,
+        { ...completion, cachedResponse },
+      );
+    } else {
+      await addCompletions(completion, bearer, {
+        level: "info",
+        message: "Client disconnected during non-streaming response",
+        details: {
+          type: "completionError",
+          data: { type: "aborted", msg: "Client disconnected" },
+        },
+      });
+    }
   } else {
     completion.status = "completed";
-    await addCompletions(completion, bearer);
+    if (reqIdContext) {
+      await finalizeReqId(
+        reqIdContext.apiKeyId,
+        reqIdContext.reqId,
+        reqIdContext.preCreatedCompletionId,
+        { ...completion, cachedResponse },
+      );
+    } else {
+      await addCompletions(completion, bearer);
+    }
   }
 
   // Consume tokens for TPM rate limiting (post-flight)
@@ -224,6 +268,7 @@ async function* processStreamingResponse(
   apiKeyRecord: ApiKey | null,
   begin: number,
   signal?: AbortSignal,
+  reqIdContext?: ReqIdContext,
 ): AsyncGenerator<string, void, unknown> {
   // Get adapters
   const upstreamAdapter = getUpstreamAdapter(providerType);
@@ -231,8 +276,39 @@ async function* processStreamingResponse(
 
   logger.debug("parse stream messages response");
 
+  // Build streaming ReqId context if provided
+  const streamingReqIdContext = reqIdContext
+    ? {
+        reqId: reqIdContext.reqId,
+        apiKeyId: reqIdContext.apiKeyId,
+        preCreatedCompletionId: reqIdContext.preCreatedCompletionId,
+        apiFormat: reqIdContext.apiFormat,
+        buildCachedResponse: (comp: Completion): CachedResponseType => {
+          // For streaming, build a complete non-streaming Anthropic response for cache
+          return {
+            body: {
+              id: `msg-cache-${reqIdContext.preCreatedCompletionId}`,
+              type: "message",
+              role: "assistant",
+              content: comp.completion.map((c) => ({
+                type: "text",
+                text: c.content || "",
+              })),
+              model: comp.model,
+              stop_reason: "end_turn",
+              usage: {
+                input_tokens: comp.promptTokens,
+                output_tokens: comp.completionTokens,
+              },
+            },
+            format: "anthropic",
+          };
+        },
+      }
+    : undefined;
+
   // Create streaming context with abort handling
-  const ctx = new StreamingContext(completion, bearer, apiKeyRecord, begin, signal);
+  const ctx = new StreamingContext(completion, bearer, apiKeyRecord, begin, signal, streamingReqIdContext);
 
   // Track whether we've logged the client abort (to avoid duplicate logs)
   let loggedAbort = false;
@@ -379,7 +455,7 @@ export const messagesApi = new Elysia({
   .use(rateLimitPlugin)
   .post(
     "/messages",
-    async function* ({ body, set, bearer, request, apiKeyRecord }) {
+    async function ({ body, set, bearer, request, apiKeyRecord }) {
       if (bearer === undefined) {
         set.status = 500;
         return {
@@ -390,6 +466,10 @@ export const messagesApi = new Elysia({
 
       const reqHeaders = request.headers;
       const begin = Date.now();
+
+      // Extract ReqId for request deduplication
+      const reqId = extractReqId(reqHeaders);
+      const apiFormat: ApiFormat = "anthropic";
 
       // Parse model@provider format and extract provider from header
       const { systemName, targetProvider } = parseModelProvider(
@@ -441,6 +521,68 @@ export const messagesApi = new Elysia({
       // Extract extra headers for passthrough
       const extraHeaders = extractUpstreamHeaders(reqHeaders);
 
+      // Check ReqId for deduplication (if provided)
+      const isStream = body.stream === true;
+      const reqIdResult = await checkReqId(reqId, {
+        apiKeyId: apiKeyRecord.id,
+        model: body.model,
+        modelId: candidates[0]?.model.id,
+        prompt: {
+          messages: body.messages.map((m: { role: string; content: unknown }) => ({
+            role: m.role,
+            content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+          })),
+          extraHeaders,
+        },
+        apiFormat,
+        endpoint: "/v1/messages",
+        isStream,
+      });
+
+      // Handle cache hit - return cached response
+      if (reqIdResult.type === "cache_hit") {
+        const sourceCompletion = reqIdResult.completion;
+        await recordCacheHit(sourceCompletion, apiKeyRecord.id);
+
+        if (sourceCompletion.cachedResponse) {
+          return sourceCompletion.cachedResponse.body as Record<string, unknown>;
+        }
+
+        // Fallback: reconstruct Anthropic response
+        return {
+          id: `msg-cache-${sourceCompletion.id}`,
+          type: "message",
+          role: "assistant",
+          content: sourceCompletion.completion.map((c) => ({
+            type: "text",
+            text: c.content || "",
+          })),
+          model: sourceCompletion.model,
+          stop_reason: "end_turn",
+          usage: {
+            input_tokens: sourceCompletion.promptTokens,
+            output_tokens: sourceCompletion.completionTokens,
+          },
+        };
+      }
+
+      // Handle in-flight - return 409 Conflict
+      if (reqIdResult.type === "in_flight") {
+        set.status = 409;
+        set.headers["Retry-After"] = String(reqIdResult.retryAfter);
+        return buildInFlightErrorResponse(
+          reqId!,
+          reqIdResult.inFlight,
+          reqIdResult.retryAfter,
+          apiFormat,
+        );
+      }
+
+      // For new_request, we have a pre-created completionId
+      const preCreatedCompletionId = reqIdResult.type === "new_request"
+        ? reqIdResult.completionId
+        : null;
+
       // Parse request using Anthropic adapter
       const requestAdapter = getRequestAdapter("anthropic");
       const internalRequest = requestAdapter.parse(
@@ -468,7 +610,7 @@ export const messagesApi = new Elysia({
 
       // Handle streaming vs non-streaming
       if (internalRequest.stream) {
-        // Streaming request - use yield for streaming responses
+        // Streaming request - return an async generator
         const result = await executeWithFailover(
           candidates,
           buildRequestForProvider,
@@ -526,26 +668,42 @@ export const messagesApi = new Elysia({
           extraHeaders,
         );
 
-        try {
-          yield* processStreamingResponse(
-            result.response,
-            completion,
-            bearer,
-            providerType,
-            apiKeyRecord ?? null,
-            begin,
-            request.signal,
-          );
-        } catch (error) {
-          // Don't log error if it's due to client abort
-          if (!request.signal.aborted) {
-            logger.error("Stream processing error", error);
-            set.status = 500;
-            yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "server_error", message: "Stream processing error" } })}\n\n`;
+        // Build ReqId context if we have a pre-created completion
+        const streamReqIdContext = preCreatedCompletionId && reqId
+          ? {
+              reqId,
+              apiKeyId: apiKeyRecord.id,
+              preCreatedCompletionId,
+              apiFormat,
+            }
+          : undefined;
+
+        // Return an async generator for streaming
+        const streamResponse = result.response;
+        const streamSignal = request.signal;
+        return (async function* () {
+          try {
+            yield* processStreamingResponse(
+              streamResponse,
+              completion,
+              bearer,
+              providerType,
+              apiKeyRecord ?? null,
+              begin,
+              streamSignal,
+              streamReqIdContext,
+            );
+          } catch (error) {
+            // Don't log error if it's due to client abort
+            if (!streamSignal.aborted) {
+              logger.error("Stream processing error", error);
+              set.status = 500;
+              yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "server_error", message: "Stream processing error" } })}\n\n`;
+            }
           }
-        }
+        })();
       } else {
-        // Non-streaming request - use return for normal JSON response
+        // Non-streaming request - return JSON response directly
         const result = await executeWithFailover(
           candidates,
           buildRequestForProvider,
@@ -595,6 +753,16 @@ export const messagesApi = new Elysia({
           extraHeaders,
         );
 
+        // Build ReqId context if we have a pre-created completion
+        const nonStreamReqIdContext = preCreatedCompletionId && reqId
+          ? {
+              reqId,
+              apiKeyId: apiKeyRecord.id,
+              preCreatedCompletionId,
+              apiFormat,
+            }
+          : undefined;
+
         try {
           const response = await processNonStreamingResponse(
             result.response,
@@ -604,6 +772,7 @@ export const messagesApi = new Elysia({
             apiKeyRecord ?? null,
             begin,
             request.signal,
+            nonStreamReqIdContext,
           );
           // Return parsed JSON object for proper content-type
           return JSON.parse(response) as Record<string, unknown>;

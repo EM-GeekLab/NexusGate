@@ -78,6 +78,13 @@
       "when": 1769256296714,
       "tag": "0010_noisy_deathbird",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1769275632379,
+      "tag": "0011_outgoing_johnny_blaze",
+      "breakpoints": true
     }
   ]
 }

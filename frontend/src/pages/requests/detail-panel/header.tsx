@@ -67,6 +67,11 @@ function StatusIndicator({ status }: { status: ChatRequest['status'] }) {
         {t('pages.requests.detail-panel.header.Aborted')}
       </IndicatorBadge>
     ))
+    .with('cache_hit', () => (
+      <IndicatorBadge className="bg-blue-500/15 text-blue-800 dark:text-blue-200">
+        {t('pages.requests.detail-panel.header.CacheHit')}
+      </IndicatorBadge>
+    ))
     .exhaustive()
 }
 

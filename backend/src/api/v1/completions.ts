@@ -19,6 +19,7 @@ import type {
   CompletionsMessageType,
   ToolDefinitionType,
   ToolChoiceType,
+  CachedResponseType,
 } from "@/db/schema";
 import {
   extractUpstreamHeaders,
@@ -36,6 +37,14 @@ import {
   selectMultipleCandidates,
   type FailoverConfig,
 } from "@/services/failover";
+import {
+  checkReqId,
+  finalizeReqId,
+  recordCacheHit,
+  buildInFlightErrorResponse,
+  extractReqId,
+  type ApiFormat,
+} from "@/utils/reqIdHandler";
 
 const logger = consola.withTag("completionsApi");
 
@@ -161,6 +170,16 @@ function buildCompletionRecord(
 }
 
 /**
+ * ReqId context for request deduplication
+ */
+interface ReqIdContext {
+  reqId: string;
+  apiKeyId: number;
+  preCreatedCompletionId: number;
+  apiFormat: ApiFormat;
+}
+
+/**
  * Process a successful non-streaming response
  * Ensures completion is saved to database before returning
  */
@@ -172,6 +191,7 @@ async function processNonStreamingResponse(
   apiKeyRecord: ApiKey | null,
   begin: number,
   signal?: AbortSignal,
+  reqIdContext?: ReqIdContext,
 ): Promise<string> {
   // Parse response using upstream adapter
   const upstreamAdapter = getUpstreamAdapter(providerType);
@@ -197,21 +217,53 @@ async function processNonStreamingResponse(
     },
   ];
 
+  // Build cached response for ReqId deduplication
+  const cachedResponse: CachedResponseType = {
+    body: serialized,
+    format: "openai-chat",
+  };
+
   // Check if client disconnected during processing
   if (signal?.aborted) {
     completion.status = "aborted";
-    await addCompletions(completion, bearer, {
-      level: "info",
-      message: "Client disconnected during non-streaming response",
-      details: {
-        type: "completionError",
-        data: { type: "aborted", msg: "Client disconnected" },
-      },
-    });
+    if (reqIdContext) {
+      // Use finalizeReqId for ReqId requests
+      await finalizeReqId(
+        reqIdContext.apiKeyId,
+        reqIdContext.reqId,
+        reqIdContext.preCreatedCompletionId,
+        {
+          ...completion,
+          cachedResponse,
+        },
+      );
+    } else {
+      await addCompletions(completion, bearer, {
+        level: "info",
+        message: "Client disconnected during non-streaming response",
+        details: {
+          type: "completionError",
+          data: { type: "aborted", msg: "Client disconnected" },
+        },
+      });
+    }
   } else {
     completion.status = "completed";
-    // Use await to ensure database write completes before returning
-    await addCompletions(completion, bearer);
+    if (reqIdContext) {
+      // Use finalizeReqId for ReqId requests
+      await finalizeReqId(
+        reqIdContext.apiKeyId,
+        reqIdContext.reqId,
+        reqIdContext.preCreatedCompletionId,
+        {
+          ...completion,
+          cachedResponse,
+        },
+      );
+    } else {
+      // Use await to ensure database write completes before returning
+      await addCompletions(completion, bearer);
+    }
   }
 
   // Consume tokens for TPM rate limiting (post-flight)
@@ -237,6 +289,7 @@ async function* processStreamingResponse(
   apiKeyRecord: ApiKey | null,
   begin: number,
   signal?: AbortSignal,
+  reqIdContext?: ReqIdContext,
 ): AsyncGenerator<string, void, unknown> {
   // Get adapters
   const upstreamAdapter = getUpstreamAdapter(providerType);
@@ -244,8 +297,44 @@ async function* processStreamingResponse(
 
   logger.debug("parse stream completions response");
 
+  // Build streaming ReqId context if provided
+  const streamingReqIdContext = reqIdContext
+    ? {
+        reqId: reqIdContext.reqId,
+        apiKeyId: reqIdContext.apiKeyId,
+        preCreatedCompletionId: reqIdContext.preCreatedCompletionId,
+        apiFormat: reqIdContext.apiFormat,
+        buildCachedResponse: (comp: Completion): CachedResponseType => {
+          // For streaming, we build a complete non-streaming response for cache
+          return {
+            body: {
+              id: `chatcmpl-cache-${reqIdContext.preCreatedCompletionId}`,
+              object: "chat.completion",
+              created: Math.floor(Date.now() / 1000),
+              model: comp.model,
+              choices: comp.completion.map((c, i) => ({
+                index: i,
+                message: {
+                  role: c.role || "assistant",
+                  content: c.content,
+                  tool_calls: c.tool_calls,
+                },
+                finish_reason: c.tool_calls?.length ? "tool_calls" : "stop",
+              })),
+              usage: {
+                prompt_tokens: comp.promptTokens,
+                completion_tokens: comp.completionTokens,
+                total_tokens: comp.promptTokens + comp.completionTokens,
+              },
+            },
+            format: "openai-chat",
+          };
+        },
+      }
+    : undefined;
+
   // Create streaming context with abort handling
-  const ctx = new StreamingContext(completion, bearer, apiKeyRecord, begin, signal);
+  const ctx = new StreamingContext(completion, bearer, apiKeyRecord, begin, signal, streamingReqIdContext);
 
   // Track whether we've logged the client abort (to avoid duplicate logs)
   let loggedAbort = false;
@@ -398,7 +487,7 @@ export const completionsApi = new Elysia({
   .use(rateLimitPlugin)
   .post(
     "/completions",
-    async function* ({ body, set, bearer, request, apiKeyRecord }) {
+    async function ({ body, set, bearer, request, apiKeyRecord }) {
       if (bearer === undefined) {
         set.status = 500;
         return { error: "Internal server error" };
@@ -406,6 +495,10 @@ export const completionsApi = new Elysia({
 
       const reqHeaders = request.headers;
       const begin = Date.now();
+
+      // Extract ReqId for request deduplication
+      const reqId = extractReqId(reqHeaders);
+      const apiFormat: ApiFormat = "openai-chat";
 
       // Parse model@provider format and extract provider from header
       const { systemName, targetProvider } = parseModelProvider(
@@ -457,6 +550,75 @@ export const completionsApi = new Elysia({
       // Extract extra headers for passthrough
       const extraHeaders = extractUpstreamHeaders(reqHeaders);
 
+      // Check ReqId for deduplication (if provided)
+      const isStream = body.stream === true;
+      const reqIdResult = await checkReqId(reqId, {
+        apiKeyId: apiKeyRecord.id,
+        model: body.model,
+        modelId: candidates[0]?.model.id,
+        prompt: {
+          messages: body.messages as CompletionsMessageType[],
+          tools: body.tools as ToolDefinitionType[] | undefined,
+          tool_choice: body.tool_choice as ToolChoiceType | undefined,
+          extraHeaders,
+        },
+        apiFormat,
+        endpoint: "/v1/chat/completions",
+        isStream,
+      });
+
+      // Handle cache hit - return cached response
+      if (reqIdResult.type === "cache_hit") {
+        const sourceCompletion = reqIdResult.completion;
+        // Record the cache hit
+        await recordCacheHit(sourceCompletion, apiKeyRecord.id);
+
+        // Return cached response
+        if (sourceCompletion.cachedResponse) {
+          return sourceCompletion.cachedResponse.body as Record<string, unknown>;
+        }
+
+        // Fallback: reconstruct response from completion data
+        const reconstructed = {
+          id: `chatcmpl-cache-${sourceCompletion.id}`,
+          object: "chat.completion",
+          created: Math.floor(sourceCompletion.createdAt.getTime() / 1000),
+          model: sourceCompletion.model,
+          choices: sourceCompletion.completion.map((c, i) => ({
+            index: i,
+            message: {
+              role: c.role || "assistant",
+              content: c.content,
+              tool_calls: c.tool_calls,
+            },
+            finish_reason: c.tool_calls?.length ? "tool_calls" : "stop",
+          })),
+          usage: {
+            prompt_tokens: sourceCompletion.promptTokens,
+            completion_tokens: sourceCompletion.completionTokens,
+            total_tokens: sourceCompletion.promptTokens + sourceCompletion.completionTokens,
+          },
+        };
+        return reconstructed;
+      }
+
+      // Handle in-flight - return 409 Conflict
+      if (reqIdResult.type === "in_flight") {
+        set.status = 409;
+        set.headers["Retry-After"] = String(reqIdResult.retryAfter);
+        return buildInFlightErrorResponse(
+          reqId!,
+          reqIdResult.inFlight,
+          reqIdResult.retryAfter,
+          apiFormat,
+        );
+      }
+
+      // For new_request, we have a pre-created completionId
+      const preCreatedCompletionId = reqIdResult.type === "new_request"
+        ? reqIdResult.completionId
+        : null;
+
       // Parse request using adapter
       const requestAdapter = getRequestAdapter("openai-chat");
       const internalRequest = requestAdapter.parse(
@@ -484,7 +646,7 @@ export const completionsApi = new Elysia({
 
       // Handle streaming vs non-streaming
       if (internalRequest.stream) {
-        // Streaming request - use yield for streaming responses
+        // Streaming request - return an async generator
         if (body.n && body.n > 1) {
           set.status = 400;
           return { error: "Stream completions with n > 1 is not supported" };
@@ -546,26 +708,42 @@ export const completionsApi = new Elysia({
           extraHeaders,
         );
 
-        try {
-          yield* processStreamingResponse(
-            result.response,
-            completion,
-            bearer,
-            providerType,
-            apiKeyRecord ?? null,
-            begin,
-            request.signal,
-          );
-        } catch (error) {
-          // Don't log error if it's due to client abort
-          if (!request.signal.aborted) {
-            logger.error("Stream processing error", error);
-            set.status = 500;
-            yield JSON.stringify({ error: "Stream processing error" });
+        // Build ReqId context if we have a pre-created completion
+        const streamReqIdContext = preCreatedCompletionId && reqId
+          ? {
+              reqId,
+              apiKeyId: apiKeyRecord.id,
+              preCreatedCompletionId,
+              apiFormat,
+            }
+          : undefined;
+
+        // Return an async generator for streaming
+        const streamResponse = result.response;
+        const streamSignal = request.signal;
+        return (async function* () {
+          try {
+            yield* processStreamingResponse(
+              streamResponse,
+              completion,
+              bearer,
+              providerType,
+              apiKeyRecord ?? null,
+              begin,
+              streamSignal,
+              streamReqIdContext,
+            );
+          } catch (error) {
+            // Don't log error if it's due to client abort
+            if (!streamSignal.aborted) {
+              logger.error("Stream processing error", error);
+              set.status = 500;
+              yield JSON.stringify({ error: "Stream processing error" });
+            }
           }
-        }
+        })();
       } else {
-        // Non-streaming request - use return for normal JSON response
+        // Non-streaming request - return JSON response directly
         const result = await executeWithFailover(
           candidates,
           buildRequestForProvider,
@@ -616,6 +794,16 @@ export const completionsApi = new Elysia({
           extraHeaders,
         );
 
+        // Build ReqId context if we have a pre-created completion
+        const nonStreamReqIdContext = preCreatedCompletionId && reqId
+          ? {
+              reqId,
+              apiKeyId: apiKeyRecord.id,
+              preCreatedCompletionId,
+              apiFormat,
+            }
+          : undefined;
+
         try {
           const response = await processNonStreamingResponse(
             result.response,
@@ -625,6 +813,7 @@ export const completionsApi = new Elysia({
             apiKeyRecord ?? null,
             begin,
             request.signal,
+            nonStreamReqIdContext,
           );
           // Return parsed JSON object for proper content-type
           return JSON.parse(response) as Record<string, unknown>;

@@ -24,5 +24,8 @@ backend/docs/
 
 .turbo
 
-# Python test code (local testing only)
+# Python test code (ignore all except essential files)
 python_test_code/
+!python_test_code/pyproject.toml
+!python_test_code/uv.lock
+!python_test_code/test_unified_suite.py

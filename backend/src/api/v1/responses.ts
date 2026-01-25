@@ -61,7 +61,9 @@ const tResponseInputMessage = t.Object({
       t.Object({
         type: t.String(),
         text: t.Optional(t.String()),
-        image_url: t.Optional(t.Object({ url: t.String() })),
+        // image_url should be a plain string (URL or data URL), matching OpenAI Responses API spec
+        // and the adapter expectation in openai-response.ts
+        image_url: t.Optional(t.String()),
       }),
     ),
   ]),

@@ -359,18 +359,29 @@ async function generateMetricsInternal(): Promise<string> {
   );
 
   // API Key Rate Limit Metrics
-  // Fetch current usage from Redis for each API key
+  // Fetch current usage from Redis for each API key in parallel for better performance
   const rpmUsageValues: MetricValue[] = [];
   const rpmLimitValues: MetricValue[] = [];
   const tpmUsageValues: MetricValue[] = [];
   const tpmLimitValues: MetricValue[] = [];
 
-  for (const apiKey of apiKeyConfigs) {
+  const rateLimitStatuses = await Promise.all(
+    apiKeyConfigs.map(async (apiKey) =>
+      getRateLimitStatus(apiKey.id, {
+        rpmLimit: apiKey.rpmLimit,
+        tpmLimit: apiKey.tpmLimit,
+      }),
+    ),
+  );
+
+  for (let i = 0; i < apiKeyConfigs.length; i++) {
+    const apiKey = apiKeyConfigs[i];
+    const status = rateLimitStatuses[i];
+    if (!apiKey || !status) {
+      continue;
+    }
+
     const comment = apiKey.comment ?? "unknown";
-    const status = await getRateLimitStatus(apiKey.id, {
-      rpmLimit: apiKey.rpmLimit,
-      tpmLimit: apiKey.tpmLimit,
-    });
 
     rpmUsageValues.push({
       labels: { api_key_comment: comment },
@@ -422,9 +433,13 @@ async function generateMetricsInternal(): Promise<string> {
   }
 
   // Rate Limit Rejection Counter
+  // Field format is "apiKeyComment:limitType" where apiKeyComment may contain colons
   const rejectionValues: MetricValue[] = [];
   for (const [field, count] of Object.entries(rateLimitRejections)) {
-    const [apiKeyComment, limitType] = field.split(":");
+    const parts = field.split(":");
+    const limitType = parts.pop(); // Last part is always the limit type (rpm/tpm)
+    const apiKeyComment = parts.join(":"); // Rejoin in case comment contained colons
+
     if (apiKeyComment && limitType) {
       rejectionValues.push({
         labels: { api_key_comment: apiKeyComment, limit_type: limitType },

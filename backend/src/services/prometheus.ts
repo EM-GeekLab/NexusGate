@@ -1,3 +1,4 @@
+import { consola } from "consola";
 import {
   getCompletionMetricsByModelAndStatus,
   getEmbeddingMetricsByModelAndStatus,
@@ -5,9 +6,18 @@ import {
   getCompletionTTFTHistogram,
   getEmbeddingDurationHistogram,
   getActiveEntityCounts,
+  getApiKeyRateLimitConfig,
   LATENCY_BUCKETS_MS,
 } from "@/db";
-import { COMMIT_SHA } from "@/utils/config";
+import { COMMIT_SHA, METRICS_CACHE_TTL_SECONDS } from "@/utils/config";
+import { redisClient } from "@/utils/redisClient";
+import { getRateLimitStatus } from "@/utils/apiKeyRateLimit";
+import { getRateLimitRejections } from "@/plugins/apiKeyRateLimitPlugin";
+
+const logger = consola.withTag("prometheus");
+
+// Redis cache key for metrics
+const METRICS_CACHE_KEY = "nexusgate:metrics:cache";
 
 // Convert milliseconds to seconds for Prometheus (standard unit)
 const LATENCY_BUCKETS_SEC = LATENCY_BUCKETS_MS.map((ms) => ms / 1000);
@@ -103,6 +113,55 @@ function formatHistogram(name: string, help: string, buckets: number[], values: 
  * Generate all Prometheus metrics
  */
 export async function generatePrometheusMetrics(): Promise<string> {
+  try {
+    // Try to get cached metrics first
+    const cachedMetrics = await redisClient.get(METRICS_CACHE_KEY);
+    if (cachedMetrics) {
+      logger.debug("Returning cached metrics");
+      return cachedMetrics;
+    }
+
+    // Generate fresh metrics
+    const metrics = await generateMetricsInternal();
+
+    // Cache the metrics
+    await redisClient.set(METRICS_CACHE_KEY, metrics, { EX: METRICS_CACHE_TTL_SECONDS });
+
+    return metrics;
+  } catch (error) {
+    logger.error("Error generating metrics:", error);
+    // Return minimal fallback metrics on error
+    return generateFallbackMetrics();
+  }
+}
+
+/**
+ * Generate fallback metrics when main generation fails
+ */
+function generateFallbackMetrics(): string {
+  const sections: string[] = [];
+
+  // Info metric always works
+  sections.push(
+    formatGauge("nexusgate_info", "NexusGate build information", [
+      { labels: { version: COMMIT_SHA }, value: 1 },
+    ]),
+  );
+
+  // Error indicator
+  sections.push(
+    formatGauge("nexusgate_metrics_error", "Indicates metrics generation failed", [
+      { labels: {}, value: 1 },
+    ]),
+  );
+
+  return sections.join("\n\n") + "\n";
+}
+
+/**
+ * Internal metrics generation (the actual work)
+ */
+async function generateMetricsInternal(): Promise<string> {
   // Fetch all metrics data in parallel
   const [
     completionMetrics,
@@ -111,6 +170,8 @@ export async function generatePrometheusMetrics(): Promise<string> {
     completionTTFTHist,
     embeddingDurationHist,
     entityCounts,
+    apiKeyConfigs,
+    rateLimitRejections,
   ] = await Promise.all([
     getCompletionMetricsByModelAndStatus(),
     getEmbeddingMetricsByModelAndStatus(),
@@ -118,6 +179,8 @@ export async function generatePrometheusMetrics(): Promise<string> {
     getCompletionTTFTHistogram(),
     getEmbeddingDurationHistogram(),
     getActiveEntityCounts(),
+    getApiKeyRateLimitConfig(),
+    getRateLimitRejections(),
   ]);
 
   const sections: string[] = [];
@@ -140,7 +203,7 @@ export async function generatePrometheusMetrics(): Promise<string> {
         model: row.model,
         status: row.status,
         api_format: row.api_format,
-        api_key: row.api_key_id,
+        api_key_comment: row.api_key_comment,
       },
       value: Number(row.count),
     });
@@ -202,7 +265,7 @@ export async function generatePrometheusMetrics(): Promise<string> {
       labels: {
         model: row.model,
         status: row.status,
-        api_key: row.api_key_id,
+        api_key_comment: row.api_key_comment,
       },
       value: Number(row.count),
     });
@@ -294,6 +357,91 @@ export async function generatePrometheusMetrics(): Promise<string> {
       { labels: { type: "embedding" }, value: entityCounts.embeddingModels },
     ]),
   );
+
+  // API Key Rate Limit Metrics
+  // Fetch current usage from Redis for each API key
+  const rpmUsageValues: MetricValue[] = [];
+  const rpmLimitValues: MetricValue[] = [];
+  const tpmUsageValues: MetricValue[] = [];
+  const tpmLimitValues: MetricValue[] = [];
+
+  for (const apiKey of apiKeyConfigs) {
+    const comment = apiKey.comment ?? "unknown";
+    const status = await getRateLimitStatus(apiKey.id, {
+      rpmLimit: apiKey.rpmLimit,
+      tpmLimit: apiKey.tpmLimit,
+    });
+
+    rpmUsageValues.push({
+      labels: { api_key_comment: comment },
+      value: status.rpm.current,
+    });
+    rpmLimitValues.push({
+      labels: { api_key_comment: comment },
+      value: status.rpm.limit,
+    });
+    tpmUsageValues.push({
+      labels: { api_key_comment: comment },
+      value: status.tpm.current,
+    });
+    tpmLimitValues.push({
+      labels: { api_key_comment: comment },
+      value: status.tpm.limit,
+    });
+  }
+
+  if (rpmUsageValues.length > 0) {
+    sections.push(
+      formatGauge(
+        "nexusgate_api_key_rpm_usage",
+        "Current RPM usage per API key",
+        rpmUsageValues,
+      ),
+    );
+    sections.push(
+      formatGauge(
+        "nexusgate_api_key_rpm_limit",
+        "RPM limit per API key",
+        rpmLimitValues,
+      ),
+    );
+    sections.push(
+      formatGauge(
+        "nexusgate_api_key_tpm_usage",
+        "Current TPM usage per API key",
+        tpmUsageValues,
+      ),
+    );
+    sections.push(
+      formatGauge(
+        "nexusgate_api_key_tpm_limit",
+        "TPM limit per API key",
+        tpmLimitValues,
+      ),
+    );
+  }
+
+  // Rate Limit Rejection Counter
+  const rejectionValues: MetricValue[] = [];
+  for (const [field, count] of Object.entries(rateLimitRejections)) {
+    const [apiKeyComment, limitType] = field.split(":");
+    if (apiKeyComment && limitType) {
+      rejectionValues.push({
+        labels: { api_key_comment: apiKeyComment, limit_type: limitType },
+        value: Number(count),
+      });
+    }
+  }
+
+  if (rejectionValues.length > 0) {
+    sections.push(
+      formatCounter(
+        "nexusgate_rate_limit_rejections_total",
+        "Total number of rate limit rejections (429 responses)",
+        rejectionValues,
+      ),
+    );
+  }
 
   return sections.join("\n\n") + "\n";
 }

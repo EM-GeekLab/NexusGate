@@ -1355,27 +1355,29 @@ export async function updateCompletion(
 /**
  * Get completion metrics grouped by model, status, and api_format
  * Returns all-time totals for Prometheus counters
+ * Joins with api_keys table to get api_key_comment for meaningful aggregation
  */
 export async function getCompletionMetricsByModelAndStatus() {
   logger.debug("getCompletionMetricsByModelAndStatus");
   const result = await db.execute(sql`
     SELECT
-      model,
-      status,
-      api_format,
-      api_key_id,
+      c.model,
+      c.status,
+      c.api_format,
+      COALESCE(ak.comment, 'unknown') AS api_key_comment,
       COUNT(*) AS count,
-      COALESCE(SUM(CASE WHEN prompt_tokens > 0 THEN prompt_tokens ELSE 0 END), 0) AS prompt_tokens,
-      COALESCE(SUM(CASE WHEN completion_tokens > 0 THEN completion_tokens ELSE 0 END), 0) AS completion_tokens
-    FROM completions
-    WHERE deleted = false
-    GROUP BY model, status, api_format, api_key_id
+      COALESCE(SUM(CASE WHEN c.prompt_tokens > 0 THEN c.prompt_tokens ELSE 0 END), 0) AS prompt_tokens,
+      COALESCE(SUM(CASE WHEN c.completion_tokens > 0 THEN c.completion_tokens ELSE 0 END), 0) AS completion_tokens
+    FROM completions c
+    LEFT JOIN api_keys ak ON c.api_key_id = ak.id
+    WHERE c.deleted = false
+    GROUP BY c.model, c.status, c.api_format, ak.comment
   `);
   return result as unknown as {
     model: string;
     status: string;
     api_format: string | null;
-    api_key_id: number | null;
+    api_key_comment: string;
     count: string;
     prompt_tokens: string;
     completion_tokens: string;
@@ -1385,24 +1387,26 @@ export async function getCompletionMetricsByModelAndStatus() {
 /**
  * Get embedding metrics grouped by model and status
  * Returns all-time totals for Prometheus counters
+ * Joins with api_keys table to get api_key_comment for meaningful aggregation
  */
 export async function getEmbeddingMetricsByModelAndStatus() {
   logger.debug("getEmbeddingMetricsByModelAndStatus");
   const result = await db.execute(sql`
     SELECT
-      model,
-      status,
-      api_key_id,
+      e.model,
+      e.status,
+      COALESCE(ak.comment, 'unknown') AS api_key_comment,
       COUNT(*) AS count,
-      COALESCE(SUM(CASE WHEN input_tokens > 0 THEN input_tokens ELSE 0 END), 0) AS input_tokens
-    FROM embeddings
-    WHERE deleted = false
-    GROUP BY model, status, api_key_id
+      COALESCE(SUM(CASE WHEN e.input_tokens > 0 THEN e.input_tokens ELSE 0 END), 0) AS input_tokens
+    FROM embeddings e
+    LEFT JOIN api_keys ak ON e.api_key_id = ak.id
+    WHERE e.deleted = false
+    GROUP BY e.model, e.status, ak.comment
   `);
   return result as unknown as {
     model: string;
     status: string;
-    api_key_id: number | null;
+    api_key_comment: string;
     count: string;
     input_tokens: string;
   }[];
@@ -1481,6 +1485,23 @@ export async function getEmbeddingDurationHistogram() {
     GROUP BY model
   `));
   return result as unknown as Record<string, string>[];
+}
+
+/**
+ * Get API key rate limit configuration for Prometheus metrics
+ * Returns all active (non-revoked) API keys with their rate limits
+ */
+export async function getApiKeyRateLimitConfig() {
+  logger.debug("getApiKeyRateLimitConfig");
+  return await db
+    .select({
+      id: schema.ApiKeysTable.id,
+      comment: schema.ApiKeysTable.comment,
+      rpmLimit: schema.ApiKeysTable.rpmLimit,
+      tpmLimit: schema.ApiKeysTable.tpmLimit,
+    })
+    .from(schema.ApiKeysTable)
+    .where(not(schema.ApiKeysTable.revoked));
 }
 
 /**

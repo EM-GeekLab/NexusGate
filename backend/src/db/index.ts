@@ -1347,3 +1347,182 @@ export async function updateCompletion(
   const [first] = r;
   return first ?? null;
 }
+
+// ============================================
+// Prometheus Metrics Operations
+// ============================================
+
+/**
+ * Get completion metrics grouped by model, status, and api_format
+ * Returns all-time totals for Prometheus counters
+ */
+export async function getCompletionMetricsByModelAndStatus() {
+  logger.debug("getCompletionMetricsByModelAndStatus");
+  const result = await db.execute(sql`
+    SELECT
+      model,
+      status,
+      api_format,
+      api_key_id,
+      COUNT(*) AS count,
+      COALESCE(SUM(CASE WHEN prompt_tokens > 0 THEN prompt_tokens ELSE 0 END), 0) AS prompt_tokens,
+      COALESCE(SUM(CASE WHEN completion_tokens > 0 THEN completion_tokens ELSE 0 END), 0) AS completion_tokens
+    FROM completions
+    WHERE deleted = false
+    GROUP BY model, status, api_format, api_key_id
+  `);
+  return result as unknown as {
+    model: string;
+    status: string;
+    api_format: string | null;
+    api_key_id: number | null;
+    count: string;
+    prompt_tokens: string;
+    completion_tokens: string;
+  }[];
+}
+
+/**
+ * Get embedding metrics grouped by model and status
+ * Returns all-time totals for Prometheus counters
+ */
+export async function getEmbeddingMetricsByModelAndStatus() {
+  logger.debug("getEmbeddingMetricsByModelAndStatus");
+  const result = await db.execute(sql`
+    SELECT
+      model,
+      status,
+      api_key_id,
+      COUNT(*) AS count,
+      COALESCE(SUM(CASE WHEN input_tokens > 0 THEN input_tokens ELSE 0 END), 0) AS input_tokens
+    FROM embeddings
+    WHERE deleted = false
+    GROUP BY model, status, api_key_id
+  `);
+  return result as unknown as {
+    model: string;
+    status: string;
+    api_key_id: number | null;
+    count: string;
+    input_tokens: string;
+  }[];
+}
+
+// Histogram bucket boundaries in milliseconds (for LLM latency)
+export const LATENCY_BUCKETS_MS = [100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000, 120000];
+
+/**
+ * Get completion duration histogram data grouped by model
+ * Duration is stored in milliseconds in the database
+ */
+export async function getCompletionDurationHistogram() {
+  logger.debug("getCompletionDurationHistogram");
+  const bucketCases = LATENCY_BUCKETS_MS.map(
+    (b) => `SUM(CASE WHEN duration <= ${b} THEN 1 ELSE 0 END) AS bucket_${b}`,
+  ).join(",\n      ");
+
+  const result = await db.execute(sql.raw(`
+    SELECT
+      model,
+      ${bucketCases},
+      COUNT(*) AS bucket_inf,
+      COALESCE(SUM(duration), 0) AS duration_sum,
+      COUNT(*) AS duration_count
+    FROM completions
+    WHERE deleted = false AND duration > 0
+    GROUP BY model
+  `));
+  return result as unknown as Record<string, string>[];
+}
+
+/**
+ * Get completion TTFT (Time To First Token) histogram data grouped by model
+ * TTFT is stored in milliseconds in the database
+ */
+export async function getCompletionTTFTHistogram() {
+  logger.debug("getCompletionTTFTHistogram");
+  const bucketCases = LATENCY_BUCKETS_MS.map(
+    (b) => `SUM(CASE WHEN ttft <= ${b} THEN 1 ELSE 0 END) AS bucket_${b}`,
+  ).join(",\n      ");
+
+  const result = await db.execute(sql.raw(`
+    SELECT
+      model,
+      ${bucketCases},
+      COUNT(*) AS bucket_inf,
+      COALESCE(SUM(ttft), 0) AS ttft_sum,
+      COUNT(*) AS ttft_count
+    FROM completions
+    WHERE deleted = false AND ttft > 0 AND status = 'completed'
+    GROUP BY model
+  `));
+  return result as unknown as Record<string, string>[];
+}
+
+/**
+ * Get embedding duration histogram data grouped by model
+ * Duration is stored in milliseconds in the database
+ */
+export async function getEmbeddingDurationHistogram() {
+  logger.debug("getEmbeddingDurationHistogram");
+  const bucketCases = LATENCY_BUCKETS_MS.map(
+    (b) => `SUM(CASE WHEN duration <= ${b} THEN 1 ELSE 0 END) AS bucket_${b}`,
+  ).join(",\n      ");
+
+  const result = await db.execute(sql.raw(`
+    SELECT
+      model,
+      ${bucketCases},
+      COUNT(*) AS bucket_inf,
+      COALESCE(SUM(duration), 0) AS duration_sum,
+      COUNT(*) AS duration_count
+    FROM embeddings
+    WHERE deleted = false AND duration > 0
+    GROUP BY model
+  `));
+  return result as unknown as Record<string, string>[];
+}
+
+/**
+ * Get counts of active entities for Prometheus gauges
+ */
+export async function getActiveEntityCounts() {
+  logger.debug("getActiveEntityCounts");
+
+  const [apiKeysResult, providersResult, chatModelsResult, embeddingModelsResult] =
+    await Promise.all([
+      db
+        .select({ count: count(schema.ApiKeysTable.id) })
+        .from(schema.ApiKeysTable)
+        .where(not(schema.ApiKeysTable.revoked)),
+      db
+        .select({ count: count(schema.ProvidersTable.id) })
+        .from(schema.ProvidersTable)
+        .where(not(schema.ProvidersTable.deleted)),
+      db
+        .select({ count: count(schema.ModelsTable.id) })
+        .from(schema.ModelsTable)
+        .where(
+          and(
+            not(schema.ModelsTable.deleted),
+            eq(schema.ModelsTable.modelType, "chat"),
+          ),
+        ),
+      db
+        .select({ count: count(schema.ModelsTable.id) })
+        .from(schema.ModelsTable)
+        .where(
+          and(
+            not(schema.ModelsTable.deleted),
+            eq(schema.ModelsTable.modelType, "embedding"),
+          ),
+        ),
+    ]);
+
+  return {
+    apiKeys: apiKeysResult[0]?.count ?? 0,
+    providers: providersResult[0]?.count ?? 0,
+    chatModels: chatModelsResult[0]?.count ?? 0,
+    embeddingModels: embeddingModelsResult[0]?.count ?? 0,
+  };
+}

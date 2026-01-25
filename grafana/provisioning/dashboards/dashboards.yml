@@ -1,0 +1,16 @@
+# Grafana dashboard provisioning
+# Auto-loads dashboards from the dashboards directory
+
+apiVersion: 1
+
+providers:
+  - name: 'NexusGate Dashboards'
+    orgId: 1
+    folder: 'NexusGate'
+    folderUid: 'nexusgate'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

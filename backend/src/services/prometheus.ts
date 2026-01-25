@@ -1,0 +1,335 @@
+import {
+  getCompletionMetricsByModelAndStatus,
+  getEmbeddingMetricsByModelAndStatus,
+  getCompletionDurationHistogram,
+  getCompletionTTFTHistogram,
+  getEmbeddingDurationHistogram,
+  getActiveEntityCounts,
+  LATENCY_BUCKETS_MS,
+} from "@/db";
+import { COMMIT_SHA } from "@/utils/config";
+
+// Convert milliseconds to seconds for Prometheus (standard unit)
+const LATENCY_BUCKETS_SEC = LATENCY_BUCKETS_MS.map((ms) => ms / 1000);
+
+/**
+ * Escape label values according to Prometheus format
+ * Backslash, double-quote, and newline must be escaped
+ */
+function escapeLabelValue(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n");
+}
+
+/**
+ * Format labels as Prometheus label string
+ */
+function formatLabels(labels: Record<string, string | number | null | undefined>): string {
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(labels)) {
+    if (value !== null && value !== undefined && value !== "") {
+      parts.push(`${key}="${escapeLabelValue(String(value))}"`);
+    }
+  }
+  return parts.length > 0 ? `{${parts.join(",")}}` : "";
+}
+
+interface MetricValue {
+  labels: Record<string, string | number | null | undefined>;
+  value: number;
+}
+
+/**
+ * Format a counter metric in Prometheus exposition format
+ */
+function formatCounter(name: string, help: string, values: MetricValue[]): string {
+  const lines: string[] = [
+    `# HELP ${name} ${help}`,
+    `# TYPE ${name} counter`,
+  ];
+  for (const { labels, value } of values) {
+    lines.push(`${name}${formatLabels(labels)} ${value}`);
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Format a gauge metric in Prometheus exposition format
+ */
+function formatGauge(name: string, help: string, values: MetricValue[]): string {
+  const lines: string[] = [
+    `# HELP ${name} ${help}`,
+    `# TYPE ${name} gauge`,
+  ];
+  for (const { labels, value } of values) {
+    lines.push(`${name}${formatLabels(labels)} ${value}`);
+  }
+  return lines.join("\n");
+}
+
+interface HistogramValue {
+  labels: Record<string, string | number | null | undefined>;
+  buckets: Map<number, number>; // le (in seconds) -> cumulative count
+  sum: number;
+  count: number;
+}
+
+/**
+ * Format a histogram metric in Prometheus exposition format
+ */
+function formatHistogram(name: string, help: string, buckets: number[], values: HistogramValue[]): string {
+  const lines: string[] = [
+    `# HELP ${name} ${help}`,
+    `# TYPE ${name} histogram`,
+  ];
+  for (const { labels, buckets: bucketCounts, sum, count } of values) {
+    // Output bucket lines
+    for (const le of buckets) {
+      const bucketCount = bucketCounts.get(le) ?? 0;
+      lines.push(`${name}_bucket${formatLabels({ ...labels, le })} ${bucketCount}`);
+    }
+    // +Inf bucket (total count)
+    lines.push(`${name}_bucket${formatLabels({ ...labels, le: "+Inf" })} ${count}`);
+    // Sum and count
+    lines.push(`${name}_sum${formatLabels(labels)} ${sum}`);
+    lines.push(`${name}_count${formatLabels(labels)} ${count}`);
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Generate all Prometheus metrics
+ */
+export async function generatePrometheusMetrics(): Promise<string> {
+  // Fetch all metrics data in parallel
+  const [
+    completionMetrics,
+    embeddingMetrics,
+    completionDurationHist,
+    completionTTFTHist,
+    embeddingDurationHist,
+    entityCounts,
+  ] = await Promise.all([
+    getCompletionMetricsByModelAndStatus(),
+    getEmbeddingMetricsByModelAndStatus(),
+    getCompletionDurationHistogram(),
+    getCompletionTTFTHistogram(),
+    getEmbeddingDurationHistogram(),
+    getActiveEntityCounts(),
+  ]);
+
+  const sections: string[] = [];
+
+  // Info metric
+  sections.push(
+    formatGauge("nexusgate_info", "NexusGate build information", [
+      { labels: { version: COMMIT_SHA }, value: 1 },
+    ]),
+  );
+
+  // Completion counter metrics
+  const completionCounts: MetricValue[] = [];
+  const promptTokenCounts: Map<string, number> = new Map();
+  const completionTokenCounts: Map<string, number> = new Map();
+
+  for (const row of completionMetrics) {
+    completionCounts.push({
+      labels: {
+        model: row.model,
+        status: row.status,
+        api_format: row.api_format,
+        api_key: row.api_key_id,
+      },
+      value: Number(row.count),
+    });
+
+    // Aggregate tokens by model
+    const currentPrompt = promptTokenCounts.get(row.model) ?? 0;
+    promptTokenCounts.set(row.model, currentPrompt + Number(row.prompt_tokens));
+
+    const currentCompletion = completionTokenCounts.get(row.model) ?? 0;
+    completionTokenCounts.set(row.model, currentCompletion + Number(row.completion_tokens));
+  }
+
+  if (completionCounts.length > 0) {
+    sections.push(
+      formatCounter(
+        "nexusgate_completions_total",
+        "Total number of completion requests",
+        completionCounts,
+      ),
+    );
+  }
+
+  // Prompt token counter
+  const promptTokenValues: MetricValue[] = [];
+  for (const [model, tokens] of promptTokenCounts) {
+    promptTokenValues.push({ labels: { model }, value: tokens });
+  }
+  if (promptTokenValues.length > 0) {
+    sections.push(
+      formatCounter(
+        "nexusgate_tokens_prompt_total",
+        "Total prompt tokens processed",
+        promptTokenValues,
+      ),
+    );
+  }
+
+  // Completion token counter
+  const completionTokenValues: MetricValue[] = [];
+  for (const [model, tokens] of completionTokenCounts) {
+    completionTokenValues.push({ labels: { model }, value: tokens });
+  }
+  if (completionTokenValues.length > 0) {
+    sections.push(
+      formatCounter(
+        "nexusgate_tokens_completion_total",
+        "Total completion tokens generated",
+        completionTokenValues,
+      ),
+    );
+  }
+
+  // Embedding counter metrics
+  const embeddingCounts: MetricValue[] = [];
+  const embeddingTokenCounts: Map<string, number> = new Map();
+
+  for (const row of embeddingMetrics) {
+    embeddingCounts.push({
+      labels: {
+        model: row.model,
+        status: row.status,
+        api_key: row.api_key_id,
+      },
+      value: Number(row.count),
+    });
+
+    const currentTokens = embeddingTokenCounts.get(row.model) ?? 0;
+    embeddingTokenCounts.set(row.model, currentTokens + Number(row.input_tokens));
+  }
+
+  if (embeddingCounts.length > 0) {
+    sections.push(
+      formatCounter(
+        "nexusgate_embeddings_total",
+        "Total number of embedding requests",
+        embeddingCounts,
+      ),
+    );
+  }
+
+  // Embedding token counter
+  const embeddingTokenValues: MetricValue[] = [];
+  for (const [model, tokens] of embeddingTokenCounts) {
+    embeddingTokenValues.push({ labels: { model }, value: tokens });
+  }
+  if (embeddingTokenValues.length > 0) {
+    sections.push(
+      formatCounter(
+        "nexusgate_tokens_embedding_total",
+        "Total embedding tokens processed",
+        embeddingTokenValues,
+      ),
+    );
+  }
+
+  // Completion duration histogram
+  const durationHistValues = parseHistogramData(completionDurationHist, "duration");
+  if (durationHistValues.length > 0) {
+    sections.push(
+      formatHistogram(
+        "nexusgate_completion_duration_seconds",
+        "Completion request duration in seconds",
+        LATENCY_BUCKETS_SEC,
+        durationHistValues,
+      ),
+    );
+  }
+
+  // Completion TTFT histogram
+  const ttftHistValues = parseHistogramData(completionTTFTHist, "ttft");
+  if (ttftHistValues.length > 0) {
+    sections.push(
+      formatHistogram(
+        "nexusgate_completion_ttft_seconds",
+        "Time to first token in seconds",
+        LATENCY_BUCKETS_SEC,
+        ttftHistValues,
+      ),
+    );
+  }
+
+  // Embedding duration histogram
+  const embeddingDurationHistValues = parseHistogramData(embeddingDurationHist, "duration");
+  if (embeddingDurationHistValues.length > 0) {
+    sections.push(
+      formatHistogram(
+        "nexusgate_embedding_duration_seconds",
+        "Embedding request duration in seconds",
+        LATENCY_BUCKETS_SEC,
+        embeddingDurationHistValues,
+      ),
+    );
+  }
+
+  // Gauge metrics for active entities
+  sections.push(
+    formatGauge("nexusgate_active_api_keys", "Number of active (non-revoked) API keys", [
+      { labels: {}, value: entityCounts.apiKeys },
+    ]),
+  );
+
+  sections.push(
+    formatGauge("nexusgate_active_providers", "Number of active providers", [
+      { labels: {}, value: entityCounts.providers },
+    ]),
+  );
+
+  sections.push(
+    formatGauge("nexusgate_active_models", "Number of active models", [
+      { labels: { type: "chat" }, value: entityCounts.chatModels },
+      { labels: { type: "embedding" }, value: entityCounts.embeddingModels },
+    ]),
+  );
+
+  return sections.join("\n\n") + "\n";
+}
+
+/**
+ * Parse histogram data from database results
+ */
+function parseHistogramData(
+  data: Record<string, string>[],
+  sumField: "duration" | "ttft",
+): HistogramValue[] {
+  const values: HistogramValue[] = [];
+
+  for (const row of data) {
+    const model = row.model;
+    const buckets = new Map<number, number>();
+
+    // Parse bucket counts and convert to seconds
+    for (const ms of LATENCY_BUCKETS_MS) {
+      const bucketKey = `bucket_${ms}`;
+      const count = Number(row[bucketKey] ?? 0);
+      // Convert ms bucket boundary to seconds
+      buckets.set(ms / 1000, count);
+    }
+
+    // Sum is in milliseconds in DB, convert to seconds
+    const sum = Number(row[`${sumField}_sum`] ?? 0) / 1000;
+    const count = Number(row[`${sumField}_count`] ?? row.bucket_inf ?? 0);
+
+    values.push({
+      labels: { model },
+      buckets,
+      sum,
+      count,
+    });
+  }
+
+  return values;
+}

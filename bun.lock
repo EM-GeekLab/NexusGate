@@ -5,7 +5,7 @@
     "": {
       "name": "nexus-gate",
       "dependencies": {
-        "turbo": "^2.7.6",
+        "turbo": "^2.7.4",
       },
       "devDependencies": {
         "eslint-plugin-react-hooks": "^7.0.1",

@@ -258,7 +258,7 @@ export type ProviderTypeEnumType = (typeof ProviderTypeEnum.enumValues)[number];
  */
 export const ProvidersTable = pgTable("providers", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar("name", { length: 63 }).notNull().unique(),
+  name: varchar("name", { length: 63 }).notNull(),
   // Provider type determines which upstream adapter to use
   type: ProviderTypeEnum("type").notNull().default("openai"),
   baseUrl: varchar("base_url", { length: 255 }).notNull(),

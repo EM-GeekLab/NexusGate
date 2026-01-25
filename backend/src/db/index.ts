@@ -697,10 +697,14 @@ export async function insertProvider(
   p: ProviderInsert,
 ): Promise<Provider | null> {
   logger.debug("insertProvider", p.name);
+  const existing = await findProviderByName(p.name);
+  if (existing) {
+    logger.debug("already exists a non-deleted provider with same name", p.name);
+    return null;
+  }
   const r = await db
     .insert(schema.ProvidersTable)
     .values(p)
-    .onConflictDoNothing()
     .returning();
   const [first] = r;
   return first ?? null;

@@ -1,0 +1,66 @@
+# Installation Configuration Examples for NexusGate Operator
+# Choose the appropriate configuration based on your deployment scenario
+
+---
+# Scenario 1: NexusGate in the same cluster (recommended)
+# Use Kubernetes DNS for service discovery
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexusgate-operator-config
+  namespace: nexusgate-system
+data:
+  # K8s DNS format: http://<service>.<namespace>.svc.cluster.local:<port>
+  # Short format also works: http://<service>.<namespace>.svc:<port>
+  nexusgate-url: "http://nexusgate.nexusgate.svc.cluster.local:3000"
+  cluster-name: "production"
+
+---
+# Scenario 2: NexusGate in different namespace
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexusgate-operator-config
+  namespace: nexusgate-system
+data:
+  # Reference service in another namespace
+  nexusgate-url: "http://nexusgate-server.ai-platform.svc.cluster.local:3000"
+  cluster-name: "production"
+
+---
+# Scenario 3: NexusGate external to the cluster
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexusgate-operator-config
+  namespace: nexusgate-system
+data:
+  # External URL (e.g., via Ingress or LoadBalancer)
+  nexusgate-url: "https://nexusgate.example.com"
+  cluster-name: "production-k8s"
+
+---
+# Scenario 4: Multi-cluster setup
+# Each cluster should have a unique cluster-name
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexusgate-operator-config
+  namespace: nexusgate-system
+data:
+  # Central NexusGate instance
+  nexusgate-url: "https://nexusgate.internal.example.com"
+  # Unique name per cluster for external ID: k8s/{cluster}/{namespace}/{appName}
+  cluster-name: "us-west-2-prod"
+
+---
+# Admin Token Secret (required for all scenarios)
+# IMPORTANT: Replace with your actual admin token
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nexusgate-operator-secret
+  namespace: nexusgate-system
+type: Opaque
+stringData:
+  admin-token: "sk-your-admin-token-here"

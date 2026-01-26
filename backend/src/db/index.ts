@@ -1504,44 +1504,24 @@ export async function getApiKeyRateLimitConfig() {
 
 /**
  * Get counts of active entities for Prometheus gauges
+ * Uses a single query with subqueries for efficiency (one DB round-trip)
  */
 export async function getActiveEntityCounts() {
   logger.debug("getActiveEntityCounts");
 
-  const [apiKeysResult, providersResult, chatModelsResult, embeddingModelsResult] =
-    await Promise.all([
-      db
-        .select({ count: count(schema.ApiKeysTable.id) })
-        .from(schema.ApiKeysTable)
-        .where(not(schema.ApiKeysTable.revoked)),
-      db
-        .select({ count: count(schema.ProvidersTable.id) })
-        .from(schema.ProvidersTable)
-        .where(not(schema.ProvidersTable.deleted)),
-      db
-        .select({ count: count(schema.ModelsTable.id) })
-        .from(schema.ModelsTable)
-        .where(
-          and(
-            not(schema.ModelsTable.deleted),
-            eq(schema.ModelsTable.modelType, "chat"),
-          ),
-        ),
-      db
-        .select({ count: count(schema.ModelsTable.id) })
-        .from(schema.ModelsTable)
-        .where(
-          and(
-            not(schema.ModelsTable.deleted),
-            eq(schema.ModelsTable.modelType, "embedding"),
-          ),
-        ),
-    ]);
+  const result = await db.execute(sql`
+    SELECT
+      (SELECT COUNT(*) FROM api_keys WHERE NOT revoked) AS api_keys,
+      (SELECT COUNT(*) FROM providers WHERE NOT deleted) AS providers,
+      (SELECT COUNT(*) FROM models WHERE NOT deleted AND model_type = 'chat') AS chat_models,
+      (SELECT COUNT(*) FROM models WHERE NOT deleted AND model_type = 'embedding') AS embedding_models
+  `);
 
+  const row = (result as unknown as Record<string, string>[])[0];
   return {
-    apiKeys: apiKeysResult[0]?.count ?? 0,
-    providers: providersResult[0]?.count ?? 0,
-    chatModels: chatModelsResult[0]?.count ?? 0,
-    embeddingModels: embeddingModelsResult[0]?.count ?? 0,
+    apiKeys: Number(row?.api_keys ?? 0),
+    providers: Number(row?.providers ?? 0),
+    chatModels: Number(row?.chat_models ?? 0),
+    embeddingModels: Number(row?.embedding_models ?? 0),
   };
 }

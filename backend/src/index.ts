@@ -152,13 +152,8 @@ async function spaPlugin(dir: string) {
       if (path.startsWith("/docs") || path.startsWith("/__tsr")) {
         return status(404);
       }
-      // Skip API routes and metrics (including trailing slash variant)
-      if (
-        path.startsWith("/api") ||
-        path.startsWith("/v1") ||
-        path === "/metrics" ||
-        path.startsWith("/metrics/")
-      ) {
+      // Skip API routes and metrics (include trailing slash to prevent SPA fallback)
+      if (path.startsWith("/api") || path.startsWith("/v1") || path === "/metrics" || path === "/metrics/") {
         return status(404);
       }
 

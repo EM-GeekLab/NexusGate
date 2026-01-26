@@ -484,7 +484,7 @@ function parseHistogramData(
 
     // Sum is in milliseconds in DB, convert to seconds
     const sum = Number(row[`${sumField}_sum`] ?? 0) / 1000;
-    const count = Number(row[`${sumField}_count`] ?? row.bucket_inf ?? 0);
+    const count = Number(row.total_count ?? 0);
 
     values.push({
       labels: { model },

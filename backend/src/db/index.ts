@@ -1415,23 +1415,31 @@ export async function getEmbeddingMetricsByModelAndStatus() {
 // Histogram bucket boundaries in milliseconds (for LLM latency)
 export const LATENCY_BUCKETS_MS = [100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000, 120000];
 
+// Pre-computed bucket case SQL fragments (constant, computed once at module load)
+const DURATION_BUCKET_CASES = LATENCY_BUCKETS_MS.map(
+  (b) => `SUM(CASE WHEN duration <= ${b} THEN 1 ELSE 0 END) AS bucket_${b}`,
+).join(",\n      ");
+
+const TTFT_BUCKET_CASES = LATENCY_BUCKETS_MS.map(
+  (b) => `SUM(CASE WHEN ttft <= ${b} THEN 1 ELSE 0 END) AS bucket_${b}`,
+).join(",\n      ");
+
 /**
  * Get completion duration histogram data grouped by model
  * Duration is stored in milliseconds in the database
+ *
+ * Note: We use SUM(duration) not AVG because Prometheus histogram format requires
+ * the total sum of all observations (_sum metric). Average can be computed by
+ * Prometheus as sum/count when needed.
  */
 export async function getCompletionDurationHistogram() {
   logger.debug("getCompletionDurationHistogram");
-  const bucketCases = LATENCY_BUCKETS_MS.map(
-    (b) => `SUM(CASE WHEN duration <= ${b} THEN 1 ELSE 0 END) AS bucket_${b}`,
-  ).join(",\n      ");
-
   const result = await db.execute(sql.raw(`
     SELECT
       model,
-      ${bucketCases},
-      COUNT(*) AS bucket_inf,
-      COALESCE(SUM(duration), 0) AS duration_sum,
-      COUNT(*) AS duration_count
+      ${DURATION_BUCKET_CASES},
+      COUNT(*) AS total_count,
+      COALESCE(SUM(duration), 0) AS duration_sum
     FROM completions
     WHERE deleted = false AND duration > 0
     GROUP BY model
@@ -1445,17 +1453,12 @@ export async function getCompletionDurationHistogram() {
  */
 export async function getCompletionTTFTHistogram() {
   logger.debug("getCompletionTTFTHistogram");
-  const bucketCases = LATENCY_BUCKETS_MS.map(
-    (b) => `SUM(CASE WHEN ttft <= ${b} THEN 1 ELSE 0 END) AS bucket_${b}`,
-  ).join(",\n      ");
-
   const result = await db.execute(sql.raw(`
     SELECT
       model,
-      ${bucketCases},
-      COUNT(*) AS bucket_inf,
-      COALESCE(SUM(ttft), 0) AS ttft_sum,
-      COUNT(*) AS ttft_count
+      ${TTFT_BUCKET_CASES},
+      COUNT(*) AS total_count,
+      COALESCE(SUM(ttft), 0) AS ttft_sum
     FROM completions
     WHERE deleted = false AND ttft > 0 AND status = 'completed'
     GROUP BY model
@@ -1469,17 +1472,12 @@ export async function getCompletionTTFTHistogram() {
  */
 export async function getEmbeddingDurationHistogram() {
   logger.debug("getEmbeddingDurationHistogram");
-  const bucketCases = LATENCY_BUCKETS_MS.map(
-    (b) => `SUM(CASE WHEN duration <= ${b} THEN 1 ELSE 0 END) AS bucket_${b}`,
-  ).join(",\n      ");
-
   const result = await db.execute(sql.raw(`
     SELECT
       model,
-      ${bucketCases},
-      COUNT(*) AS bucket_inf,
-      COALESCE(SUM(duration), 0) AS duration_sum,
-      COUNT(*) AS duration_count
+      ${DURATION_BUCKET_CASES},
+      COUNT(*) AS total_count,
+      COALESCE(SUM(duration), 0) AS duration_sum
     FROM embeddings
     WHERE deleted = false AND duration > 0
     GROUP BY model

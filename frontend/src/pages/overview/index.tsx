@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
@@ -67,6 +67,17 @@ export function OverviewPage() {
   const selectedDashboard = dashboards.find((d) => d.id === view)
   const timeRange = range as TimeRange
   const showGrafana = !!selectedDashboard
+
+  // Auto-select first Grafana dashboard when dashboards are configured
+  useEffect(() => {
+    if (dashboards.length > 0 && view === 'builtin') {
+      navigate({
+        to: '/',
+        search: (prev) => ({ ...prev, view: dashboards[0].id }),
+        replace: true,
+      })
+    }
+  }, [dashboards, view, navigate])
 
   const handleTimeRangeChange = (value: TimeRange) => {
     navigate({

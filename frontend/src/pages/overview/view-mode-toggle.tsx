@@ -8,22 +8,33 @@ interface ViewModeToggleProps {
   value: string // 'builtin' or dashboard id
   onChange: (mode: string) => void
   dashboards: GrafanaDashboard[]
+  showBuiltin?: boolean // Whether to show built-in option (default: false when dashboards exist)
 }
 
-export function ViewModeToggle({ value, onChange, dashboards }: ViewModeToggleProps) {
+export function ViewModeToggle({ value, onChange, dashboards, showBuiltin }: ViewModeToggleProps) {
   const { t } = useTranslation()
+
+  // Hide built-in by default when Grafana dashboards are configured
+  const shouldShowBuiltin = showBuiltin ?? dashboards.length === 0
+
+  // If only one dashboard and not showing built-in, no need for toggle
+  if (!shouldShowBuiltin && dashboards.length <= 1) {
+    return null
+  }
 
   return (
     <div className="inline-flex items-center rounded-md border p-0.5" role="group" aria-label={t('pages.overview.viewMode.label')}>
-      <Button
-        variant="ghost"
-        size="xs"
-        className={cn(value === 'builtin' && 'bg-accent')}
-        onClick={() => onChange('builtin')}
-        aria-pressed={value === 'builtin'}
-      >
-        {t('pages.overview.viewMode.builtin')}
-      </Button>
+      {shouldShowBuiltin && (
+        <Button
+          variant="ghost"
+          size="xs"
+          className={cn(value === 'builtin' && 'bg-accent')}
+          onClick={() => onChange('builtin')}
+          aria-pressed={value === 'builtin'}
+        >
+          {t('pages.overview.viewMode.builtin')}
+        </Button>
+      )}
       {dashboards.map((dashboard) => (
         <Button
           key={dashboard.id}

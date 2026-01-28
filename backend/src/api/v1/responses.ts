@@ -683,6 +683,7 @@ export const responsesApi = new Elysia({
                 error: {
                   type: "upstream_error",
                   message: errorResult.body,
+                  code: "unparseable_error",
                 },
               };
             }
@@ -781,6 +782,7 @@ export const responsesApi = new Elysia({
                 error: {
                   type: "upstream_error",
                   message: errorResult.body,
+                  code: "unparseable_error",
                 },
               };
             }

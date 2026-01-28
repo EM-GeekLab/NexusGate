@@ -634,6 +634,7 @@ export const messagesApi = new Elysia({
                 error: {
                   type: "api_error",
                   message: errorResult.body,
+                  code: "unparseable_error",
                 },
               };
             }
@@ -732,6 +733,7 @@ export const messagesApi = new Elysia({
                 error: {
                   type: "api_error",
                   message: errorResult.body,
+                  code: "unparseable_error",
                 },
               };
             }

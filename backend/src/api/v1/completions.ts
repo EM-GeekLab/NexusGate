@@ -643,7 +643,17 @@ export const completionsApi = new Elysia({
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
-            return JSON.parse(errorResult.body) as Record<string, unknown>;
+            try {
+              return JSON.parse(errorResult.body) as Record<string, unknown>;
+            } catch {
+              return {
+                error: {
+                  message: errorResult.body,
+                  type: "upstream_error",
+                  code: "unparseable_error",
+                },
+              };
+            }
           }
 
           set.status = 502;
@@ -730,7 +740,17 @@ export const completionsApi = new Elysia({
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
-            return JSON.parse(errorResult.body) as Record<string, unknown>;
+            try {
+              return JSON.parse(errorResult.body) as Record<string, unknown>;
+            } catch {
+              return {
+                error: {
+                  message: errorResult.body,
+                  type: "upstream_error",
+                  code: "unparseable_error",
+                },
+              };
+            }
           }
 
           set.status = 502;

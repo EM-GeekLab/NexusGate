@@ -15,6 +15,7 @@ import type {
   ToolResultContentBlock,
   ToolUseContentBlock,
 } from "../types";
+import { safeParseToolArgs } from "@/utils/json";
 
 // =============================================================================
 // Helper Functions
@@ -191,7 +192,7 @@ function convertToolCalls(
     type: "tool_use" as const,
     id: tc.id,
     name: tc.function.name,
-    input: JSON.parse(tc.function.arguments) as Record<string, unknown>,
+    input: safeParseToolArgs(tc.function.arguments),
   }));
 }
 
@@ -229,10 +230,7 @@ function convertMessage(msg: OpenAIChatMessage): InternalMessage {
               type: "tool_use" as const,
               id: "legacy_function_call",
               name: msg.function_call.name,
-              input: JSON.parse(msg.function_call.arguments) as Record<
-                string,
-                unknown
-              >,
+              input: safeParseToolArgs(msg.function_call.arguments),
             },
           ]
         : undefined;

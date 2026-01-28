@@ -40,6 +40,7 @@ import {
   type ReqIdContext,
 } from "@/utils/reqIdHandler";
 import type { CachedResponseType } from "@/db/schema";
+import { safeParseToolArgs } from "@/utils/json";
 
 const logger = consola.withTag("messagesApi");
 
@@ -292,7 +293,7 @@ async function* processStreamingResponse(
                   type: "tool_use",
                   id: tc.id,
                   name: tc.function.name,
-                  input: JSON.parse(tc.function.arguments || "{}"),
+                  input: safeParseToolArgs(tc.function.arguments || "{}"),
                 });
               }
             }
@@ -625,7 +626,18 @@ export const messagesApi = new Elysia({
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
-            return JSON.parse(errorResult.body) as Record<string, unknown>;
+            try {
+              return JSON.parse(errorResult.body) as Record<string, unknown>;
+            } catch {
+              return {
+                type: "error",
+                error: {
+                  type: "api_error",
+                  message: errorResult.body,
+                  code: "unparseable_error",
+                },
+              };
+            }
           }
 
           set.status = 502;
@@ -713,7 +725,18 @@ export const messagesApi = new Elysia({
 
           if (errorResult.type === "upstream_error") {
             set.status = errorResult.status;
-            return JSON.parse(errorResult.body) as Record<string, unknown>;
+            try {
+              return JSON.parse(errorResult.body) as Record<string, unknown>;
+            } catch {
+              return {
+                type: "error",
+                error: {
+                  type: "api_error",
+                  message: errorResult.body,
+                  code: "unparseable_error",
+                },
+              };
+            }
           }
 
           set.status = 502;

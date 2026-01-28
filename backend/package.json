@@ -9,6 +9,7 @@
     "check:tsgo": "tsgo -p tsconfig.check.json",
     "check": "tsc -p tsconfig.check.json",
     "dev": "COMMIT_SHA=$(git rev-parse HEAD) CONSOLA_LEVEL=9999 FRONTEND_DIR=../frontend/dist DOCS_DIR=docs bun --watch --hot --no-clear-screen --inspect src/index.ts",
+    "test": "bun test",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
     "lint": "oxlint --type-aware"

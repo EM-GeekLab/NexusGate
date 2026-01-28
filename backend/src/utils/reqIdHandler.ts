@@ -17,6 +17,7 @@ import {
   type Completion,
   type CompletionInsert,
 } from "@/db";
+import { safeParseToolArgs } from "@/utils/json";
 import {
   markInFlight,
   getInFlight,
@@ -406,7 +407,7 @@ export function buildAnthropicResponse(completion: Completion): Record<string, u
           type: "tool_use",
           id: tc.id,
           name: tc.function.name,
-          input: JSON.parse(tc.function.arguments || "{}"),
+          input: safeParseToolArgs(tc.function.arguments || "{}"),
         });
       }
     }

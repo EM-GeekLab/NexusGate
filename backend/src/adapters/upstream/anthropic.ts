@@ -17,6 +17,7 @@ import type {
   ToolUseContentBlock,
   UpstreamAdapter,
 } from "../types";
+import { parseJsonResponse } from "@/utils/json";
 
 // =============================================================================
 // Anthropic Request/Response Types
@@ -487,7 +488,7 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
 
   async parseResponse(response: Response): Promise<InternalResponse> {
     const text = await response.text();
-    const json = JSON.parse(text) as AnthropicResponse;
+    const json = parseJsonResponse<AnthropicResponse>(text, "Anthropic");
     return convertResponse(json);
   },
 

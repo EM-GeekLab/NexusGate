@@ -19,6 +19,7 @@ import type {
   UpstreamAdapter,
 } from "../types";
 import { convertImageToUrl, hasImages } from "./utils";
+import { safeParseToolArgs, parseJsonResponse } from "@/utils/json";
 
 // =============================================================================
 // OpenAI Request/Response Types
@@ -321,7 +322,7 @@ function convertResponse(resp: OpenAIChatResponse): InternalResponse {
         type: "tool_use",
         id: tc.id,
         name: tc.function.name,
-        input: JSON.parse(tc.function.arguments) as Record<string, unknown>,
+        input: safeParseToolArgs(tc.function.arguments),
       } as ToolUseContentBlock);
     }
   }
@@ -450,7 +451,7 @@ export const openaiUpstreamAdapter: UpstreamAdapter = {
 
   async parseResponse(response: Response): Promise<InternalResponse> {
     const text = await response.text();
-    const json = JSON.parse(text) as OpenAIChatResponse;
+    const json = parseJsonResponse<OpenAIChatResponse>(text, "OpenAI Chat");
     return convertResponse(json);
   },
 

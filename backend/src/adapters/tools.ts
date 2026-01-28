@@ -8,6 +8,7 @@ import type {
   JsonSchema,
   ToolUseContentBlock,
 } from "./types";
+import { safeParseToolArgs } from "@/utils/json";
 
 // =============================================================================
 // OpenAI Tool Types
@@ -135,7 +136,7 @@ export function fromOpenAIToolCalls(
     type: "tool_use" as const,
     id: tc.id,
     name: tc.function.name,
-    input: parseJsonSafe(tc.function.arguments),
+    input: safeParseToolArgs(tc.function.arguments),
   }));
 }
 
@@ -282,17 +283,6 @@ export function fromAnthropicToolChoice(
 // =============================================================================
 // Utility Functions
 // =============================================================================
-
-/**
- * Safely parse JSON string, returning empty object on failure
- */
-function parseJsonSafe(jsonString: string): Record<string, unknown> {
-  try {
-    return JSON.parse(jsonString) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
-}
 
 /**
  * Generate a unique tool call ID

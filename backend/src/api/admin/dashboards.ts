@@ -1,10 +1,10 @@
 import { Elysia, t } from "elysia";
-import { grafanaDashboardsSchema } from "@/utils/config";
 import {
   isEnvOverrideActive,
   getGrafanaDashboards,
   setGrafanaDashboards,
   clearGrafanaDashboards,
+  EnvOverrideError,
 } from "@/utils/dashboards";
 
 const dashboardSchema = t.Object({
@@ -36,27 +36,15 @@ export const adminDashboards = new Elysia().group("/dashboards", (app) =>
     .put(
       "/",
       async ({ body, status }) => {
-        // Validate with Zod for extra safety
-        const parsed = grafanaDashboardsSchema.safeParse(body.dashboards);
-        if (!parsed.success) {
-          return status(400, { error: "Invalid dashboards format" });
-        }
-
         try {
-          await setGrafanaDashboards(parsed.data);
+          await setGrafanaDashboards(body.dashboards);
           return {
-            dashboards: parsed.data,
+            dashboards: body.dashboards,
             envOverride: false,
           };
         } catch (error) {
-          if (
-            error instanceof Error &&
-            error.message.includes("GRAFANA_DASHBOARDS")
-          ) {
-            return status(409, {
-              error:
-                "Cannot modify dashboards when GRAFANA_DASHBOARDS environment variable is set",
-            });
+          if (error instanceof EnvOverrideError) {
+            return status(409, { error: error.message });
           }
           throw error;
         }
@@ -78,14 +66,8 @@ export const adminDashboards = new Elysia().group("/dashboards", (app) =>
           await clearGrafanaDashboards();
           return { success: true };
         } catch (error) {
-          if (
-            error instanceof Error &&
-            error.message.includes("GRAFANA_DASHBOARDS")
-          ) {
-            return status(409, {
-              error:
-                "Cannot modify dashboards when GRAFANA_DASHBOARDS environment variable is set",
-            });
+          if (error instanceof EnvOverrideError) {
+            return status(409, { error: error.message });
           }
           throw error;
         }

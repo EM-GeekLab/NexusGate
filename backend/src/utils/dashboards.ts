@@ -9,6 +9,19 @@ const DASHBOARDS_KEY = "grafana_dashboards";
 const LEGACY_KEY = "grafana_dashboard_url";
 
 /**
+ * Custom error for when env override prevents modification
+ */
+export class EnvOverrideError extends Error {
+  readonly code = "ENV_OVERRIDE_ACTIVE" as const;
+  constructor() {
+    super(
+      "Cannot modify dashboards when GRAFANA_DASHBOARDS environment variable is set",
+    );
+    this.name = "EnvOverrideError";
+  }
+}
+
+/**
  * Check if the GRAFANA_DASHBOARDS environment variable is set
  * When set, it overrides database settings
  */
@@ -63,9 +76,7 @@ export async function setGrafanaDashboards(
   dashboards: GrafanaDashboard[],
 ): Promise<void> {
   if (isEnvOverrideActive()) {
-    throw new Error(
-      "Cannot modify dashboards when GRAFANA_DASHBOARDS environment variable is set",
-    );
+    throw new EnvOverrideError();
   }
 
   await upsertSetting({ key: DASHBOARDS_KEY, value: dashboards });
@@ -77,9 +88,7 @@ export async function setGrafanaDashboards(
  */
 export async function clearGrafanaDashboards(): Promise<void> {
   if (isEnvOverrideActive()) {
-    throw new Error(
-      "Cannot modify dashboards when GRAFANA_DASHBOARDS environment variable is set",
-    );
+    throw new EnvOverrideError();
   }
 
   await deleteSetting(DASHBOARDS_KEY);

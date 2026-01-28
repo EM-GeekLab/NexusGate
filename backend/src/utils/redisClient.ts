@@ -150,6 +150,40 @@ class RedisClient {
   }
 
   /**
+   * Increment a field in a hash by the given amount
+   * @param {string} key - Hash key
+   * @param {string} field - Field within the hash
+   * @param {number} increment - Amount to increment by
+   * @returns {Promise<number>} New value after increment
+   */
+  public async hincrby(
+    key: string,
+    field: string,
+    increment: number,
+  ): Promise<number> {
+    try {
+      return await this.client.hincrby(key, field, increment);
+    } catch (error) {
+      logger.error(`Redis hincrby error: ${(error as Error).message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Get all fields and values from a hash
+   * @param {string} key - Hash key
+   * @returns {Promise<Record<string, string>>} Hash fields and values
+   */
+  public async hgetall(key: string): Promise<Record<string, string>> {
+    try {
+      return await this.client.hgetall(key);
+    } catch (error) {
+      logger.error(`Redis hgetall error: ${(error as Error).message}`);
+      return {};
+    }
+  }
+
+  /**
    * Close the Redis connection
    */
   public async close(): Promise<void> {

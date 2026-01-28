@@ -143,3 +143,10 @@ export const FORCILY_ADD_API_KEYS = env(
 
 export const FRONTEND_DIR = env("frontend dir", z.coerce.string(), "dist");
 export const DOCS_DIR = env("docs dir", z.coerce.string(), "docs");
+
+// Prometheus metrics configuration
+export const METRICS_CACHE_TTL_SECONDS = env(
+  "metrics cache ttl seconds",
+  z.coerce.number().int().positive(),
+  "30",
+);

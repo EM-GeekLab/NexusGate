@@ -16,6 +16,7 @@ async function exists(path: string): Promise<boolean> {
 }
 import { join } from "node:path";
 import { routes } from "@/api";
+import { metricsApi } from "@/api/metrics";
 import { loggerPlugin } from "@/plugins/loggerPlugin";
 import {
   ALLOWED_ORIGINS,
@@ -151,8 +152,8 @@ async function spaPlugin(dir: string) {
       if (path.startsWith("/docs") || path.startsWith("/__tsr")) {
         return status(404);
       }
-      // Skip API routes
-      if (path.startsWith("/api") || path.startsWith("/v1")) {
+      // Skip API routes and metrics (include trailing slash to prevent SPA fallback)
+      if (path.startsWith("/api") || path.startsWith("/v1") || path === "/metrics" || path === "/metrics/") {
         return status(404);
       }
 
@@ -205,6 +206,7 @@ const app = new Elysia()
   )
   .use(serverTiming())
   .use(routes)
+  .use(metricsApi)
   .use(await docsPlugin(DOCS_DIR))
   .use(await spaPlugin(FRONTEND_DIR))
   .listen({

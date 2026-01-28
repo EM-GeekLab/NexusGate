@@ -1347,3 +1347,181 @@ export async function updateCompletion(
   const [first] = r;
   return first ?? null;
 }
+
+// ============================================
+// Prometheus Metrics Operations
+// ============================================
+
+/**
+ * Get completion metrics grouped by model, status, and api_format
+ * Returns all-time totals for Prometheus counters
+ * Joins with api_keys table to get api_key_comment for meaningful aggregation
+ */
+export async function getCompletionMetricsByModelAndStatus() {
+  logger.debug("getCompletionMetricsByModelAndStatus");
+  const result = await db.execute(sql`
+    SELECT
+      c.model,
+      c.status,
+      c.api_format,
+      COALESCE(ak.comment, 'unknown') AS api_key_comment,
+      COUNT(*) AS count,
+      COALESCE(SUM(CASE WHEN c.prompt_tokens > 0 THEN c.prompt_tokens ELSE 0 END), 0) AS prompt_tokens,
+      COALESCE(SUM(CASE WHEN c.completion_tokens > 0 THEN c.completion_tokens ELSE 0 END), 0) AS completion_tokens
+    FROM completions c
+    LEFT JOIN api_keys ak ON c.api_key_id = ak.id
+    WHERE c.deleted = false
+    GROUP BY c.model, c.status, c.api_format, ak.comment
+  `);
+  return result as unknown as {
+    model: string;
+    status: string;
+    api_format: string | null;
+    api_key_comment: string;
+    count: string;
+    prompt_tokens: string;
+    completion_tokens: string;
+  }[];
+}
+
+/**
+ * Get embedding metrics grouped by model and status
+ * Returns all-time totals for Prometheus counters
+ * Joins with api_keys table to get api_key_comment for meaningful aggregation
+ */
+export async function getEmbeddingMetricsByModelAndStatus() {
+  logger.debug("getEmbeddingMetricsByModelAndStatus");
+  const result = await db.execute(sql`
+    SELECT
+      e.model,
+      e.status,
+      COALESCE(ak.comment, 'unknown') AS api_key_comment,
+      COUNT(*) AS count,
+      COALESCE(SUM(CASE WHEN e.input_tokens > 0 THEN e.input_tokens ELSE 0 END), 0) AS input_tokens
+    FROM embeddings e
+    LEFT JOIN api_keys ak ON e.api_key_id = ak.id
+    WHERE e.deleted = false
+    GROUP BY e.model, e.status, ak.comment
+  `);
+  return result as unknown as {
+    model: string;
+    status: string;
+    api_key_comment: string;
+    count: string;
+    input_tokens: string;
+  }[];
+}
+
+// Histogram bucket boundaries in milliseconds (for LLM latency)
+export const LATENCY_BUCKETS_MS = [100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000, 120000];
+
+// Pre-computed bucket case SQL fragments (constant, computed once at module load)
+const DURATION_BUCKET_CASES = LATENCY_BUCKETS_MS.map(
+  (b) => `SUM(CASE WHEN duration <= ${b} THEN 1 ELSE 0 END) AS bucket_${b}`,
+).join(",\n      ");
+
+const TTFT_BUCKET_CASES = LATENCY_BUCKETS_MS.map(
+  (b) => `SUM(CASE WHEN ttft <= ${b} THEN 1 ELSE 0 END) AS bucket_${b}`,
+).join(",\n      ");
+
+/**
+ * Get completion duration histogram data grouped by model
+ * Duration is stored in milliseconds in the database
+ *
+ * Note: We use SUM(duration) not AVG because Prometheus histogram format requires
+ * the total sum of all observations (_sum metric). Average can be computed by
+ * Prometheus as sum/count when needed.
+ */
+export async function getCompletionDurationHistogram() {
+  logger.debug("getCompletionDurationHistogram");
+  const result = await db.execute(sql.raw(`
+    SELECT
+      model,
+      ${DURATION_BUCKET_CASES},
+      COUNT(*) AS total_count,
+      COALESCE(SUM(duration), 0) AS duration_sum
+    FROM completions
+    WHERE deleted = false AND duration > 0
+    GROUP BY model
+  `));
+  return result as unknown as Record<string, string>[];
+}
+
+/**
+ * Get completion TTFT (Time To First Token) histogram data grouped by model
+ * TTFT is stored in milliseconds in the database
+ */
+export async function getCompletionTTFTHistogram() {
+  logger.debug("getCompletionTTFTHistogram");
+  const result = await db.execute(sql.raw(`
+    SELECT
+      model,
+      ${TTFT_BUCKET_CASES},
+      COUNT(*) AS total_count,
+      COALESCE(SUM(ttft), 0) AS ttft_sum
+    FROM completions
+    WHERE deleted = false AND ttft > 0 AND status = 'completed'
+    GROUP BY model
+  `));
+  return result as unknown as Record<string, string>[];
+}
+
+/**
+ * Get embedding duration histogram data grouped by model
+ * Duration is stored in milliseconds in the database
+ */
+export async function getEmbeddingDurationHistogram() {
+  logger.debug("getEmbeddingDurationHistogram");
+  const result = await db.execute(sql.raw(`
+    SELECT
+      model,
+      ${DURATION_BUCKET_CASES},
+      COUNT(*) AS total_count,
+      COALESCE(SUM(duration), 0) AS duration_sum
+    FROM embeddings
+    WHERE deleted = false AND duration > 0
+    GROUP BY model
+  `));
+  return result as unknown as Record<string, string>[];
+}
+
+/**
+ * Get API key rate limit configuration for Prometheus metrics
+ * Returns all active (non-revoked) API keys with their rate limits
+ */
+export async function getApiKeyRateLimitConfig() {
+  logger.debug("getApiKeyRateLimitConfig");
+  return await db
+    .select({
+      id: schema.ApiKeysTable.id,
+      comment: schema.ApiKeysTable.comment,
+      rpmLimit: schema.ApiKeysTable.rpmLimit,
+      tpmLimit: schema.ApiKeysTable.tpmLimit,
+    })
+    .from(schema.ApiKeysTable)
+    .where(not(schema.ApiKeysTable.revoked));
+}
+
+/**
+ * Get counts of active entities for Prometheus gauges
+ * Uses a single query with subqueries for efficiency (one DB round-trip)
+ */
+export async function getActiveEntityCounts() {
+  logger.debug("getActiveEntityCounts");
+
+  const result = await db.execute(sql`
+    SELECT
+      (SELECT COUNT(*) FROM api_keys WHERE NOT revoked) AS api_keys,
+      (SELECT COUNT(*) FROM providers WHERE NOT deleted) AS providers,
+      (SELECT COUNT(*) FROM models WHERE NOT deleted AND model_type = 'chat') AS chat_models,
+      (SELECT COUNT(*) FROM models WHERE NOT deleted AND model_type = 'embedding') AS embedding_models
+  `);
+
+  const row = (result as unknown as Record<string, string>[])[0];
+  return {
+    apiKeys: Number(row?.api_keys ?? 0),
+    providers: Number(row?.providers ?? 0),
+    chatModels: Number(row?.chat_models ?? 0),
+    embeddingModels: Number(row?.embedding_models ?? 0),
+  };
+}

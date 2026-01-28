@@ -2,20 +2,36 @@ import { queryOptions, useQuery } from '@tanstack/react-query'
 
 import { api } from '@/lib/api'
 
-const GRAFANA_DASHBOARD_URL_KEY = 'grafana_dashboard_url'
+export interface GrafanaDashboard {
+  id: string
+  label: string
+  url: string
+}
 
-const grafanaDashboardUrlQueryOptions = queryOptions({
-  queryKey: ['settings', GRAFANA_DASHBOARD_URL_KEY],
-  queryFn: async () => {
-    const { data, error } = await api.admin.settings[GRAFANA_DASHBOARD_URL_KEY].get()
-    if (error) return null
-    return (data as { value: unknown } | null)?.value as string | undefined
+export interface DashboardsResponse {
+  dashboards: GrafanaDashboard[]
+  envOverride: boolean
+}
+
+const dashboardsQueryOptions = queryOptions({
+  queryKey: ['dashboards'],
+  queryFn: async (): Promise<DashboardsResponse> => {
+    const { data, error } = await api.admin.dashboards.get()
+    if (error) {
+      return { dashboards: [], envOverride: false }
+    }
+    return data as DashboardsResponse
   },
   staleTime: 5 * 60 * 1000, // 5 minutes
   retry: false,
 })
 
+export function useGrafanaDashboards() {
+  return useQuery(dashboardsQueryOptions)
+}
+
+// Backward compatibility - returns first dashboard URL if available
 export function useGrafanaDashboardUrl() {
-  const { data } = useQuery(grafanaDashboardUrlQueryOptions)
-  return data ?? undefined
+  const { data } = useGrafanaDashboards()
+  return data?.dashboards?.[0]?.url
 }

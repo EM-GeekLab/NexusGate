@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useGrafanaDashboardUrl } from '@/hooks/use-settings'
+import { useGrafanaDashboards } from '@/hooks/use-settings'
 import { Route as DashboardIndexRoute } from '@/routes/_dashboard/index'
 
 import { LatencyChart } from './charts/latency-chart'
@@ -61,10 +61,12 @@ export function OverviewPage() {
   const isMobile = useIsMobile()
   const { range, view } = DashboardIndexRoute.useSearch()
   const navigate = useNavigate()
-  const grafanaUrl = useGrafanaDashboardUrl()
+  const { data: dashboardsData } = useGrafanaDashboards()
 
+  const dashboards = dashboardsData?.dashboards ?? []
+  const selectedDashboard = dashboards.find((d) => d.id === view)
   const timeRange = range as TimeRange
-  const showGrafana = view === 'grafana' && !!grafanaUrl
+  const showGrafana = !!selectedDashboard
 
   const handleTimeRangeChange = (value: TimeRange) => {
     navigate({
@@ -107,7 +109,7 @@ export function OverviewPage() {
           <SummaryCards data={data} />
 
           {showGrafana ? (
-            <GrafanaEmbed url={grafanaUrl} />
+            <GrafanaEmbed url={selectedDashboard.url} />
           ) : (
             <>
               {/* Row 2: Request Trend + Token Usage */}

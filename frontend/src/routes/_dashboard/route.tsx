@@ -10,10 +10,10 @@ import {
   AppSidebarTrigger,
 } from '@/components/app/app-header'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useGrafanaDashboardUrl } from '@/hooks/use-settings'
+import { useGrafanaDashboards } from '@/hooks/use-settings'
 import { TimeRangeSelect } from '@/pages/overview/time-range-select'
 import type { TimeRange } from '@/pages/overview/use-overview-stats'
-import { ViewModeToggle, type ViewMode } from '@/pages/overview/view-mode-toggle'
+import { ViewModeToggle } from '@/pages/overview/view-mode-toggle'
 
 import { Route as DashboardIndexRoute } from './index'
 
@@ -26,10 +26,11 @@ function RouteComponent() {
   const isMobile = useIsMobile()
   const { range, view } = DashboardIndexRoute.useSearch()
   const navigate = useNavigate()
-  const grafanaUrl = useGrafanaDashboardUrl()
+  const { data: dashboardsData } = useGrafanaDashboards()
 
+  const dashboards = dashboardsData?.dashboards ?? []
   const timeRange = range as TimeRange
-  const viewMode = view as ViewMode
+  const viewMode = view
 
   const handleTimeRangeChange = (value: TimeRange) => {
     navigate({
@@ -39,7 +40,7 @@ function RouteComponent() {
     })
   }
 
-  const handleViewModeChange = (value: ViewMode) => {
+  const handleViewModeChange = (value: string) => {
     navigate({
       to: '/',
       search: (prev) => ({ ...prev, view: value }),
@@ -59,8 +60,10 @@ function RouteComponent() {
           <>
             <AppHeaderSpacer />
             <AppHeaderPart className="gap-2">
-              {grafanaUrl && <ViewModeToggle value={viewMode} onChange={handleViewModeChange} />}
-              {viewMode !== 'grafana' && <TimeRangeSelect value={timeRange} onChange={handleTimeRangeChange} />}
+              {dashboards.length > 0 && (
+                <ViewModeToggle value={viewMode} onChange={handleViewModeChange} dashboards={dashboards} />
+              )}
+              {viewMode === 'builtin' && <TimeRangeSelect value={timeRange} onChange={handleTimeRangeChange} />}
             </AppHeaderPart>
           </>
         )}

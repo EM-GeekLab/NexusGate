@@ -7,7 +7,7 @@ import { OverviewPage } from '@/pages/overview'
 
 export const overviewSearchSchema = z.object({
   range: z.enum(['1m', '5m', '10m', '30m', '1h', '4h', '12h']).catch('1h'),
-  view: z.enum(['builtin', 'grafana']).catch('builtin'),
+  view: z.string().catch('builtin'), // 'builtin' or dashboard id
 })
 
 export type OverviewSearchSchema = z.infer<typeof overviewSearchSchema>

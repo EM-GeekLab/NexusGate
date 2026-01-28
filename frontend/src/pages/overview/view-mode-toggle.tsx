@@ -2,15 +2,15 @@ import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-
-export type ViewMode = 'builtin' | 'grafana'
+import type { GrafanaDashboard } from '@/hooks/use-settings'
 
 interface ViewModeToggleProps {
-  value: ViewMode
-  onChange: (mode: ViewMode) => void
+  value: string // 'builtin' or dashboard id
+  onChange: (mode: string) => void
+  dashboards: GrafanaDashboard[]
 }
 
-export function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
+export function ViewModeToggle({ value, onChange, dashboards }: ViewModeToggleProps) {
   const { t } = useTranslation()
 
   return (
@@ -23,14 +23,17 @@ export function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
       >
         {t('pages.overview.viewMode.builtin')}
       </Button>
-      <Button
-        variant="ghost"
-        size="xs"
-        className={cn(value === 'grafana' && 'bg-accent')}
-        onClick={() => onChange('grafana')}
-      >
-        {t('pages.overview.viewMode.grafana')}
-      </Button>
+      {dashboards.map((dashboard) => (
+        <Button
+          key={dashboard.id}
+          variant="ghost"
+          size="xs"
+          className={cn(value === dashboard.id && 'bg-accent')}
+          onClick={() => onChange(dashboard.id)}
+        >
+          {dashboard.label}
+        </Button>
+      ))}
     </div>
   )
 }

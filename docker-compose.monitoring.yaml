@@ -27,10 +27,16 @@ services:
       - "GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}"
       - "GF_USERS_ALLOW_SIGN_UP=false"
       - "GF_SERVER_ROOT_URL=http://localhost:${GRAFANA_PORT:-3001}"
+      # ============================================================
+      # SECURITY NOTE: The following settings enable anonymous access
+      # and iframe embedding for local development convenience.
+      # For production, consider using Grafana's Public Dashboard
+      # feature or an auth proxy instead of anonymous access.
+      # ============================================================
       # Enable anonymous access for iframe embedding (read-only Viewer role)
       - "GF_AUTH_ANONYMOUS_ENABLED=true"
       - "GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer"
-      # Allow embedding in iframes
+      # Allow embedding in iframes (disables X-Frame-Options: deny)
       - "GF_SECURITY_ALLOW_EMBEDDING=true"
     volumes:
       - "grafana_data:/var/lib/grafana"

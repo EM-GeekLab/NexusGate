@@ -394,5 +394,8 @@
   "pages.overview.charts.successRateTrend": "Success Rate Trend",
   "pages.overview.tokens.prompt": "Prompt",
   "pages.overview.tokens.completion": "Completion",
-  "pages.overview.tokens.embedding": "Embedding"
+  "pages.overview.tokens.embedding": "Embedding",
+  "pages.overview.viewMode.builtin": "Built-in",
+  "pages.overview.viewMode.grafana": "Grafana",
+  "pages.overview.grafana.title": "Grafana Dashboard"
 }

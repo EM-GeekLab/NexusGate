@@ -7,6 +7,7 @@ import { adminEmbeddings } from "./embeddings";
 import { adminModels } from "./models";
 import { adminProviders } from "./providers";
 import { adminRateLimits } from "./rateLimits";
+import { adminSettings } from "./settings";
 import { adminStats } from "./stats";
 import { adminUpstream } from "./upstream";
 import { adminUsage } from "./usage";
@@ -29,6 +30,7 @@ export const routes = new Elysia({
         .use(adminModels)
         .use(adminEmbeddings)
         .use(adminStats)
+        .use(adminSettings)
         .get("/", () => true, {
           detail: { description: "Check whether the admin secret is valid." },
         })

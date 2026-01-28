@@ -395,5 +395,8 @@
   "pages.overview.charts.successRateTrend": "成功率趋势",
   "pages.overview.tokens.prompt": "输入",
   "pages.overview.tokens.completion": "输出",
-  "pages.overview.tokens.embedding": "向量化"
+  "pages.overview.tokens.embedding": "向量化",
+  "pages.overview.viewMode.builtin": "内置",
+  "pages.overview.viewMode.grafana": "Grafana",
+  "pages.overview.grafana.title": "Grafana 仪表盘"
 }

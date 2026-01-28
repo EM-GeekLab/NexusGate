@@ -23,20 +23,20 @@ export class EnvOverrideError extends Error {
 
 /**
  * Check if the GRAFANA_DASHBOARDS environment variable is set
- * When set, it overrides database settings
+ * When set (even as empty array), it overrides database settings
  */
 export function isEnvOverrideActive(): boolean {
-  return GRAFANA_DASHBOARDS !== undefined && GRAFANA_DASHBOARDS.length > 0;
+  return GRAFANA_DASHBOARDS !== undefined;
 }
 
 /**
  * Get Grafana dashboards from environment variable or database
- * Environment variable takes precedence over database settings
+ * Environment variable takes precedence over database settings (even if empty)
  */
 export async function getGrafanaDashboards(): Promise<GrafanaDashboard[]> {
-  // Environment variable takes precedence
+  // Environment variable takes precedence (even empty array disables DB fallback)
   if (isEnvOverrideActive()) {
-    return GRAFANA_DASHBOARDS!;
+    return GRAFANA_DASHBOARDS ?? [];
   }
 
   // Try to get from database (new format)

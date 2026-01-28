@@ -9,18 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
-import { Route as DashboardRouteRouteImport } from './routes/_dashboard/route'
-import { Route as AppsIndexRouteImport } from './routes/apps/index'
-import { Route as AppsRouteRouteImport } from './routes/apps/route'
-import { Route as EmbeddingsIndexRouteImport } from './routes/embeddings/index'
-import { Route as EmbeddingsRouteRouteImport } from './routes/embeddings/route'
-import { Route as RequestsIndexRouteImport } from './routes/requests/index'
-import { Route as RequestsRouteRouteImport } from './routes/requests/route'
-import { Route as SettingsIndexRouteImport } from './routes/settings/index'
-import { Route as SettingsModelsRouteImport } from './routes/settings/models'
-import { Route as SettingsProvidersRouteImport } from './routes/settings/providers'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
+import { Route as RequestsRouteRouteImport } from './routes/requests/route'
+import { Route as EmbeddingsRouteRouteImport } from './routes/embeddings/route'
+import { Route as AppsRouteRouteImport } from './routes/apps/route'
+import { Route as DashboardRouteRouteImport } from './routes/_dashboard/route'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
+import { Route as RequestsIndexRouteImport } from './routes/requests/index'
+import { Route as EmbeddingsIndexRouteImport } from './routes/embeddings/index'
+import { Route as AppsIndexRouteImport } from './routes/apps/index'
+import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
+import { Route as SettingsProvidersRouteImport } from './routes/settings/providers'
+import { Route as SettingsModelsRouteImport } from './routes/settings/models'
 
 const SettingsRouteRoute = SettingsRouteRouteImport.update({
   id: '/settings',
@@ -134,7 +134,14 @@ export interface FileRouteTypes {
     | '/requests/'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/settings/models' | '/settings/providers' | '/' | '/apps' | '/embeddings' | '/requests' | '/settings'
+  to:
+    | '/settings/models'
+    | '/settings/providers'
+    | '/'
+    | '/apps'
+    | '/embeddings'
+    | '/requests'
+    | '/settings'
   id:
     | '__root__'
     | '/_dashboard'
@@ -256,7 +263,9 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
 }
 
-const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(DashboardRouteRouteChildren)
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
+  DashboardRouteRouteChildren,
+)
 
 interface AppsRouteRouteChildren {
   AppsIndexRoute: typeof AppsIndexRoute
@@ -266,7 +275,9 @@ const AppsRouteRouteChildren: AppsRouteRouteChildren = {
   AppsIndexRoute: AppsIndexRoute,
 }
 
-const AppsRouteRouteWithChildren = AppsRouteRoute._addFileChildren(AppsRouteRouteChildren)
+const AppsRouteRouteWithChildren = AppsRouteRoute._addFileChildren(
+  AppsRouteRouteChildren,
+)
 
 interface EmbeddingsRouteRouteChildren {
   EmbeddingsIndexRoute: typeof EmbeddingsIndexRoute
@@ -276,7 +287,9 @@ const EmbeddingsRouteRouteChildren: EmbeddingsRouteRouteChildren = {
   EmbeddingsIndexRoute: EmbeddingsIndexRoute,
 }
 
-const EmbeddingsRouteRouteWithChildren = EmbeddingsRouteRoute._addFileChildren(EmbeddingsRouteRouteChildren)
+const EmbeddingsRouteRouteWithChildren = EmbeddingsRouteRoute._addFileChildren(
+  EmbeddingsRouteRouteChildren,
+)
 
 interface RequestsRouteRouteChildren {
   RequestsIndexRoute: typeof RequestsIndexRoute
@@ -286,7 +299,9 @@ const RequestsRouteRouteChildren: RequestsRouteRouteChildren = {
   RequestsIndexRoute: RequestsIndexRoute,
 }
 
-const RequestsRouteRouteWithChildren = RequestsRouteRoute._addFileChildren(RequestsRouteRouteChildren)
+const RequestsRouteRouteWithChildren = RequestsRouteRoute._addFileChildren(
+  RequestsRouteRouteChildren,
+)
 
 interface SettingsRouteRouteChildren {
   SettingsModelsRoute: typeof SettingsModelsRoute
@@ -300,7 +315,9 @@ const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
   SettingsIndexRoute: SettingsIndexRoute,
 }
 
-const SettingsRouteRouteWithChildren = SettingsRouteRoute._addFileChildren(SettingsRouteRouteChildren)
+const SettingsRouteRouteWithChildren = SettingsRouteRoute._addFileChildren(
+  SettingsRouteRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
@@ -309,4 +326,6 @@ const rootRouteChildren: RootRouteChildren = {
   RequestsRouteRoute: RequestsRouteRouteWithChildren,
   SettingsRouteRoute: SettingsRouteRouteWithChildren,
 }
-export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()
+export const routeTree = rootRouteImport
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()

@@ -397,5 +397,7 @@
   "pages.overview.tokens.embedding": "Embedding",
   "pages.overview.viewMode.builtin": "Built-in",
   "pages.overview.viewMode.grafana": "Grafana",
-  "pages.overview.grafana.title": "Grafana Dashboard"
+  "pages.overview.viewMode.label": "View mode",
+  "pages.overview.grafana.title": "Grafana Dashboard",
+  "pages.overview.grafana.invalidUrl": "Invalid Grafana dashboard URL configured"
 }

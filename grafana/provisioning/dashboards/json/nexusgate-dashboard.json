@@ -211,7 +211,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "100 * sum(increase(nexusgate_completions_total{status=\"completed\"}[$__range])) / sum(increase(nexusgate_completions_total[$__range]))",
+          "expr": "100 * sum(increase(nexusgate_completions_total{status=\"completed\"}[$__range])) / clamp_min(sum(increase(nexusgate_completions_total[$__range])), 1)",
           "legendFormat": "Success Rate",
           "refId": "A"
         }

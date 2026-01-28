@@ -398,5 +398,7 @@
   "pages.overview.tokens.embedding": "向量化",
   "pages.overview.viewMode.builtin": "内置",
   "pages.overview.viewMode.grafana": "Grafana",
-  "pages.overview.grafana.title": "Grafana 仪表盘"
+  "pages.overview.viewMode.label": "视图模式",
+  "pages.overview.grafana.title": "Grafana 仪表盘",
+  "pages.overview.grafana.invalidUrl": "配置的 Grafana 仪表盘 URL 无效"
 }

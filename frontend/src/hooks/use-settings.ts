@@ -20,7 +20,12 @@ const dashboardsQueryOptions = queryOptions({
     if (error) {
       return { dashboards: [], envOverride: false }
     }
-    return data as DashboardsResponse
+    // Runtime validation to handle unexpected API responses
+    const response = data as DashboardsResponse
+    if (!Array.isArray(response?.dashboards)) {
+      return { dashboards: [], envOverride: false }
+    }
+    return response
   },
   staleTime: 5 * 60 * 1000, // 5 minutes
   retry: false,

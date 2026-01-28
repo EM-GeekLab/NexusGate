@@ -14,12 +14,13 @@ export function ViewModeToggle({ value, onChange, dashboards }: ViewModeTogglePr
   const { t } = useTranslation()
 
   return (
-    <div className="inline-flex items-center rounded-md border p-0.5">
+    <div className="inline-flex items-center rounded-md border p-0.5" role="group" aria-label={t('pages.overview.viewMode.label')}>
       <Button
         variant="ghost"
         size="xs"
         className={cn(value === 'builtin' && 'bg-accent')}
         onClick={() => onChange('builtin')}
+        aria-pressed={value === 'builtin'}
       >
         {t('pages.overview.viewMode.builtin')}
       </Button>
@@ -30,6 +31,7 @@ export function ViewModeToggle({ value, onChange, dashboards }: ViewModeTogglePr
           size="xs"
           className={cn(value === dashboard.id && 'bg-accent')}
           onClick={() => onChange(dashboard.id)}
+          aria-pressed={value === dashboard.id}
         >
           {dashboard.label}
         </Button>

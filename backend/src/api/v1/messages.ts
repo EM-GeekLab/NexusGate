@@ -13,7 +13,10 @@ import {
 } from "@/adapters";
 import { getModelsWithProviderBySystemName } from "@/db";
 import { apiKeyPlugin, type ApiKey } from "@/plugins/apiKeyPlugin";
-import { apiKeyRateLimitPlugin, consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
+import {
+  apiKeyRateLimitPlugin,
+  consumeTokens,
+} from "@/plugins/apiKeyRateLimitPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import {
   extractUpstreamHeaders,
@@ -78,11 +81,18 @@ const tAnthropicToolResultBlock = t.Object({
   is_error: t.Optional(t.Boolean()),
 });
 
+const tAnthropicThinkingBlock = t.Object({
+  type: t.Literal("thinking"),
+  thinking: t.String(),
+  signature: t.String(),
+});
+
 const tAnthropicContentBlock = t.Union([
   tAnthropicTextBlock,
   tAnthropicImageBlock,
   tAnthropicToolUseBlock,
   tAnthropicToolResultBlock,
+  tAnthropicThinkingBlock,
 ]);
 
 // Anthropic tool definition
@@ -241,7 +251,11 @@ async function processNonStreamingResponse(
 
   // Consume tokens for TPM rate limiting (post-flight)
   // Only consume if token counts are valid (not -1 which indicates parsing failure)
-  if (apiKeyRecord && completion.promptTokens > 0 && completion.completionTokens > 0) {
+  if (
+    apiKeyRecord &&
+    completion.promptTokens > 0 &&
+    completion.completionTokens > 0
+  ) {
     const totalTokens = completion.promptTokens + completion.completionTokens;
     await consumeTokens(apiKeyRecord.id, apiKeyRecord.tpmLimit, totalTokens);
   }
@@ -305,7 +319,10 @@ async function* processStreamingResponse(
               id: `msg-cache-${reqIdContext.preCreatedCompletionId}`,
               type: "message",
               role: "assistant",
-              content: contentBlocks.length > 0 ? contentBlocks : [{ type: "text", text: "" }],
+              content:
+                contentBlocks.length > 0
+                  ? contentBlocks
+                  : [{ type: "text", text: "" }],
               model: comp.model,
               stop_reason: hasToolUse ? "tool_use" : "end_turn",
               usage: {
@@ -320,7 +337,14 @@ async function* processStreamingResponse(
     : undefined;
 
   // Create streaming context with abort handling
-  const ctx = new StreamingContext(completion, bearer, apiKeyRecord, begin, signal, streamingReqIdContext);
+  const ctx = new StreamingContext(
+    completion,
+    bearer,
+    apiKeyRecord,
+    begin,
+    signal,
+    streamingReqIdContext,
+  );
 
   // Track whether we've logged the client abort (to avoid duplicate logs)
   let loggedAbort = false;
@@ -335,7 +359,9 @@ async function* processStreamingResponse(
       // Log client disconnect once when first detected
       if (clientAborted && !loggedAbort) {
         loggedAbort = true;
-        logger.info("Client disconnected during streaming, continuing to collect upstream data");
+        logger.info(
+          "Client disconnected during streaming, continuing to collect upstream data",
+        );
       }
 
       ctx.recordTTFT();
@@ -365,7 +391,10 @@ async function* processStreamingResponse(
           chunk.delta.thinking
         ) {
           ctx.thinkingParts.push(chunk.delta.thinking);
-        } else if (chunk.delta?.type === "input_json_delta" && chunk.delta.partialJson) {
+        } else if (
+          chunk.delta?.type === "input_json_delta" &&
+          chunk.delta.partialJson
+        ) {
           // Collect tool call arguments - lookup by index to get tool ID
           // Skip if index is missing to avoid data corruption
           if (chunk.index !== undefined) {
@@ -434,7 +463,10 @@ async function* processStreamingResponse(
     if (!ctx.isSaved()) {
       if (ctx.isAborted()) {
         // If client aborted and we got an error, still save as aborted with the error info
-        await ctx.saveCompletion("aborted", `Client disconnected, stream error: ${String(error)}`);
+        await ctx.saveCompletion(
+          "aborted",
+          `Client disconnected, stream error: ${String(error)}`,
+        );
       } else {
         await ctx.saveCompletion("failed", String(error));
       }
@@ -545,10 +577,15 @@ export const messagesApi = new Elysia({
         model: body.model,
         modelId: candidates[0]?.model.id,
         prompt: {
-          messages: body.messages.map((m: { role: string; content: unknown }) => ({
-            role: m.role,
-            content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-          })),
+          messages: body.messages.map(
+            (m: { role: string; content: unknown }) => ({
+              role: m.role,
+              content:
+                typeof m.content === "string"
+                  ? m.content
+                  : JSON.stringify(m.content),
+            }),
+          ),
           extraHeaders,
         },
         apiFormat,
@@ -619,7 +656,12 @@ export const messagesApi = new Elysia({
             extraHeaders,
           );
 
-          const errorResult = await processFailoverError(result, completion, bearer, "streaming");
+          const errorResult = await processFailoverError(
+            result,
+            completion,
+            bearer,
+            "streaming",
+          );
 
           // Finalize pre-created completion if ReqId was used
           await finalizeReqIdOnError(reqIdContext, begin);
@@ -718,7 +760,12 @@ export const messagesApi = new Elysia({
             extraHeaders,
           );
 
-          const errorResult = await processFailoverError(result, completion, bearer, "non-streaming");
+          const errorResult = await processFailoverError(
+            result,
+            completion,
+            bearer,
+            "non-streaming",
+          );
 
           // Finalize pre-created completion if ReqId was used
           await finalizeReqIdOnError(reqIdContext, begin);
@@ -782,7 +829,8 @@ export const messagesApi = new Elysia({
           return JSON.parse(response) as Record<string, unknown>;
         } catch (error) {
           // Handle error based on whether client aborted
-          const errorMsg = error instanceof Error ? error.message : String(error);
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
           // Only save if completion wasn't already saved in processNonStreamingResponse
           const alreadySaved = completion.status !== "pending";
           if (request.signal.aborted) {
@@ -799,7 +847,10 @@ export const messagesApi = new Elysia({
                   },
                 });
               } catch (logError: unknown) {
-                logger.error("Failed to log aborted completion after processing error", logError);
+                logger.error(
+                  "Failed to log aborted completion after processing error",
+                  logError,
+                );
               }
             }
             // Return nothing for aborted requests
@@ -818,13 +869,19 @@ export const messagesApi = new Elysia({
                   },
                 });
               } catch (logError: unknown) {
-                logger.error("Failed to log completion after processing error", logError);
+                logger.error(
+                  "Failed to log completion after processing error",
+                  logError,
+                );
               }
             }
             set.status = 500;
             return {
               type: "error",
-              error: { type: "api_error", message: "Failed to process response" },
+              error: {
+                type: "api_error",
+                message: "Failed to process response",
+              },
             };
           }
         }

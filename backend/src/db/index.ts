@@ -1551,11 +1551,12 @@ export async function getCompletionCostMetrics() {
         END
       ), 0) AS completion_cost_usd,
       COALESCE(SUM(
-        CASE WHEN m.input_price IS NOT NULL AND m.output_price IS NOT NULL
-          THEN (
-            CASE WHEN c.prompt_tokens > 0 THEN (c.prompt_tokens::numeric / 1000000) * m.input_price ELSE 0 END +
-            CASE WHEN c.completion_tokens > 0 THEN (c.completion_tokens::numeric / 1000000) * m.output_price ELSE 0 END
-          )
+        CASE WHEN c.prompt_tokens > 0 AND m.input_price IS NOT NULL
+          THEN (c.prompt_tokens::numeric / 1000000) * m.input_price
+          ELSE 0
+        END +
+        CASE WHEN c.completion_tokens > 0 AND m.output_price IS NOT NULL
+          THEN (c.completion_tokens::numeric / 1000000) * m.output_price
           ELSE 0
         END
       ), 0) AS total_cost_usd

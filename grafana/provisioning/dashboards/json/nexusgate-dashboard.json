@@ -1370,7 +1370,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(nexusgate_completions_total{status=\"failed\"}[$__rate_interval])) by (model) / sum(rate(nexusgate_completions_total[$__rate_interval])) by (model)",
+          "expr": "sum(rate(nexusgate_completions_total{status=\"failed\"}[$__rate_interval])) by (model) / clamp_min(sum(rate(nexusgate_completions_total[$__rate_interval])) by (model), 0.001)",
           "legendFormat": "{{model}}",
           "refId": "A"
         }
@@ -1458,7 +1458,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(nexusgate_completions_total{status=\"cache_hit\"}[$__rate_interval])) / sum(rate(nexusgate_completions_total[$__rate_interval]))",
+          "expr": "sum(rate(nexusgate_completions_total{status=\"cache_hit\"}[$__rate_interval])) / clamp_min(sum(rate(nexusgate_completions_total[$__rate_interval])), 0.001)",
           "legendFormat": "Cache Hit Rate",
           "refId": "A"
         }
@@ -3220,7 +3220,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(nexusgate_completions_total{status=\"failed\"}[$__rate_interval])) by (model) / sum(rate(nexusgate_completions_total[$__rate_interval])) by (model)",
+          "expr": "sum(rate(nexusgate_completions_total{status=\"failed\"}[$__rate_interval])) by (model) / clamp_min(sum(rate(nexusgate_completions_total[$__rate_interval])) by (model), 0.001)",
           "legendFormat": "{{model}}",
           "refId": "A"
         }
@@ -3559,7 +3559,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(nexusgate_completions_total{status=\"failed\"}[$__rate_interval])) by (model) / sum(rate(nexusgate_completions_total[$__rate_interval])) by (model)",
+          "expr": "sum(rate(nexusgate_completions_total{status=\"failed\"}[$__rate_interval])) by (model) / clamp_min(sum(rate(nexusgate_completions_total[$__rate_interval])) by (model), 0.001)",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",

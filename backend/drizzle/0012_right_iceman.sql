@@ -1,0 +1,1 @@
+ALTER TABLE "providers" DROP CONSTRAINT "providers_name_unique";

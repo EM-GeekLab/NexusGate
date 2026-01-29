@@ -1,4 +1,4 @@
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import {
   getCompletionMetricsByModelAndStatus,
   getEmbeddingMetricsByModelAndStatus,
@@ -14,7 +14,7 @@ import { redisClient } from "@/utils/redisClient";
 import { getRateLimitStatus } from "@/utils/apiKeyRateLimit";
 import { getRateLimitRejections } from "@/plugins/apiKeyRateLimitPlugin";
 
-const logger = consola.withTag("prometheus");
+const logger = createLogger("prometheus");
 
 // Redis cache key for metrics
 const METRICS_CACHE_KEY = "nexusgate:metrics:cache";

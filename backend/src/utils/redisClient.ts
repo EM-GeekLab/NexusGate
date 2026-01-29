@@ -1,8 +1,8 @@
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import Redis from "ioredis";
 import { REDIS_URL } from "@/utils/config";
 
-const logger = consola.withTag("redisClient");
+const logger = createLogger("redisClient");
 
 /**
  * Redis client utility class for handling Redis operations
@@ -15,7 +15,7 @@ class RedisClient {
 
     // Set up event listeners
     this.client.on("connect", () => {
-      logger.success(`Connected to Redis at ${REDIS_URL}`);
+      logger.info(`Connected to Redis at ${REDIS_URL}`);
     });
 
     this.client.on("error", (err) => {

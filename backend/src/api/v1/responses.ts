@@ -3,7 +3,6 @@
  * Provides OpenAI Response API format for clients (agent/agentic interactions)
  */
 
-import { consola } from "consola";
 import { Elysia, t } from "elysia";
 import type { ModelWithProvider } from "@/adapters/types";
 import {
@@ -11,6 +10,7 @@ import {
   getResponseAdapter,
   getUpstreamAdapter,
 } from "@/adapters";
+import { createLogger } from "@/utils/logger";
 import { getModelsWithProviderBySystemName } from "@/db";
 import { apiKeyPlugin, type ApiKey } from "@/plugins/apiKeyPlugin";
 import { apiKeyRateLimitPlugin, consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
@@ -41,7 +41,7 @@ import {
 } from "@/utils/reqIdHandler";
 import type { CachedResponseType } from "@/db/schema";
 
-const logger = consola.withTag("responsesApi");
+const logger = createLogger("responsesApi");
 
 // =============================================================================
 // Request Schema

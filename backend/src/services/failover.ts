@@ -6,10 +6,10 @@
  * tries the next available provider.
  */
 
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import type { ModelWithProvider } from "@/adapters/types";
 
-const logger = consola.withTag("failover");
+const logger = createLogger("failover");
 
 // =============================================================================
 // Configuration Types

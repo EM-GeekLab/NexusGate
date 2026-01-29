@@ -1,10 +1,12 @@
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import type {
   CompletionsStatusEnumType,
   EmbeddingsInputType,
   SrvLogsLevelEnumType,
 } from "@/db/schema";
 import { findApiKey, insertEmbedding, insertLog } from "@/db";
+
+const logger = createLogger("embeddings");
 
 export type EmbeddingRecord = {
   model: string;
@@ -26,7 +28,7 @@ export type EmbeddingRecord = {
 export async function addEmbedding(
   e: EmbeddingRecord,
   apiKey: string,
-  log?: {
+  logEntry?: {
     level: SrvLogsLevelEnumType;
     message: string;
     details?: {
@@ -54,16 +56,16 @@ export async function addEmbedding(
     duration: e.duration,
   });
 
-  if (log !== undefined) {
+  if (logEntry !== undefined) {
     if (embedding === null) {
-      consola.error("Failed to insert embedding");
+      logger.error("Failed to insert embedding");
       return null;
     }
     await insertLog({
       relatedApiKeyId: keyId,
       relatedUpstreamId: null,
       relatedCompletionId: null,
-      ...log,
+      ...logEntry,
     });
   }
 

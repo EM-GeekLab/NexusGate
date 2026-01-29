@@ -8,7 +8,7 @@
  * 4. Finalize requests after completion
  */
 
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import {
   findCompletionByReqId,
   createPendingCompletion,
@@ -28,7 +28,7 @@ import {
 } from "./reqIdCache";
 import type { CachedResponseType } from "@/db/schema";
 
-const logger = consola.withTag("reqIdHandler");
+const logger = createLogger("reqIdHandler");
 
 /**
  * HTTP header name for client-provided request ID

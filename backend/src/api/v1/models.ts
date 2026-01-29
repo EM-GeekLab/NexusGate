@@ -1,8 +1,8 @@
-import { consola } from "consola";
 import { Elysia } from "elysia";
 import { listModels, listProviders } from "@/db";
+import { createLogger } from "@/utils/logger";
 
-const logger = consola.withTag("modelsQuery");
+const logger = createLogger("modelsQuery");
 
 export const modelsQueryApi = new Elysia().get("/models", async () => {
   logger.debug("queryModels");

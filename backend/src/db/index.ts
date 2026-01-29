@@ -1,4 +1,4 @@
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import { and, asc, count, desc, eq, like, not, sql, sum } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sql";
 import { migrate } from "drizzle-orm/bun-sql/migrator";
@@ -10,7 +10,7 @@ const globalThis_ = globalThis as typeof globalThis & {
   db: ReturnType<typeof drizzle>;
 };
 
-const logger = consola.withTag("database");
+const logger = createLogger("database");
 
 const db = (() => {
   if (!globalThis_.db) {
@@ -18,7 +18,7 @@ const db = (() => {
       connection: DATABASE_URL,
       schema: schema,
     });
-    logger.success("connection created");
+    logger.info("connection created");
   }
   return globalThis_.db;
 })();

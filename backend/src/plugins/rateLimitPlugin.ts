@@ -1,4 +1,3 @@
-import { consola } from "consola";
 import { Elysia } from "elysia";
 import { consume, type TokenBucketOptions } from "@/utils/tokenBucket";
 import {
@@ -6,8 +5,9 @@ import {
   getRateLimitConfig,
 } from "../utils/rateLimitConfig";
 import { apiKeyPlugin } from "./apiKeyPlugin";
+import { createLogger } from "@/utils/logger";
 
-const logger = consola.withTag("rateLimitPlugin");
+const logger = createLogger("rateLimitPlugin");
 
 export const rateLimitPlugin = new Elysia({
   name: "rateLimitPlugin",

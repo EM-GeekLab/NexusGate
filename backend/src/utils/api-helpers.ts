@@ -3,11 +3,11 @@
  * Extracted from completions.ts, messages.ts, and responses.ts to reduce code duplication
  */
 
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import type { InternalResponse, ModelWithProvider } from "@/adapters/types";
 import type { ToolCallType } from "@/db/schema";
 
-const logger = consola.withTag("api-helpers");
+const logger = createLogger("api-helpers");
 
 // =============================================================================
 // Header Constants

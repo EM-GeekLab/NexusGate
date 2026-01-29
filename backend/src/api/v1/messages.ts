@@ -3,7 +3,6 @@
  * Provides Anthropic-compatible API format for clients
  */
 
-import { consola } from "consola";
 import { Elysia, t } from "elysia";
 import type { ModelWithProvider } from "@/adapters/types";
 import {
@@ -11,6 +10,7 @@ import {
   getResponseAdapter,
   getUpstreamAdapter,
 } from "@/adapters";
+import { createLogger } from "@/utils/logger";
 import { getModelsWithProviderBySystemName } from "@/db";
 import { apiKeyPlugin, type ApiKey } from "@/plugins/apiKeyPlugin";
 import {
@@ -45,7 +45,7 @@ import {
 import type { CachedResponseType } from "@/db/schema";
 import { safeParseToolArgs } from "@/utils/json";
 
-const logger = consola.withTag("messagesApi");
+const logger = createLogger("messagesApi");
 
 // =============================================================================
 // Request Schema

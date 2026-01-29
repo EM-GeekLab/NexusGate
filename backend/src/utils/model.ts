@@ -1,4 +1,4 @@
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import type { ModelTypeEnumType } from "@/db/schema";
 import {
   getModelsWithProviderBySystemName,
@@ -6,7 +6,7 @@ import {
   type Provider,
 } from "@/db";
 
-const logger = consola.withTag("modelSelector");
+const logger = createLogger("modelSelector");
 
 export type ModelWithProvider = {
   model: Model;

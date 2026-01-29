@@ -2,7 +2,7 @@ import { cors } from "@elysiajs/cors";
 import { serverTiming } from "@elysiajs/server-timing";
 import { swagger } from "@elysiajs/swagger";
 // Note: @elysiajs/static is disabled in current Bun version, using manual file serving instead
-import { consola } from "consola";
+import { log } from "@/utils/logger";
 import { Elysia } from "elysia";
 import { access, readFile, stat } from "node:fs/promises";
 
@@ -216,8 +216,8 @@ const app = new Elysia()
     idleTimeout: 255,
   });
 
-consola.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
+log.info(
+  `Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
 );
 
 export type App = typeof app;

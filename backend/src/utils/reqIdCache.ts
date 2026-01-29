@@ -5,10 +5,10 @@
  * concurrent requests with the same ReqId.
  */
 
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import { redisClient } from "./redisClient";
 
-const logger = consola.withTag("reqIdCache");
+const logger = createLogger("reqIdCache");
 
 /**
  * In-flight request data stored in Redis

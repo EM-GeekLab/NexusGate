@@ -1,13 +1,13 @@
-import { consola } from "consola";
 import { Elysia } from "elysia";
 import { apiKeyPlugin } from "./apiKeyPlugin";
 import { checkRpmLimit, checkTpmLimit } from "@/utils/apiKeyRateLimit";
 import { redisClient } from "@/utils/redisClient";
+import { createLogger } from "@/utils/logger";
 
 // Re-export consumeTokens for use in API handlers
 export { consumeTokens } from "@/utils/apiKeyRateLimit";
 
-const logger = consola.withTag("apiKeyRateLimitPlugin");
+const logger = createLogger("apiKeyRateLimitPlugin");
 
 // Redis key for tracking rate limit rejections (for Prometheus metrics)
 const RATE_LIMIT_REJECTIONS_KEY = "nexusgate:metrics:rate_limit_rejections";

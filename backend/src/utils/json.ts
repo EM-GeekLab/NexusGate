@@ -3,9 +3,9 @@
  * Handles malformed JSON from upstream LLM providers gracefully
  */
 
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 
-const logger = consola.withTag("json-parser");
+const logger = createLogger("json-parser");
 
 /**
  * Safely parse JSON string for tool call arguments.

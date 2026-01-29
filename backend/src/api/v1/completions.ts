@@ -3,7 +3,6 @@
  * Refactored to use adapter pattern for multi-API format support
  */
 
-import { consola } from "consola";
 import { Elysia, t } from "elysia";
 import type { ModelWithProvider } from "@/adapters/types";
 import {
@@ -11,6 +10,7 @@ import {
   getResponseAdapter,
   getUpstreamAdapter,
 } from "@/adapters";
+import { createLogger } from "@/utils/logger";
 import { getModelsWithProviderBySystemName } from "@/db";
 import { apiKeyPlugin, type ApiKey } from "@/plugins/apiKeyPlugin";
 import { apiKeyRateLimitPlugin, consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
@@ -47,7 +47,7 @@ import {
   type ReqIdContext,
 } from "@/utils/reqIdHandler";
 
-const logger = consola.withTag("completionsApi");
+const logger = createLogger("completionsApi");
 
 // =============================================================================
 // Request Schema

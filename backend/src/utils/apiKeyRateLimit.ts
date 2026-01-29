@@ -1,7 +1,7 @@
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import { redisClient } from "./redisClient";
 
-const logger = consola.withTag("apiKeyRateLimit");
+const logger = createLogger("apiKeyRateLimit");
 
 // Constants
 const KEY_PREFIX = "api_key_rate_limit";

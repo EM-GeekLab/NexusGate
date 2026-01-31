@@ -25,11 +25,13 @@
     "elysia": "^1.4.22",
     "ioredis": "^5.9.1",
     "loglayer": "^8.4.0",
+    "nodemailer": "^7.0.13",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/bun": "^1.3.6",
     "@types/node": "^24.10.9",
+    "@types/nodemailer": "^7.0.9",
     "@typescript/native-preview": "7.0.0-dev.20260124.1",
     "drizzle-kit": "^0.31.8",
     "openai": "^6.16.0",

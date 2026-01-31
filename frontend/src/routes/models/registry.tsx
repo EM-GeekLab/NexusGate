@@ -18,7 +18,7 @@ const systemNamesQueryOptions = () =>
     },
   })
 
-export const Route = createFileRoute('/settings/models')({
+export const Route = createFileRoute('/models/registry')({
   loader: () => queryClient.ensureQueryData(systemNamesQueryOptions()),
   component: RouteComponent,
   errorComponent: AppErrorComponent,

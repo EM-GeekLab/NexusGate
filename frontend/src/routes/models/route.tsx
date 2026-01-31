@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useMatchRoute } from '@tanstack/react-router'
-import { BarChart3Icon, BellIcon, MenuIcon } from 'lucide-react'
+import { BoxesIcon, CpuIcon, MenuIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 
-export const Route = createFileRoute('/settings')({
+export const Route = createFileRoute('/models')({
   component: RouteComponent,
 })
 
@@ -25,14 +25,14 @@ function RouteComponent() {
 
   const navItems = [
     {
-      icon: <BellIcon className="size-4" />,
-      title: t('routes.settings.nav.Alerts'),
-      href: '/settings/alerts',
+      icon: <BoxesIcon className="size-4" />,
+      title: t('routes.models.nav.Providers'),
+      href: '/models/providers',
     },
     {
-      icon: <BarChart3Icon className="size-4" />,
-      title: t('routes.settings.nav.Grafana'),
-      href: '/settings/grafana',
+      icon: <CpuIcon className="size-4" />,
+      title: t('routes.models.nav.Models'),
+      href: '/models/registry',
     },
   ]
 
@@ -71,13 +71,13 @@ function RouteComponent() {
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7">
                     <MenuIcon className="size-4" />
-                    <span className="sr-only">Toggle Settings Menu</span>
+                    <span className="sr-only">Toggle Models Menu</span>
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-56 p-0">
                   <SheetHeader className="sr-only">
-                    <SheetTitle>Settings Navigation</SheetTitle>
-                    <SheetDescription>Navigate between settings pages</SheetDescription>
+                    <SheetTitle>Models Navigation</SheetTitle>
+                    <SheetDescription>Navigate between model pages</SheetDescription>
                   </SheetHeader>
                   <div className="px-3 pt-8 pb-4">
                     <NavContent />
@@ -87,7 +87,7 @@ function RouteComponent() {
               <AppSidebarSeparator />
             </>
           )}
-          <AppHeaderTitle>{t('routes.settings.Title')}</AppHeaderTitle>
+          <AppHeaderTitle>{t('routes.models.Title')}</AppHeaderTitle>
         </AppHeaderPart>
       </AppHeader>
 

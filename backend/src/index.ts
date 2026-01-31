@@ -18,6 +18,7 @@ import { join } from "node:path";
 import { routes } from "@/api";
 import { metricsApi } from "@/api/metrics";
 import { loggerPlugin } from "@/plugins/loggerPlugin";
+import { startAlertEngine } from "@/services/alertEngine";
 import {
   ALLOWED_ORIGINS,
   DOCS_DIR,
@@ -224,5 +225,7 @@ const app = new Elysia()
   });
 
 log.info(`Elysia is running at ${app.server?.hostname}:${app.server?.port}`);
+
+startAlertEngine();
 
 export type App = typeof app;

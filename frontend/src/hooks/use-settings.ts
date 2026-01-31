@@ -40,3 +40,40 @@ export function useGrafanaDashboardUrl() {
   const { data } = useGrafanaDashboards()
   return data?.dashboards?.[0]?.url
 }
+
+export interface GrafanaConnectionResponse {
+  configured: boolean
+  apiUrl: string | null
+  hasToken: boolean
+  verified: boolean
+  verifiedAt: string | null
+  datasourceUid: string | null
+}
+
+export const grafanaConnectionQueryOptions = queryOptions({
+  queryKey: ['grafanaConnection'],
+  queryFn: async (): Promise<GrafanaConnectionResponse> => {
+    const { data, error } = await api.admin.grafana.connection.get()
+    if (error) {
+      return { configured: false, apiUrl: null, hasToken: false, verified: false, verifiedAt: null, datasourceUid: null }
+    }
+    return data as GrafanaConnectionResponse
+  },
+  staleTime: 5 * 60 * 1000,
+  retry: false,
+})
+
+export function useGrafanaConnection() {
+  return useQuery(grafanaConnectionQueryOptions)
+}
+
+export const grafanaSyncStatusQueryOptions = () =>
+  queryOptions({
+    queryKey: ['grafanaSyncStatus'],
+    queryFn: async () => {
+      const { data, error } = await api.admin.grafana.sync.status.get()
+      if (error) return null
+      return data
+    },
+    staleTime: 30 * 1000,
+  })

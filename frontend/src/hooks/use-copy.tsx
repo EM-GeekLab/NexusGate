@@ -50,7 +50,7 @@ export function useCopy(opts: UseCopyOptions = {}): UseCopyReturn {
           return false
         })
     },
-    [showErrorToast, showSuccessToast, successToastMessage, timeout],
+    [showErrorToast, showSuccessToast, successToastMessage, timeout, t],
   )
 
   return { copy, copied }

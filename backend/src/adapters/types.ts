@@ -23,6 +23,8 @@ export interface TextContentBlock {
 export interface ThinkingContentBlock {
   type: "thinking";
   thinking: string;
+  /** Signature for thinking blocks (required when replaying in multi-turn) */
+  signature?: string;
 }
 
 /**
@@ -121,6 +123,8 @@ export interface InternalToolDefinition {
   name: string;
   description?: string;
   inputSchema: JsonSchema;
+  /** Anthropic cache control for prompt caching */
+  cacheControl?: { type: "ephemeral" };
 }
 
 // =============================================================================

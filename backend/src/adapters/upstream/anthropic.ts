@@ -40,6 +40,7 @@ interface AnthropicContentBlock {
   content?: string | AnthropicContentBlock[];
   is_error?: boolean;
   cache_control?: { type: "ephemeral" };
+  signature?: string;
 }
 
 interface AnthropicMessage {
@@ -162,7 +163,11 @@ function convertMessage(msg: InternalMessage): AnthropicMessage | null {
         if (block.type === "text") {
           content.push({ type: "text", text: block.text });
         } else if (block.type === "thinking") {
-          content.push({ type: "thinking", thinking: block.thinking });
+          content.push({
+            type: "thinking",
+            thinking: block.thinking,
+            signature: block.signature,
+          });
         }
       }
     }
@@ -245,6 +250,7 @@ function convertTools(
     name: tool.name,
     description: tool.description,
     input_schema: tool.inputSchema,
+    cache_control: tool.cacheControl,
   }));
 }
 
@@ -458,10 +464,13 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
       ...request.extraParams,
     };
 
-    // Build URL
-    const baseUrl = provider.baseUrl.endsWith("/")
-      ? provider.baseUrl.slice(0, -1)
-      : provider.baseUrl;
+    // Build URL — strip trailing slash and /v1 suffix to normalize,
+    // then always append /v1/messages. This handles both
+    // "https://api.anthropic.com" and "https://api.anthropic.com/v1".
+    let baseUrl = provider.baseUrl.replace(/\/+$/, "");
+    if (baseUrl.endsWith("/v1")) {
+      baseUrl = baseUrl.slice(0, -3);
+    }
     const url = `${baseUrl}/v1/messages`;
 
     // Build headers (Anthropic uses x-api-key instead of Authorization Bearer)

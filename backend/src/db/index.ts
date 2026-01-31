@@ -1534,3 +1534,54 @@ export async function getActiveEntityCounts() {
     embeddingModels: Number(row?.embedding_models ?? 0),
   };
 }
+
+/**
+ * Get completion cost metrics grouped by model, provider, and api_key_comment
+ * Calculates costs based on model pricing: (prompt_tokens / 1M) * input_price + (completion_tokens / 1M) * output_price
+ * Returns all-time totals for Prometheus counters
+ */
+export async function getCompletionCostMetrics() {
+  logger.debug("getCompletionCostMetrics");
+  const result = await db.execute(sql`
+    SELECT
+      c.model,
+      COALESCE(p.name, 'unknown') AS provider,
+      COALESCE(ak.comment, 'unknown') AS api_key_comment,
+      COALESCE(SUM(
+        CASE WHEN c.prompt_tokens > 0 AND m.input_price IS NOT NULL
+          THEN (c.prompt_tokens::numeric / 1000000) * m.input_price
+          ELSE 0
+        END
+      ), 0) AS prompt_cost_usd,
+      COALESCE(SUM(
+        CASE WHEN c.completion_tokens > 0 AND m.output_price IS NOT NULL
+          THEN (c.completion_tokens::numeric / 1000000) * m.output_price
+          ELSE 0
+        END
+      ), 0) AS completion_cost_usd,
+      COALESCE(SUM(
+        CASE WHEN c.prompt_tokens > 0 AND m.input_price IS NOT NULL
+          THEN (c.prompt_tokens::numeric / 1000000) * m.input_price
+          ELSE 0
+        END +
+        CASE WHEN c.completion_tokens > 0 AND m.output_price IS NOT NULL
+          THEN (c.completion_tokens::numeric / 1000000) * m.output_price
+          ELSE 0
+        END
+      ), 0) AS total_cost_usd
+    FROM completions c
+    LEFT JOIN models m ON c.model_id = m.id
+    LEFT JOIN providers p ON m.provider_id = p.id
+    LEFT JOIN api_keys ak ON c.api_key_id = ak.id
+    WHERE c.deleted = false
+    GROUP BY c.model, p.name, ak.comment
+  `);
+  return result as unknown as {
+    model: string;
+    provider: string;
+    api_key_comment: string;
+    prompt_cost_usd: string;
+    completion_cost_usd: string;
+    total_cost_usd: string;
+  }[];
+}

@@ -6,6 +6,7 @@ import {
   getEmbeddingDurationHistogram,
   getActiveEntityCounts,
   getApiKeyRateLimitConfig,
+  getCompletionCostMetrics,
   LATENCY_BUCKETS_MS,
 } from "@/db";
 import { getRateLimitRejections } from "@/plugins/apiKeyRateLimitPlugin";
@@ -189,6 +190,7 @@ async function generateMetricsInternal(): Promise<string> {
     entityCounts,
     apiKeyConfigs,
     rateLimitRejections,
+    costMetrics,
   ] = await Promise.all([
     getCompletionMetricsByModelAndStatus(),
     getEmbeddingMetricsByModelAndStatus(),
@@ -198,6 +200,7 @@ async function generateMetricsInternal(): Promise<string> {
     getActiveEntityCounts(),
     getApiKeyRateLimitConfig(),
     getRateLimitRejections(),
+    getCompletionCostMetrics(),
   ]);
 
   const sections: string[] = [];
@@ -318,6 +321,64 @@ async function generateMetricsInternal(): Promise<string> {
         "nexusgate_tokens_embedding_total",
         "Total embedding tokens processed",
         embeddingTokenValues,
+      ),
+    );
+  }
+
+  // Cost counters (USD)
+  const promptCostValues: MetricValue[] = [];
+  const completionCostValues: MetricValue[] = [];
+  const totalCostValues: MetricValue[] = [];
+
+  for (const row of costMetrics) {
+    const labels = {
+      model: row.model,
+      provider: row.provider,
+      api_key_comment: row.api_key_comment,
+    };
+
+    const promptCost = Number(row.prompt_cost_usd);
+    const completionCost = Number(row.completion_cost_usd);
+    const totalCost = Number(row.total_cost_usd);
+
+    // Only add metrics if there's actual cost data (pricing was configured)
+    if (promptCost > 0) {
+      promptCostValues.push({ labels, value: promptCost });
+    }
+    if (completionCost > 0) {
+      completionCostValues.push({ labels, value: completionCost });
+    }
+    if (totalCost > 0) {
+      totalCostValues.push({ labels, value: totalCost });
+    }
+  }
+
+  if (promptCostValues.length > 0) {
+    sections.push(
+      formatCounter(
+        "nexusgate_cost_prompt_usd_total",
+        "Total prompt cost in USD (based on model pricing)",
+        promptCostValues,
+      ),
+    );
+  }
+
+  if (completionCostValues.length > 0) {
+    sections.push(
+      formatCounter(
+        "nexusgate_cost_completion_usd_total",
+        "Total completion cost in USD (based on model pricing)",
+        completionCostValues,
+      ),
+    );
+  }
+
+  if (totalCostValues.length > 0) {
+    sections.push(
+      formatCounter(
+        "nexusgate_cost_total_usd_total",
+        "Total cost in USD (prompt + completion, based on model pricing)",
+        totalCostValues,
       ),
     );
   }

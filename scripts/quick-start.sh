@@ -405,6 +405,11 @@ EOF
 
         # 如果启用了监控，添加监控相关配置
         if [ "$ENABLE_MONITORING" = "true" ]; then
+            # Build the Grafana dashboard embed URL
+            # NOTE: Uses localhost by default. For remote access, manually edit GRAFANA_DASHBOARDS
+            # in .env to use your server's IP or domain instead of localhost
+            GRAFANA_DASHBOARD_EMBED_URL="http://localhost:${GRAFANA_PORT}/d/nexusgate-overview/nexusgate-llm-gateway?orgId=1&refresh=30s&kiosk"
+
             cat >> .env << EOF
 
 # ======================
@@ -420,6 +425,9 @@ PROMETHEUS_PORT=${PROMETHEUS_PORT}
 GRAFANA_PORT=${GRAFANA_PORT}
 GRAFANA_USER=admin
 GRAFANA_PASSWORD=${GRAFANA_PASSWORD}
+
+# Grafana 仪表板嵌入配置 (NexusGate Overview 页面中嵌入 Grafana)
+GRAFANA_DASHBOARDS=[{"id":"overview","label":"Grafana","url":"${GRAFANA_DASHBOARD_EMBED_URL}"}]
 EOF
         else
             cat >> .env << EOF

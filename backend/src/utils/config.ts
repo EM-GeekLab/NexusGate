@@ -150,3 +150,18 @@ export const METRICS_CACHE_TTL_SECONDS = env(
   z.coerce.number().int().positive(),
   "30",
 );
+
+// Grafana dashboards configuration
+export const grafanaDashboardSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  url: z.string().url(),
+});
+
+export const grafanaDashboardsSchema = z.array(grafanaDashboardSchema);
+export type GrafanaDashboard = z.infer<typeof grafanaDashboardSchema>;
+
+export const GRAFANA_DASHBOARDS = env(
+  "grafana dashboards",
+  zObject(grafanaDashboardsSchema.optional()),
+);

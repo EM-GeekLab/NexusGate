@@ -10,8 +10,10 @@ import {
   AppSidebarTrigger,
 } from '@/components/app/app-header'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useGrafanaDashboards } from '@/hooks/use-settings'
 import { TimeRangeSelect } from '@/pages/overview/time-range-select'
 import type { TimeRange } from '@/pages/overview/use-overview-stats'
+import { ViewModeToggle } from '@/pages/overview/view-mode-toggle'
 
 import { Route as DashboardIndexRoute } from './index'
 
@@ -22,15 +24,26 @@ export const Route = createFileRoute('/_dashboard')({
 function RouteComponent() {
   const { t } = useTranslation()
   const isMobile = useIsMobile()
-  const { range } = DashboardIndexRoute.useSearch()
+  const { range, view } = DashboardIndexRoute.useSearch()
   const navigate = useNavigate()
+  const { data: dashboardsData } = useGrafanaDashboards()
 
+  const dashboards = dashboardsData?.dashboards ?? []
   const timeRange = range as TimeRange
+  const viewMode = view
 
   const handleTimeRangeChange = (value: TimeRange) => {
     navigate({
       to: '/',
-      search: { range: value },
+      search: (prev) => ({ ...prev, range: value }),
+      replace: true,
+    })
+  }
+
+  const handleViewModeChange = (value: string) => {
+    navigate({
+      to: '/',
+      search: (prev) => ({ ...prev, view: value }),
       replace: true,
     })
   }
@@ -46,8 +59,11 @@ function RouteComponent() {
         {!isMobile && (
           <>
             <AppHeaderSpacer />
-            <AppHeaderPart>
-              <TimeRangeSelect value={timeRange} onChange={handleTimeRangeChange} />
+            <AppHeaderPart className="gap-2">
+              {dashboards.length > 0 && (
+                <ViewModeToggle value={viewMode} onChange={handleViewModeChange} dashboards={dashboards} />
+              )}
+              {viewMode === 'builtin' && <TimeRangeSelect value={timeRange} onChange={handleTimeRangeChange} />}
             </AppHeaderPart>
           </>
         )}

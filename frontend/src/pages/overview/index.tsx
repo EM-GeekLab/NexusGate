@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useGrafanaDashboards } from '@/hooks/use-settings'
 import { Route as DashboardIndexRoute } from '@/routes/_dashboard/index'
 
 import { LatencyChart } from './charts/latency-chart'
@@ -12,6 +13,7 @@ import { ModelDistributionChart } from './charts/model-distribution'
 import { RequestsTrendChart } from './charts/requests-trend-chart'
 import { SuccessRateChart } from './charts/success-rate-chart'
 import { TokenUsageChart } from './charts/token-usage-chart'
+import { GrafanaEmbed } from './grafana-embed'
 import { SummaryCards } from './summary-cards'
 import { TimeRangeSelect } from './time-range-select'
 import { useOverviewStats, type TimeRange } from './use-overview-stats'
@@ -57,15 +59,32 @@ function LoadingSkeleton() {
 export function OverviewPage() {
   const { t } = useTranslation()
   const isMobile = useIsMobile()
-  const { range } = DashboardIndexRoute.useSearch()
+  const { range, view } = DashboardIndexRoute.useSearch()
   const navigate = useNavigate()
+  const { data: dashboardsData } = useGrafanaDashboards()
 
+  const dashboards = useMemo(() => dashboardsData?.dashboards ?? [], [dashboardsData?.dashboards])
+  const selectedDashboard = dashboards.find((d) => d.id === view)
   const timeRange = range as TimeRange
+  const showGrafana = !!selectedDashboard
+
+  // Auto-select first Grafana dashboard when dashboards are configured
+  // By design, when Grafana dashboards exist the built-in view is replaced;
+  // users switch between dashboards via the ViewModeToggle in the header.
+  useEffect(() => {
+    if (dashboards.length > 0 && view === 'builtin') {
+      navigate({
+        to: '/',
+        search: (prev) => ({ ...prev, view: dashboards[0].id }),
+        replace: true,
+      })
+    }
+  }, [dashboards, view, navigate])
 
   const handleTimeRangeChange = (value: TimeRange) => {
     navigate({
       to: '/',
-      search: { range: value },
+      search: (prev) => ({ ...prev, range: value }),
       replace: true,
     })
   }
@@ -88,8 +107,8 @@ export function OverviewPage() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Time range selector - only show on mobile */}
-      {isMobile && (
+      {/* Time range selector - only show on mobile in builtin mode */}
+      {isMobile && !showGrafana && (
         <div className="flex items-center justify-end">
           <TimeRangeSelect value={timeRange} onChange={handleTimeRangeChange} />
         </div>
@@ -99,56 +118,62 @@ export function OverviewPage() {
         <LoadingSkeleton />
       ) : (
         <>
-          {/* Summary Cards */}
+          {/* Summary Cards - always visible */}
           <SummaryCards data={data} />
 
-          {/* Row 2: Request Trend + Token Usage */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle>{t('pages.overview.charts.requestsTrend')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RequestsTrendChart data={stableTimeSeries} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('pages.overview.charts.tokenUsage')}</CardTitle>
-              </CardHeader>
-              <CardContent>{stableTokenUsage && <TokenUsageChart data={stableTokenUsage} />}</CardContent>
-            </Card>
-          </div>
+          {showGrafana ? (
+            <GrafanaEmbed url={selectedDashboard.url} />
+          ) : (
+            <>
+              {/* Row 2: Request Trend + Token Usage */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <Card className="md:col-span-2">
+                  <CardHeader>
+                    <CardTitle>{t('pages.overview.charts.requestsTrend')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RequestsTrendChart data={stableTimeSeries} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('pages.overview.charts.tokenUsage')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>{stableTokenUsage && <TokenUsageChart data={stableTokenUsage} />}</CardContent>
+                </Card>
+              </div>
 
-          {/* Row 3: Latency Trend + Model Distribution */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('pages.overview.charts.latencyTrend')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <LatencyChart data={stableTimeSeries} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('pages.overview.charts.modelDistribution')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ModelDistributionChart data={stableModelDistribution} />
-              </CardContent>
-            </Card>
-          </div>
+              {/* Row 3: Latency Trend + Model Distribution */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('pages.overview.charts.latencyTrend')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <LatencyChart data={stableTimeSeries} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('pages.overview.charts.modelDistribution')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ModelDistributionChart data={stableModelDistribution} />
+                  </CardContent>
+                </Card>
+              </div>
 
-          {/* Row 4: Success Rate Trend */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('pages.overview.charts.successRateTrend')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SuccessRateChart data={stableTimeSeries} />
-            </CardContent>
-          </Card>
+              {/* Row 4: Success Rate Trend */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('pages.overview.charts.successRateTrend')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <SuccessRateChart data={stableTimeSeries} />
+                </CardContent>
+              </Card>
+            </>
+          )}
         </>
       )}
     </div>

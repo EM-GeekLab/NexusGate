@@ -12,6 +12,17 @@ import type {
 const logger = createLogger("alertDispatcher");
 
 /**
+ * Escape HTML special characters to prevent XSS in email templates
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
  * Compute HMAC-SHA256 signature for webhook payloads
  */
 async function computeHmacSha256(
@@ -86,12 +97,12 @@ async function dispatchEmail(
   const subject = `[NexusGate Alert] ${payload.ruleName}: ${payload.ruleType}`;
   const html = `
     <h2>NexusGate Alert</h2>
-    <p><strong>Rule:</strong> ${payload.ruleName}</p>
-    <p><strong>Type:</strong> ${payload.ruleType}</p>
-    <p><strong>Message:</strong> ${payload.message}</p>
-    <p><strong>Current Value:</strong> ${payload.currentValue}</p>
-    <p><strong>Threshold:</strong> ${payload.threshold}</p>
-    ${payload.details ? `<p><strong>Details:</strong> <pre>${JSON.stringify(payload.details, null, 2)}</pre></p>` : ""}
+    <p><strong>Rule:</strong> ${escapeHtml(payload.ruleName)}</p>
+    <p><strong>Type:</strong> ${escapeHtml(payload.ruleType)}</p>
+    <p><strong>Message:</strong> ${escapeHtml(payload.message)}</p>
+    <p><strong>Current Value:</strong> ${escapeHtml(String(payload.currentValue))}</p>
+    <p><strong>Threshold:</strong> ${escapeHtml(String(payload.threshold))}</p>
+    ${payload.details ? `<p><strong>Details:</strong> <pre>${escapeHtml(JSON.stringify(payload.details, null, 2))}</pre></p>` : ""}
   `;
 
   await transport.sendMail({

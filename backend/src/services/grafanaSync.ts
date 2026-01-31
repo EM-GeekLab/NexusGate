@@ -109,13 +109,18 @@ function buildPromQL(rule: AlertRule): {
     }
     case "quota": {
       const c = rule.condition as QuotaCondition;
+      const labels: string[] = [];
+      if (c.apiKeyId) {
+        labels.push(`api_key_id="${c.apiKeyId}"`);
+      }
+      const labelSelector = labels.join(",");
       let expr: string;
       if (c.limitType === "rpm") {
-        expr = `(nexusgate_api_key_rpm_usage / clamp_min(nexusgate_api_key_rpm_limit, 1)) * 100 > ${c.thresholdPercent}`;
+        expr = `(nexusgate_api_key_rpm_usage{${labelSelector}} / clamp_min(nexusgate_api_key_rpm_limit{${labelSelector}}, 1)) * 100 > ${c.thresholdPercent}`;
       } else if (c.limitType === "tpm") {
-        expr = `(nexusgate_api_key_tpm_usage / clamp_min(nexusgate_api_key_tpm_limit, 1)) * 100 > ${c.thresholdPercent}`;
+        expr = `(nexusgate_api_key_tpm_usage{${labelSelector}} / clamp_min(nexusgate_api_key_tpm_limit{${labelSelector}}, 1)) * 100 > ${c.thresholdPercent}`;
       } else {
-        expr = `max((nexusgate_api_key_rpm_usage / clamp_min(nexusgate_api_key_rpm_limit, 1)) * 100, (nexusgate_api_key_tpm_usage / clamp_min(nexusgate_api_key_tpm_limit, 1)) * 100) > ${c.thresholdPercent}`;
+        expr = `max((nexusgate_api_key_rpm_usage{${labelSelector}} / clamp_min(nexusgate_api_key_rpm_limit{${labelSelector}}, 1)) * 100, (nexusgate_api_key_tpm_usage{${labelSelector}} / clamp_min(nexusgate_api_key_tpm_limit{${labelSelector}}, 1)) * 100) > ${c.thresholdPercent}`;
       }
       return {
         expr,

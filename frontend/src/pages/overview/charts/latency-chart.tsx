@@ -23,11 +23,7 @@ export const LatencyChart = memo(function LatencyChart({ data }: LatencyChartPro
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis
-          dataKey="timestamp"
-          tickFormatter={(value) => format(new Date(value), 'HH:mm')}
-          className="text-xs"
-        />
+        <XAxis dataKey="timestamp" tickFormatter={(value) => format(new Date(value), 'HH:mm')} className="text-xs" />
         <YAxis yAxisId="left" unit="ms" className="text-xs" />
         <YAxis yAxisId="right" orientation="right" unit="ms" className="text-xs" />
         <Tooltip

@@ -1,5 +1,5 @@
-import { LogLayer } from "loglayer";
 import { getSimplePrettyTerminal } from "@loglayer/transport-simple-pretty-terminal";
+import { LogLayer } from "loglayer";
 
 /**
  * Global LogLayer instance with pretty terminal output
@@ -31,14 +31,20 @@ export interface Logger {
  * Handles the pattern: logger.info("message", { data }) by using withMetadata.
  */
 function createLoggerWrapper(logLayer: LogLayer): Logger {
-  const createMethod = (level: "debug" | "info" | "warn" | "error" | "trace" | "fatal") => {
+  const createMethod = (
+    level: "debug" | "info" | "warn" | "error" | "trace" | "fatal",
+  ) => {
     return (message: string, ...data: unknown[]) => {
       if (data.length > 0) {
         // If there's additional data, attach it as metadata
         const metadata: Record<string, unknown> = {};
         data.forEach((item, index) => {
           if (item !== null && item !== undefined) {
-            if (typeof item === "object" && !Array.isArray(item) && !(item instanceof Error)) {
+            if (
+              typeof item === "object" &&
+              !Array.isArray(item) &&
+              !(item instanceof Error)
+            ) {
               // Spread object properties into metadata
               Object.assign(metadata, item);
             } else if (item instanceof Error) {
@@ -67,7 +73,9 @@ function createLoggerWrapper(logLayer: LogLayer): Logger {
     trace: createMethod("trace"),
     fatal: createMethod("fatal"),
     withMetadata(metadata: Record<string, unknown>): Logger {
-      return createLoggerWrapper(logLayer.withMetadata(metadata) as unknown as LogLayer);
+      return createLoggerWrapper(
+        logLayer.withMetadata(metadata) as unknown as LogLayer,
+      );
     },
     child(): Logger {
       return createLoggerWrapper(logLayer.child());

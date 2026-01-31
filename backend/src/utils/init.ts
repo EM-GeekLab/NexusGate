@@ -1,6 +1,6 @@
-import { createLogger } from "@/utils/logger";
 import * as db from "@/db";
 import { getSetting, upsertSetting } from "@/db";
+import { createLogger } from "@/utils/logger";
 import {
   ENABLE_INIT_CONFIG,
   FORCILY_ADD_API_KEYS,

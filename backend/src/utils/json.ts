@@ -18,17 +18,24 @@ export function safeParseToolArgs(jsonString: string): Record<string, unknown> {
     const parsed: unknown = JSON.parse(jsonString);
 
     // Validate that parsed result is a plain object (not null, array, or scalar)
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed)
+    ) {
       return parsed as Record<string, unknown>;
     }
 
     // If LLM returned a scalar, array, or null as tool arguments, treat as malformed
-    logger.warn("Parsed tool arguments is not an object, returning empty object", {
-      input: jsonString,
-      parsedType: Array.isArray(parsed) ? "array" : typeof parsed,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      parsedValue: parsed,
-    });
+    logger.warn(
+      "Parsed tool arguments is not an object, returning empty object",
+      {
+        input: jsonString,
+        parsedType: Array.isArray(parsed) ? "array" : typeof parsed,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        parsedValue: parsed,
+      },
+    );
     return {};
   } catch (error) {
     logger.warn("Failed to parse tool arguments, returning empty object", {
@@ -55,9 +62,8 @@ export function parseJsonResponse<T>(text: string, context: string): T {
       preview,
       error: cause instanceof Error ? cause.message : String(cause),
     });
-    throw new Error(
-      `Failed to parse ${context} response as JSON: ${preview}`,
-      { cause },
-    );
+    throw new Error(`Failed to parse ${context} response as JSON: ${preview}`, {
+      cause,
+    });
   }
 }

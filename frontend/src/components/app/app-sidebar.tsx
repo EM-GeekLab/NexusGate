@@ -103,7 +103,7 @@ export function AppSidebar() {
                       asChild
                       className={cn(
                         'h-10 gap-3 rounded-lg px-3',
-                        isActive && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+                        isActive && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
                       )}
                     >
                       <Link to={item.href} onClick={() => setOpenMobile(false)}>

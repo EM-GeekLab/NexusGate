@@ -1,5 +1,5 @@
-import { createLogger } from "@/utils/logger";
 import { Elysia } from "elysia";
+import { createLogger } from "@/utils/logger";
 
 const logger = createLogger("router");
 

@@ -1,10 +1,10 @@
-import { createLogger } from "@/utils/logger";
 import type {
   CompletionsStatusEnumType,
   EmbeddingsInputType,
   SrvLogsLevelEnumType,
 } from "@/db/schema";
 import { findApiKey, insertEmbedding, insertLog } from "@/db";
+import { createLogger } from "@/utils/logger";
 
 const logger = createLogger("embeddings");
 

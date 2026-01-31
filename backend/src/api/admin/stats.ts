@@ -8,18 +8,16 @@ import {
   getEmbeddingsTimeSeries,
 } from "@/db";
 
-const RANGE_CONFIG: Record<
-  string,
-  { seconds: number; bucketSeconds: number }
-> = {
-  "1m": { seconds: 60, bucketSeconds: 5 },
-  "5m": { seconds: 300, bucketSeconds: 15 },
-  "10m": { seconds: 600, bucketSeconds: 30 },
-  "30m": { seconds: 1800, bucketSeconds: 60 },
-  "1h": { seconds: 3600, bucketSeconds: 120 },
-  "4h": { seconds: 14400, bucketSeconds: 480 },
-  "12h": { seconds: 43200, bucketSeconds: 1440 },
-};
+const RANGE_CONFIG: Record<string, { seconds: number; bucketSeconds: number }> =
+  {
+    "1m": { seconds: 60, bucketSeconds: 5 },
+    "5m": { seconds: 300, bucketSeconds: 15 },
+    "10m": { seconds: 600, bucketSeconds: 30 },
+    "30m": { seconds: 1800, bucketSeconds: 60 },
+    "1h": { seconds: 3600, bucketSeconds: 120 },
+    "4h": { seconds: 14400, bucketSeconds: 480 },
+    "12h": { seconds: 43200, bucketSeconds: 1440 },
+  };
 
 export const adminStats = new Elysia().group("/stats", (app) =>
   app.get(
@@ -147,7 +145,11 @@ export const adminStats = new Elysia().group("/stats", (app) =>
           const embeddingsDuration = Number(row.avg_duration);
           const completionsCount = existing.completionsCount;
 
-          if (completionsCount > 0 && embeddingsCount > 0 && embeddingsDuration > 0) {
+          if (
+            completionsCount > 0 &&
+            embeddingsCount > 0 &&
+            embeddingsDuration > 0
+          ) {
             // Both have data - calculate weighted average
             const totalDuration =
               existing.avgDuration * completionsCount +
@@ -172,7 +174,8 @@ export const adminStats = new Elysia().group("/stats", (app) =>
           totalRequests: completionsStats.total + embeddingsStats.total,
           completionsCount: completionsStats.total,
           embeddingsCount: embeddingsStats.total,
-          completionsSuccessRate: Math.round(completionsSuccessRate * 100) / 100,
+          completionsSuccessRate:
+            Math.round(completionsSuccessRate * 100) / 100,
           embeddingsSuccessRate: Math.round(embeddingsSuccessRate * 100) / 100,
           avgDuration: Math.round(Number(completionsStats.avgDuration)),
           avgTTFT: Math.round(Number(completionsStats.avgTTFT)),

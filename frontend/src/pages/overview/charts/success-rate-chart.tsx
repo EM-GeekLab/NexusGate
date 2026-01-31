@@ -10,9 +10,7 @@ interface SuccessRateChartProps {
   data: OverviewStats['timeSeries']
 }
 
-export const SuccessRateChart = memo(function SuccessRateChart({
-  data,
-}: SuccessRateChartProps) {
+export const SuccessRateChart = memo(function SuccessRateChart({ data }: SuccessRateChartProps) {
   const { t } = useTranslation()
 
   const chartData = data.map((item: OverviewStats['timeSeries'][number]) => {
@@ -37,11 +35,7 @@ export const SuccessRateChart = memo(function SuccessRateChart({
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis
-          dataKey="timestamp"
-          tickFormatter={(value) => format(new Date(value), 'HH:mm')}
-          className="text-xs"
-        />
+        <XAxis dataKey="timestamp" tickFormatter={(value) => format(new Date(value), 'HH:mm')} className="text-xs" />
         <YAxis domain={[0, 100]} unit="%" className="text-xs" />
         <Tooltip
           labelFormatter={(value) => format(new Date(value), 'yyyy-MM-dd HH:mm:ss')}

@@ -3,12 +3,12 @@
  * Handles conversion of tool definitions and tool calls between different API formats
  */
 
+import { safeParseToolArgs } from "@/utils/json";
 import type {
   InternalToolDefinition,
   JsonSchema,
   ToolUseContentBlock,
 } from "./types";
-import { safeParseToolArgs } from "@/utils/json";
 
 // =============================================================================
 // OpenAI Tool Types

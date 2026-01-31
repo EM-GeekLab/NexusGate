@@ -1,10 +1,10 @@
 import { cors } from "@elysiajs/cors";
 import { serverTiming } from "@elysiajs/server-timing";
 import { swagger } from "@elysiajs/swagger";
-// Note: @elysiajs/static is disabled in current Bun version, using manual file serving instead
-import { log } from "@/utils/logger";
 import { Elysia } from "elysia";
 import { access, readFile, stat } from "node:fs/promises";
+// Note: @elysiajs/static is disabled in current Bun version, using manual file serving instead
+import { log } from "@/utils/logger";
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -85,48 +85,50 @@ async function docsPlugin(dir: string) {
     ? await readFile(indexPath, "utf-8")
     : undefined;
 
-  return new Elysia({ name: "docsPlugin" })
-    // Handle TanStack Start's __tsr static server function cache requests
-    // These are requested from root path, not /docs/
-    .get("/__tsr/*", async ({ path, status }) => {
-      const response = await serveStaticFile(join(dir, path));
-      return response || status(404);
-    })
-    .get("/docs", ({ status }) => {
-      if (!indexHtml) {
-        return status(404);
-      }
-      return new Response(indexHtml, {
-        headers: { "Content-Type": "text/html" },
-      });
-    })
-    .get("/docs/*", async ({ path, status }) => {
-      if (!indexHtml) {
-        return status(404);
-      }
-      const subPath = path.replace("/docs", "");
-      const exactPath = join(dir, subPath);
-
-      // Try to serve as static file
-      const staticResponse = await serveStaticFile(exactPath);
-      if (staticResponse) {
-        return staticResponse;
-      }
-
-      // Check if there's a specific HTML file for this path (directory with index.html)
-      const specificHtmlPath = join(dir, subPath, "index.html");
-      if (await exists(specificHtmlPath)) {
-        const html = await readFile(specificHtmlPath, "utf-8");
-        return new Response(html, {
+  return (
+    new Elysia({ name: "docsPlugin" })
+      // Handle TanStack Start's __tsr static server function cache requests
+      // These are requested from root path, not /docs/
+      .get("/__tsr/*", async ({ path, status }) => {
+        const response = await serveStaticFile(join(dir, path));
+        return response || status(404);
+      })
+      .get("/docs", ({ status }) => {
+        if (!indexHtml) {
+          return status(404);
+        }
+        return new Response(indexHtml, {
           headers: { "Content-Type": "text/html" },
         });
-      }
+      })
+      .get("/docs/*", async ({ path, status }) => {
+        if (!indexHtml) {
+          return status(404);
+        }
+        const subPath = path.replace("/docs", "");
+        const exactPath = join(dir, subPath);
 
-      // Fall back to main index.html for SPA routing
-      return new Response(indexHtml, {
-        headers: { "Content-Type": "text/html" },
-      });
-    });
+        // Try to serve as static file
+        const staticResponse = await serveStaticFile(exactPath);
+        if (staticResponse) {
+          return staticResponse;
+        }
+
+        // Check if there's a specific HTML file for this path (directory with index.html)
+        const specificHtmlPath = join(dir, subPath, "index.html");
+        if (await exists(specificHtmlPath)) {
+          const html = await readFile(specificHtmlPath, "utf-8");
+          return new Response(html, {
+            headers: { "Content-Type": "text/html" },
+          });
+        }
+
+        // Fall back to main index.html for SPA routing
+        return new Response(indexHtml, {
+          headers: { "Content-Type": "text/html" },
+        });
+      })
+  );
 }
 
 async function spaPlugin(dir: string) {
@@ -153,7 +155,12 @@ async function spaPlugin(dir: string) {
         return status(404);
       }
       // Skip API routes and metrics (include trailing slash to prevent SPA fallback)
-      if (path.startsWith("/api") || path.startsWith("/v1") || path === "/metrics" || path === "/metrics/") {
+      if (
+        path.startsWith("/api") ||
+        path.startsWith("/v1") ||
+        path === "/metrics" ||
+        path === "/metrics/"
+      ) {
         return status(404);
       }
 
@@ -216,8 +223,6 @@ const app = new Elysia()
     idleTimeout: 255,
   });
 
-log.info(
-  `Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
-);
+log.info(`Elysia is running at ${app.server?.hostname}:${app.server?.port}`);
 
 export type App = typeof app;

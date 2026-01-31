@@ -1,4 +1,3 @@
-import { createLogger } from "@/utils/logger";
 import type {
   CompletionsCompletionType,
   CompletionsPromptType,
@@ -6,6 +5,7 @@ import type {
   SrvLogsLevelEnumType,
 } from "@/db/schema";
 import { findApiKey, insertCompletion, insertLog } from "@/db";
+import { createLogger } from "@/utils/logger";
 
 const logger = createLogger("completions");
 

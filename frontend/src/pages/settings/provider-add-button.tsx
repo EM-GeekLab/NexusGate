@@ -8,12 +8,6 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { api } from '@/lib/api'
-import {
-  PROVIDER_TYPES,
-  PROVIDER_TYPE_LABELS,
-  requiresApiVersion,
-  getApiVersionPlaceholder,
-} from '@/constants/providers'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -27,6 +21,12 @@ import {
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  getApiVersionPlaceholder,
+  PROVIDER_TYPE_LABELS,
+  PROVIDER_TYPES,
+  requiresApiVersion,
+} from '@/constants/providers'
 
 const providerSchema = z.object({
   name: z.string().min(1).max(63),
@@ -167,10 +167,7 @@ export function ProviderAddButton({ size = 'default', ...props }: ComponentProps
                   <FormItem>
                     <FormLabel>{t('pages.settings.providers.APIVersion')}</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder={getApiVersionPlaceholder(watchType)}
-                        {...field}
-                      />
+                      <Input placeholder={getApiVersionPlaceholder(watchType)} {...field} />
                     </FormControl>
                     <FormDescription>{t('pages.settings.providers.APIVersionDescription')}</FormDescription>
                     <FormMessage />

@@ -3,6 +3,7 @@
  * Handles communication with OpenAI-compatible APIs
  */
 
+import { safeParseToolArgs, parseJsonResponse } from "@/utils/json";
 import type {
   InternalContentBlock,
   InternalMessage,
@@ -19,7 +20,6 @@ import type {
   UpstreamAdapter,
 } from "../types";
 import { convertImageToUrl, hasImages } from "./utils";
-import { safeParseToolArgs, parseJsonResponse } from "@/utils/json";
 
 // =============================================================================
 // OpenAI Request/Response Types

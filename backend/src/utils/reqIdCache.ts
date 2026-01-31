@@ -71,7 +71,11 @@ export async function markInFlight(
     );
 
     if (success) {
-      logger.debug("Marked request as in-flight", { apiKeyId, reqId, completionId });
+      logger.debug("Marked request as in-flight", {
+        apiKeyId,
+        reqId,
+        completionId,
+      });
     } else {
       logger.debug("Request already in-flight", { apiKeyId, reqId });
     }

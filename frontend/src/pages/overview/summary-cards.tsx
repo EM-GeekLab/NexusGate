@@ -19,33 +19,32 @@ export const SummaryCards = memo(function SummaryCards({ data }: SummaryCardsPro
   const totalCompleted =
     (summary.completionsCount * summary.completionsSuccessRate) / 100 +
     (summary.embeddingsCount * summary.embeddingsSuccessRate) / 100
-  const overallSuccessRate =
-    summary.totalRequests > 0 ? (totalCompleted / summary.totalRequests) * 100 : 100
+  const overallSuccessRate = summary.totalRequests > 0 ? (totalCompleted / summary.totalRequests) * 100 : 100
 
   const cards = [
     {
       title: t('pages.overview.metrics.totalRequests'),
       value: summary.totalRequests.toLocaleString(),
       description: `${summary.completionsCount} ${t('pages.overview.metrics.completions')} / ${summary.embeddingsCount} ${t('pages.overview.metrics.embeddings')}`,
-      icon: <ActivityIcon className="size-4 text-muted-foreground" />,
+      icon: <ActivityIcon className="text-muted-foreground size-4" />,
     },
     {
       title: t('pages.overview.metrics.avgLatency'),
       value: summary.avgDuration > 0 ? `${summary.avgDuration}ms` : '-',
       description: t('pages.overview.metrics.avgLatencyDesc'),
-      icon: <ClockIcon className="size-4 text-muted-foreground" />,
+      icon: <ClockIcon className="text-muted-foreground size-4" />,
     },
     {
       title: t('pages.overview.metrics.avgTTFT'),
       value: summary.avgTTFT > 0 ? `${summary.avgTTFT}ms` : '-',
       description: t('pages.overview.metrics.avgTTFTDesc'),
-      icon: <ZapIcon className="size-4 text-muted-foreground" />,
+      icon: <ZapIcon className="text-muted-foreground size-4" />,
     },
     {
       title: t('pages.overview.metrics.successRate'),
       value: `${overallSuccessRate.toFixed(1)}%`,
       description: `${t('pages.overview.metrics.completions')}: ${summary.completionsSuccessRate.toFixed(1)}% / ${t('pages.overview.metrics.embeddings')}: ${summary.embeddingsSuccessRate.toFixed(1)}%`,
-      icon: <GaugeIcon className="size-4 text-muted-foreground" />,
+      icon: <GaugeIcon className="text-muted-foreground size-4" />,
     },
   ]
 
@@ -59,7 +58,7 @@ export const SummaryCards = memo(function SummaryCards({ data }: SummaryCardsPro
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{card.value}</div>
-            <p className="text-xs text-muted-foreground">{card.description}</p>
+            <p className="text-muted-foreground text-xs">{card.description}</p>
           </CardContent>
         </Card>
       ))}

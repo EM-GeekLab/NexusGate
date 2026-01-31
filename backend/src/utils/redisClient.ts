@@ -1,6 +1,6 @@
-import { createLogger } from "@/utils/logger";
 import Redis from "ioredis";
 import { REDIS_URL } from "@/utils/config";
+import { createLogger } from "@/utils/logger";
 
 const logger = createLogger("redisClient");
 

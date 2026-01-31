@@ -3,8 +3,6 @@ import { BoxesIcon, CpuIcon, MenuIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import {
   AppHeader,
   AppHeaderPart,
@@ -12,6 +10,8 @@ import {
   AppSidebarSeparator,
   AppSidebarTrigger,
 } from '@/components/app/app-header'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 export const Route = createFileRoute('/settings')({
@@ -48,7 +48,7 @@ function RouteComponent() {
               'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
               isActive
                 ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
             {item.icon}
@@ -80,7 +80,7 @@ function RouteComponent() {
                     <SheetTitle>Settings Navigation</SheetTitle>
                     <SheetDescription>Navigate between settings pages</SheetDescription>
                   </SheetHeader>
-                  <div className="px-3 pb-4 pt-8">
+                  <div className="px-3 pt-8 pb-4">
                     <NavContent />
                   </div>
                 </SheetContent>

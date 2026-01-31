@@ -1,8 +1,8 @@
 import { Elysia } from "elysia";
-import { apiKeyPlugin } from "./apiKeyPlugin";
 import { checkRpmLimit, checkTpmLimit } from "@/utils/apiKeyRateLimit";
-import { redisClient } from "@/utils/redisClient";
 import { createLogger } from "@/utils/logger";
+import { redisClient } from "@/utils/redisClient";
+import { apiKeyPlugin } from "./apiKeyPlugin";
 
 // Re-export consumeTokens for use in API handlers
 export { consumeTokens } from "@/utils/apiKeyRateLimit";
@@ -111,9 +111,11 @@ export const apiKeyRateLimitPlugin = new Elysia({
 
         // Set rate limit headers for successful requests
         set.headers["X-RateLimit-Limit-RPM"] = apiKeyRecord.rpmLimit.toString();
-        set.headers["X-RateLimit-Remaining-RPM"] = rpmResult.remaining.toString();
+        set.headers["X-RateLimit-Remaining-RPM"] =
+          rpmResult.remaining.toString();
         set.headers["X-RateLimit-Limit-TPM"] = apiKeyRecord.tpmLimit.toString();
-        set.headers["X-RateLimit-Remaining-TPM"] = tpmResult.remaining.toString();
+        set.headers["X-RateLimit-Remaining-TPM"] =
+          tpmResult.remaining.toString();
       },
     },
   });

@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 import { OpenAI } from "openai";
+import type { ProviderTypeEnumType } from "@/db/schema";
 import {
   deleteProvider,
   findProvider,
@@ -8,7 +9,6 @@ import {
   updateProvider,
   listModelsByProvider,
 } from "@/db";
-import type { ProviderTypeEnumType } from "@/db/schema";
 
 // ============================================
 // Provider Test Strategy Pattern
@@ -36,7 +36,9 @@ type ProviderTestFn = (provider: Provider) => Promise<ProviderTestResult>;
  * This helper detects 404/405 errors which indicate the endpoint doesn't exist
  * but the connection itself may be working.
  */
-function isModelEndpointUnavailable(error: Error & { status?: number }): boolean {
+function isModelEndpointUnavailable(
+  error: Error & { status?: number },
+): boolean {
   const errorMessage = error.message || "";
   return (
     error.status === 404 ||
@@ -157,7 +159,9 @@ async function testDefaultOpenAIConnection(
  * Map provider types to their specific test functions.
  * Providers not in this map will use the default OpenAI test.
  */
-const providerTestHandlers: Partial<Record<ProviderTypeEnumType, ProviderTestFn>> = {
+const providerTestHandlers: Partial<
+  Record<ProviderTypeEnumType, ProviderTestFn>
+> = {
   anthropic: testAnthropicConnection,
   "openai-responses": testOpenAIResponsesConnection,
 };
@@ -339,7 +343,8 @@ export const adminProviders = new Elysia({ prefix: "/providers" })
       // Anthropic does not have a models list endpoint
       if (provider.type === "anthropic") {
         return status(400, {
-          error: "Anthropic API does not support listing models. Please configure models manually.",
+          error:
+            "Anthropic API does not support listing models. Please configure models manually.",
           unsupported: true,
         });
       }
@@ -367,7 +372,8 @@ export const adminProviders = new Elysia({ prefix: "/providers" })
           isModelEndpointUnavailable(error)
         ) {
           return status(400, {
-            error: "Models list endpoint not available for this provider. Please configure models manually.",
+            error:
+              "Models list endpoint not available for this provider. Please configure models manually.",
             unsupported: true,
           });
         }

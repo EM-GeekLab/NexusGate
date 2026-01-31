@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { CpuIcon, HistoryIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 
 import { api } from '@/lib/api'
@@ -53,9 +53,7 @@ export function ModelsSettingsPage({ systemNames }: { systemNames: string[] }) {
               </TableBody>
             </Table>
           ) : (
-            <div className="text-muted-foreground py-12 text-center text-sm">
-              {t('pages.models.registry.NoModels')}
-            </div>
+            <div className="text-muted-foreground py-12 text-center text-sm">{t('pages.models.registry.NoModels')}</div>
           )}
         </CardContent>
       </Card>
@@ -95,13 +93,15 @@ function ModelRow({ systemName }: { systemName: string }) {
   return (
     <>
       <TableRow
-        className={`cursor-pointer hover:bg-muted/50 ${isUnavailable ? 'opacity-50' : ''}`}
+        className={`hover:bg-muted/50 cursor-pointer ${isUnavailable ? 'opacity-50' : ''}`}
         onClick={() => !isUnavailable && setShowDialog(true)}
       >
         <TableCell>
           <div className="flex items-center gap-3">
             <CpuIcon className={`size-5 ${isUnavailable ? 'text-muted-foreground/50' : 'text-muted-foreground'}`} />
-            <span className={`font-mono text-sm font-medium ${isUnavailable ? 'text-muted-foreground line-through' : ''}`}>
+            <span
+              className={`font-mono text-sm font-medium ${isUnavailable ? 'text-muted-foreground line-through' : ''}`}
+            >
               {systemName}
             </span>
           </div>
@@ -111,7 +111,9 @@ function ModelRow({ systemName }: { systemName: string }) {
             <span className="text-muted-foreground text-sm">-</span>
           ) : modelType ? (
             <Badge variant={modelType === 'chat' ? 'default' : 'secondary'} className="text-xs">
-              {modelType === 'chat' ? t('pages.settings.models.columns.Chat') : t('pages.settings.models.columns.Embedding')}
+              {modelType === 'chat'
+                ? t('pages.settings.models.columns.Chat')
+                : t('pages.settings.models.columns.Embedding')}
             </Badge>
           ) : (
             <span className="text-muted-foreground text-sm">-</span>
@@ -150,12 +152,7 @@ function ModelRow({ systemName }: { systemName: string }) {
         </TableCell>
       </TableRow>
 
-      <LoadBalancingDialog
-        open={showDialog}
-        onOpenChange={setShowDialog}
-        systemName={systemName}
-        models={models}
-      />
+      <LoadBalancingDialog open={showDialog} onOpenChange={setShowDialog} systemName={systemName} models={models} />
     </>
   )
 }

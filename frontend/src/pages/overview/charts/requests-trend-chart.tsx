@@ -10,9 +10,7 @@ interface RequestsTrendChartProps {
   data: OverviewStats['timeSeries']
 }
 
-export const RequestsTrendChart = memo(function RequestsTrendChart({
-  data,
-}: RequestsTrendChartProps) {
+export const RequestsTrendChart = memo(function RequestsTrendChart({ data }: RequestsTrendChartProps) {
   const { t } = useTranslation()
 
   const chartData = data.map((item: OverviewStats['timeSeries'][number]) => ({
@@ -25,11 +23,7 @@ export const RequestsTrendChart = memo(function RequestsTrendChart({
     <ResponsiveContainer width="100%" height={300}>
       <AreaChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis
-          dataKey="timestamp"
-          tickFormatter={(value) => format(new Date(value), 'HH:mm')}
-          className="text-xs"
-        />
+        <XAxis dataKey="timestamp" tickFormatter={(value) => format(new Date(value), 'HH:mm')} className="text-xs" />
         <YAxis className="text-xs" />
         <Tooltip
           labelFormatter={(value) => format(new Date(value), 'yyyy-MM-dd HH:mm:ss')}

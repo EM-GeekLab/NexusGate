@@ -1,11 +1,11 @@
 import { Elysia } from "elysia";
+import { createLogger } from "@/utils/logger";
 import { consume, type TokenBucketOptions } from "@/utils/tokenBucket";
 import {
   DEFAULT_RATE_LIMIT_CONFIG,
   getRateLimitConfig,
 } from "../utils/rateLimitConfig";
 import { apiKeyPlugin } from "./apiKeyPlugin";
-import { createLogger } from "@/utils/logger";
 
 const logger = createLogger("rateLimitPlugin");
 

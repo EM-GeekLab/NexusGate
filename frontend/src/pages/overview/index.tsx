@@ -116,9 +116,7 @@ export function OverviewPage() {
               <CardHeader>
                 <CardTitle>{t('pages.overview.charts.tokenUsage')}</CardTitle>
               </CardHeader>
-              <CardContent>
-                {stableTokenUsage && <TokenUsageChart data={stableTokenUsage} />}
-              </CardContent>
+              <CardContent>{stableTokenUsage && <TokenUsageChart data={stableTokenUsage} />}</CardContent>
             </Card>
           </div>
 

@@ -12,6 +12,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile'
 import { TimeRangeSelect } from '@/pages/overview/time-range-select'
 import type { TimeRange } from '@/pages/overview/use-overview-stats'
+
 import { Route as DashboardIndexRoute } from './index'
 
 export const Route = createFileRoute('/_dashboard')({

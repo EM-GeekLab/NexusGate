@@ -18,9 +18,9 @@ describe("JSON Parsing - Integration Tests", () => {
 </body>
 </html>`;
 
-      expect(() =>
-        parseJsonResponse(htmlError, "OpenAI Chat")
-      ).toThrow("Failed to parse OpenAI Chat response as JSON");
+      expect(() => parseJsonResponse(htmlError, "OpenAI Chat")).toThrow(
+        "Failed to parse OpenAI Chat response as JSON",
+      );
     });
 
     test("should handle 502 Bad Gateway HTML", () => {
@@ -32,9 +32,9 @@ describe("JSON Parsing - Integration Tests", () => {
 </body>
 </html>`;
 
-      expect(() =>
-        parseJsonResponse(htmlError, "Anthropic")
-      ).toThrow("Failed to parse Anthropic response as JSON");
+      expect(() => parseJsonResponse(htmlError, "Anthropic")).toThrow(
+        "Failed to parse Anthropic response as JSON",
+      );
     });
 
     test("should handle Cloudflare error pages", () => {
@@ -52,7 +52,7 @@ describe("JSON Parsing - Integration Tests", () => {
 </html>`;
 
       expect(() =>
-        parseJsonResponse(cloudflareError, "OpenAI Responses")
+        parseJsonResponse(cloudflareError, "OpenAI Responses"),
       ).toThrow("Failed to parse OpenAI Responses response as JSON");
     });
   });
@@ -118,16 +118,16 @@ describe("JSON Parsing - Integration Tests", () => {
   describe("Mixed content responses", () => {
     test("should handle JSON wrapped in markdown code blocks", () => {
       const wrapped = '```json\n{"status": "success"}\n```';
-      expect(() =>
-        parseJsonResponse(wrapped, "TestAPI")
-      ).toThrow("Failed to parse TestAPI response as JSON");
+      expect(() => parseJsonResponse(wrapped, "TestAPI")).toThrow(
+        "Failed to parse TestAPI response as JSON",
+      );
     });
 
     test("should handle plain text error messages", () => {
       const plainText = "Rate limit exceeded. Please try again later.";
-      expect(() =>
-        parseJsonResponse(plainText, "OpenAI Chat")
-      ).toThrow("Failed to parse OpenAI Chat response as JSON");
+      expect(() => parseJsonResponse(plainText, "OpenAI Chat")).toThrow(
+        "Failed to parse OpenAI Chat response as JSON",
+      );
     });
 
     test("should handle XML error responses", () => {
@@ -136,9 +136,9 @@ describe("JSON Parsing - Integration Tests", () => {
   <Code>InternalError</Code>
   <Message>We encountered an internal error. Please try again.</Message>
 </Error>`;
-      expect(() =>
-        parseJsonResponse(xmlError, "Azure")
-      ).toThrow("Failed to parse Azure response as JSON");
+      expect(() => parseJsonResponse(xmlError, "Azure")).toThrow(
+        "Failed to parse Azure response as JSON",
+      );
     });
   });
 
@@ -146,9 +146,9 @@ describe("JSON Parsing - Integration Tests", () => {
     test("should handle response with BOM (Byte Order Mark)", () => {
       const withBOM = '\uFEFF{"status": "success"}';
       // Bun's JSON parser rejects BOM as invalid JSON
-      expect(() =>
-        parseJsonResponse(withBOM, "TestAPI")
-      ).toThrow("Failed to parse TestAPI response as JSON");
+      expect(() => parseJsonResponse(withBOM, "TestAPI")).toThrow(
+        "Failed to parse TestAPI response as JSON",
+      );
     });
 
     test("should handle very large response preview truncation", () => {
@@ -178,9 +178,9 @@ describe("JSON Parsing - Integration Tests", () => {
 
     test("should handle response with only whitespace", () => {
       const whitespace = "   \n\n\t\t   ";
-      expect(() =>
-        parseJsonResponse(whitespace, "EmptyResponse")
-      ).toThrow("Failed to parse EmptyResponse response as JSON");
+      expect(() => parseJsonResponse(whitespace, "EmptyResponse")).toThrow(
+        "Failed to parse EmptyResponse response as JSON",
+      );
     });
   });
 

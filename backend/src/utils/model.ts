@@ -1,10 +1,10 @@
-import { createLogger } from "@/utils/logger";
 import type { ModelTypeEnumType } from "@/db/schema";
 import {
   getModelsWithProviderBySystemName,
   type Model,
   type Provider,
 } from "@/db";
+import { createLogger } from "@/utils/logger";
 
 const logger = createLogger("modelSelector");
 

@@ -1,6 +1,6 @@
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
 import { ArrowUpDownIcon, CopyIcon, GaugeIcon, MoreHorizontalIcon, OctagonXIcon } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -83,65 +83,65 @@ export const RowActionButton = ({ data }: { data: ApiKey }) => {
 
   return (
     <>
-    <AlertDialog>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="size-8 p-0">
-            <span className="sr-only">{t('pages.api-keys.row-action-button.OpenMenu')}</span>
-            <MoreHorizontalIcon />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem onClick={() => copy(getAPIBaseURL())}>
-            <CopyIcon />
-            {t('pages.api-keys.row-action-button.CopyBaseURL')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => copy(data.key)}>
-            <CopyIcon />
-            {t('pages.api-keys.row-action-button.CopyAPIKey')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate({ to: '/requests', search: { apiKeyId: data.id } })}>
-            <ArrowUpDownIcon />
-            {t('pages.api-keys.row-action-button.ViewRequests')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setRateLimitDialogOpen(true)}>
-            <GaugeIcon />
-            {t('pages.api-keys.row-action-button.ConfigureRateLimits')}
-          </DropdownMenuItem>
-          {!data.revoked && (
-            <>
-              <DropdownMenuSeparator />
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem>
-                  <OctagonXIcon />
-                  {t('pages.api-keys.row-action-button.RevokeAPIKey')}
-                </DropdownMenuItem>
-              </AlertDialogTrigger>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t('pages.api-keys.row-action-button.AreYouSure?')}</AlertDialogTitle>
-          <AlertDialogDescription>
-            <Trans
-              i18nKey="pages.api-keys.row-action-button.APIKeyOfApplicationWillBeRevoked"
-              values={{ comment: data.comment }}
-              components={{ bold: <span className="text-foreground font-bold" /> }}
-            />
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{t('pages.api-keys.row-action-button.Cancel')}</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={() => mutate(data.key)}>
-            {t('pages.api-keys.row-action-button.Continue')}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      <AlertDialog>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="size-8 p-0">
+              <span className="sr-only">{t('pages.api-keys.row-action-button.OpenMenu')}</span>
+              <MoreHorizontalIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => copy(getAPIBaseURL())}>
+              <CopyIcon />
+              {t('pages.api-keys.row-action-button.CopyBaseURL')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => copy(data.key)}>
+              <CopyIcon />
+              {t('pages.api-keys.row-action-button.CopyAPIKey')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate({ to: '/requests', search: { apiKeyId: data.id } })}>
+              <ArrowUpDownIcon />
+              {t('pages.api-keys.row-action-button.ViewRequests')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setRateLimitDialogOpen(true)}>
+              <GaugeIcon />
+              {t('pages.api-keys.row-action-button.ConfigureRateLimits')}
+            </DropdownMenuItem>
+            {!data.revoked && (
+              <>
+                <DropdownMenuSeparator />
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem>
+                    <OctagonXIcon />
+                    {t('pages.api-keys.row-action-button.RevokeAPIKey')}
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('pages.api-keys.row-action-button.AreYouSure?')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              <Trans
+                i18nKey="pages.api-keys.row-action-button.APIKeyOfApplicationWillBeRevoked"
+                values={{ comment: data.comment }}
+                components={{ bold: <span className="text-foreground font-bold" /> }}
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('pages.api-keys.row-action-button.Cancel')}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => mutate(data.key)}>
+              {t('pages.api-keys.row-action-button.Continue')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-    <RateLimitDialog apiKey={data} open={rateLimitDialogOpen} onOpenChange={setRateLimitDialogOpen} />
-  </>
+      <RateLimitDialog apiKey={data} open={rateLimitDialogOpen} onOpenChange={setRateLimitDialogOpen} />
+    </>
   )
 }

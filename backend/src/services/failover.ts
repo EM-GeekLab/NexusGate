@@ -6,8 +6,8 @@
  * tries the next available provider.
  */
 
-import { createLogger } from "@/utils/logger";
 import type { ModelWithProvider } from "@/adapters/types";
+import { createLogger } from "@/utils/logger";
 
 const logger = createLogger("failover");
 
@@ -365,7 +365,9 @@ export function reorderCandidatesWithPreferred(
     return candidates;
   }
 
-  const others = candidates.filter((c) => c.provider.id !== preferredProviderId);
+  const others = candidates.filter(
+    (c) => c.provider.id !== preferredProviderId,
+  );
   return [preferred, ...others];
 }
 

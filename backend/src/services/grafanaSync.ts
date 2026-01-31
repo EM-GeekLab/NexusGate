@@ -81,21 +81,28 @@ function buildPromQL(rule: AlertRule): {
     }
     case "error_rate": {
       const c = rule.condition as ErrorRateCondition;
-      const modelFilter = c.model ? `model="${c.model}",` : "";
+      const labels: string[] = [];
+      if (c.model) {
+        labels.push(`model="${c.model}"`);
+      }
+      const baseSelector = labels.join(",");
+      const failedSelector = [...labels, `status="failed"`].join(",");
       return {
-        expr: `(sum(rate(nexusgate_completions_total{${modelFilter}status="failed"}[${c.windowMinutes}m])) / clamp_min(sum(rate(nexusgate_completions_total{${modelFilter}}[${c.windowMinutes}m])), 1e-10)) * 100 > ${c.thresholdPercent}`,
+        expr: `(sum(rate(nexusgate_completions_total{${failedSelector}}[${c.windowMinutes}m])) / clamp_min(sum(rate(nexusgate_completions_total{${baseSelector}}[${c.windowMinutes}m])), 1e-10)) * 100 > ${c.thresholdPercent}`,
         threshold: c.thresholdPercent,
         forDuration: "1m",
       };
     }
     case "latency": {
       const c = rule.condition as LatencyCondition;
-      const modelFilter = c.model
-        ? `,model="${c.model}"`
-        : "";
+      const labels: string[] = [];
+      if (c.model) {
+        labels.push(`model="${c.model}"`);
+      }
+      const labelSelector = labels.join(",");
       const thresholdSec = c.thresholdMs / 1000;
       return {
-        expr: `histogram_quantile(${c.percentile / 100}, sum(rate(nexusgate_completion_duration_seconds_bucket{${modelFilter}}[${c.windowMinutes}m])) by (le)) > ${thresholdSec}`,
+        expr: `histogram_quantile(${c.percentile / 100}, sum(rate(nexusgate_completion_duration_seconds_bucket{${labelSelector}}[${c.windowMinutes}m])) by (le)) > ${thresholdSec}`,
         threshold: c.thresholdMs,
         forDuration: "1m",
       };

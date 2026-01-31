@@ -58,6 +58,7 @@ async function dispatchWebhook(
     method: "POST",
     headers,
     body,
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -146,6 +147,7 @@ async function dispatchFeishu(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -169,6 +171,8 @@ export async function dispatchToChannel(
       return dispatchEmail(config as EmailChannelConfig, payload);
     case "feishu":
       return dispatchFeishu(config as FeishuChannelConfig, payload);
+    default:
+      throw new Error(`Unsupported channel type: ${channelType as string}`);
   }
 }
 

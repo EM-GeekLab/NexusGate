@@ -104,10 +104,10 @@ async function evaluateLatency(
 async function evaluateQuota(
   condition: QuotaCondition,
 ): Promise<{ triggered: boolean; currentValue: number }> {
+  const apiKeys = await listApiKeys();
+
   // If a specific API key is specified, check just that one
   if (condition.apiKeyId) {
-    // Need to get the key's limits from the DB
-    const apiKeys = await listApiKeys();
     const apiKey = apiKeys.find((k) => k.id === condition.apiKeyId);
     if (!apiKey) {
       return { triggered: false, currentValue: 0 };
@@ -149,7 +149,6 @@ async function evaluateQuota(
   }
 
   // Check all active API keys, trigger if any exceed threshold
-  const apiKeys = await listApiKeys();
   let maxUsagePercent = 0;
 
   for (const key of apiKeys) {

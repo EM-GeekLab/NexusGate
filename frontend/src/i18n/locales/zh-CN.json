@@ -503,6 +503,7 @@
   "pages.settings.grafana.DashboardsClearFailed": "清除仪表盘配置失败",
   "pages.settings.grafana.EnvOverrideWarning": "仪表盘配置由 GRAFANA_DASHBOARDS 环境变量管理，无法在此修改。",
   "pages.settings.grafana.NoDashboards": "未配置仪表盘",
+  "pages.settings.grafana.Testing": "测试中...",
   "pages.settings.alerts.grafana.SyncAll": "同步到 Grafana",
   "pages.settings.alerts.grafana.SyncRules": "同步规则",
   "pages.settings.alerts.grafana.SyncChannels": "同步渠道",

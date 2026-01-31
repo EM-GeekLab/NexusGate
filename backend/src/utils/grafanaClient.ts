@@ -73,6 +73,7 @@ export class GrafanaClient {
         "X-Disable-Provenance": "true",
         ...options.headers,
       },
+      signal: options.signal ?? AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {

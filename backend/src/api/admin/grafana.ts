@@ -105,6 +105,7 @@ export const adminGrafana = new Elysia({ prefix: "/grafana" })
         // Step 1: Test health endpoint
         const healthRes = await fetch(`${config.apiUrl}/api/health`, {
           headers: { Authorization: `Bearer ${config.authToken}` },
+          signal: AbortSignal.timeout(10_000),
         });
         if (!healthRes.ok) {
           throw new Error(
@@ -117,6 +118,7 @@ export const adminGrafana = new Elysia({ prefix: "/grafana" })
         try {
           const dsRes = await fetch(`${config.apiUrl}/api/datasources`, {
             headers: { Authorization: `Bearer ${config.authToken}` },
+            signal: AbortSignal.timeout(10_000),
           });
           if (dsRes.ok) {
             const datasources = (await dsRes.json()) as Array<{
@@ -155,6 +157,7 @@ export const adminGrafana = new Elysia({ prefix: "/grafana" })
           key: GRAFANA_CONNECTION_KEY,
           value: {
             ...config,
+            datasourceUid: undefined,
             verified: false,
             verifiedAt: null,
           } satisfies GrafanaConnection,

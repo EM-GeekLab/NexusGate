@@ -203,7 +203,7 @@ function ConnectionCard({ connection }: { connection: GrafanaConnectionResponse 
               {connection.configured && (
                 <>
                   <Button type="button" variant="outline" disabled={isTesting} onClick={() => testMutation.mutate()}>
-                    {isTesting ? t('pages.settings.alerts.grafana.Syncing') : t('pages.settings.grafana.TestConnection')}
+                    {isTesting ? t('pages.settings.grafana.Testing') : t('pages.settings.grafana.TestConnection')}
                   </Button>
                   <Button type="button" variant="destructive" disabled={deleteMutation.isPending} onClick={() => deleteMutation.mutate()}>
                     {t('pages.settings.grafana.Delete')}

@@ -502,6 +502,7 @@
   "pages.settings.grafana.DashboardsClearFailed": "Failed to clear dashboard configuration",
   "pages.settings.grafana.EnvOverrideWarning": "Dashboard configuration is managed by the GRAFANA_DASHBOARDS environment variable and cannot be modified here.",
   "pages.settings.grafana.NoDashboards": "No dashboards configured",
+  "pages.settings.grafana.Testing": "Testing...",
   "pages.settings.alerts.grafana.SyncAll": "Sync All to Grafana",
   "pages.settings.alerts.grafana.SyncRules": "Sync Rules",
   "pages.settings.alerts.grafana.SyncChannels": "Sync Channels",

@@ -475,7 +475,7 @@ export const AlertHistoryTable = pgTable("alert_history", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   ruleId: integer("rule_id")
     .notNull()
-    .references((): AnyPgColumn => AlertRulesTable.id),
+    .references((): AnyPgColumn => AlertRulesTable.id, { onDelete: "cascade" }),
   triggeredAt: timestamp("triggered_at").notNull().defaultNow(),
   resolvedAt: timestamp("resolved_at"),
   payload: jsonb("payload").notNull().$type<AlertPayload>(),

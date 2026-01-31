@@ -5,10 +5,10 @@
  * concurrent requests with the same ReqId.
  */
 
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import { redisClient } from "./redisClient";
 
-const logger = consola.withTag("reqIdCache");
+const logger = createLogger("reqIdCache");
 
 /**
  * In-flight request data stored in Redis
@@ -71,7 +71,11 @@ export async function markInFlight(
     );
 
     if (success) {
-      logger.debug("Marked request as in-flight", { apiKeyId, reqId, completionId });
+      logger.debug("Marked request as in-flight", {
+        apiKeyId,
+        reqId,
+        completionId,
+      });
     } else {
       logger.debug("Request already in-flight", { apiKeyId, reqId });
     }

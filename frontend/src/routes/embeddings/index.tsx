@@ -42,7 +42,13 @@ const embeddingsQueryOptions = ({ page, pageSize, apiKeyId, modelId, model }: Em
 
 export const Route = createFileRoute('/embeddings/')({
   validateSearch: zodValidator(embeddingsSearchSchema),
-  loaderDeps: ({ search: { page, pageSize, apiKeyId, modelId, model } }) => ({ page, pageSize, apiKeyId, modelId, model }),
+  loaderDeps: ({ search: { page, pageSize, apiKeyId, modelId, model } }) => ({
+    page,
+    pageSize,
+    apiKeyId,
+    modelId,
+    model,
+  }),
   loader: ({ deps }) => queryClient.ensureQueryData(embeddingsQueryOptions(deps)),
   component: RouteComponent,
   errorComponent: AppErrorComponent,

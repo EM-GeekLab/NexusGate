@@ -22,14 +22,12 @@ const COLORS = [
   'var(--color-chart-10)',
 ]
 
-export const ModelDistributionChart = memo(function ModelDistributionChart({
-  data,
-}: ModelDistributionChartProps) {
+export const ModelDistributionChart = memo(function ModelDistributionChart({ data }: ModelDistributionChartProps) {
   const { t } = useTranslation()
 
   if (data.length === 0) {
     return (
-      <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+      <div className="text-muted-foreground flex h-[300px] items-center justify-center">
         {t('pages.overview.noData')}
       </div>
     )
@@ -62,11 +60,7 @@ export const ModelDistributionChart = memo(function ModelDistributionChart({
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip
-          contentStyle={tooltipContentStyle}
-          labelStyle={tooltipLabelStyle}
-          itemStyle={tooltipItemStyle}
-        />
+        <Tooltip contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
         <Legend />
       </PieChart>
     </ResponsiveContainer>

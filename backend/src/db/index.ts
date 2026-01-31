@@ -1,8 +1,8 @@
-import { consola } from "consola";
 import { and, asc, count, desc, eq, like, not, sql, sum } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sql";
 import { migrate } from "drizzle-orm/bun-sql/migrator";
 import { DATABASE_URL } from "@/utils/config";
+import { createLogger } from "@/utils/logger";
 import type { ModelTypeEnumType } from "./schema";
 import * as schema from "./schema";
 
@@ -10,7 +10,7 @@ const globalThis_ = globalThis as typeof globalThis & {
   db: ReturnType<typeof drizzle>;
 };
 
-const logger = consola.withTag("database");
+const logger = createLogger("database");
 
 const db = (() => {
   if (!globalThis_.db) {
@@ -18,7 +18,7 @@ const db = (() => {
       connection: DATABASE_URL,
       schema: schema,
     });
-    logger.success("connection created");
+    logger.info("connection created");
   }
   return globalThis_.db;
 })();
@@ -699,13 +699,13 @@ export async function insertProvider(
   logger.debug("insertProvider", p.name);
   const existing = await findProviderByName(p.name);
   if (existing) {
-    logger.debug("already exists a non-deleted provider with same name", p.name);
+    logger.debug(
+      "already exists a non-deleted provider with same name",
+      p.name,
+    );
     return null;
   }
-  const r = await db
-    .insert(schema.ProvidersTable)
-    .values(p)
-    .returning();
+  const r = await db.insert(schema.ProvidersTable).values(p).returning();
   const [first] = r;
   return first ?? null;
 }
@@ -1100,15 +1100,17 @@ export async function getCompletionsStats(rangeSeconds: number) {
       ),
     );
   const [first] = r;
-  return first ?? {
-    total: 0,
-    completed: 0,
-    failed: 0,
-    avgDuration: 0,
-    avgTTFT: 0,
-    totalPromptTokens: 0,
-    totalCompletionTokens: 0,
-  };
+  return (
+    first ?? {
+      total: 0,
+      completed: 0,
+      failed: 0,
+      avgDuration: 0,
+      avgTTFT: 0,
+      totalPromptTokens: 0,
+      totalCompletionTokens: 0,
+    }
+  );
 }
 
 /**
@@ -1133,13 +1135,15 @@ export async function getEmbeddingsStats(rangeSeconds: number) {
       ),
     );
   const [first] = r;
-  return first ?? {
-    total: 0,
-    completed: 0,
-    failed: 0,
-    avgDuration: 0,
-    totalInputTokens: 0,
-  };
+  return (
+    first ?? {
+      total: 0,
+      completed: 0,
+      failed: 0,
+      avgDuration: 0,
+      totalInputTokens: 0,
+    }
+  );
 }
 
 /**
@@ -1306,10 +1310,7 @@ export async function createPendingCompletion(
 ): Promise<Completion | null> {
   logger.debug("createPendingCompletion", c.model, c.reqId);
   try {
-    const r = await db
-      .insert(schema.CompletionsTable)
-      .values(c)
-      .returning();
+    const r = await db.insert(schema.CompletionsTable).values(c).returning();
     const [first] = r;
     return first ?? null;
   } catch (error) {
@@ -1413,7 +1414,9 @@ export async function getEmbeddingMetricsByModelAndStatus() {
 }
 
 // Histogram bucket boundaries in milliseconds (for LLM latency)
-export const LATENCY_BUCKETS_MS = [100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000, 120000];
+export const LATENCY_BUCKETS_MS = [
+  100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000, 120000,
+];
 
 // Pre-computed bucket case SQL fragments (constant, computed once at module load)
 const DURATION_BUCKET_CASES = LATENCY_BUCKETS_MS.map(
@@ -1434,7 +1437,8 @@ const TTFT_BUCKET_CASES = LATENCY_BUCKETS_MS.map(
  */
 export async function getCompletionDurationHistogram() {
   logger.debug("getCompletionDurationHistogram");
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(
+    sql.raw(`
     SELECT
       model,
       ${DURATION_BUCKET_CASES},
@@ -1443,7 +1447,8 @@ export async function getCompletionDurationHistogram() {
     FROM completions
     WHERE deleted = false AND duration > 0
     GROUP BY model
-  `));
+  `),
+  );
   return result as unknown as Record<string, string>[];
 }
 
@@ -1453,7 +1458,8 @@ export async function getCompletionDurationHistogram() {
  */
 export async function getCompletionTTFTHistogram() {
   logger.debug("getCompletionTTFTHistogram");
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(
+    sql.raw(`
     SELECT
       model,
       ${TTFT_BUCKET_CASES},
@@ -1462,7 +1468,8 @@ export async function getCompletionTTFTHistogram() {
     FROM completions
     WHERE deleted = false AND ttft > 0 AND status = 'completed'
     GROUP BY model
-  `));
+  `),
+  );
   return result as unknown as Record<string, string>[];
 }
 
@@ -1472,7 +1479,8 @@ export async function getCompletionTTFTHistogram() {
  */
 export async function getEmbeddingDurationHistogram() {
   logger.debug("getEmbeddingDurationHistogram");
-  const result = await db.execute(sql.raw(`
+  const result = await db.execute(
+    sql.raw(`
     SELECT
       model,
       ${DURATION_BUCKET_CASES},
@@ -1481,7 +1489,8 @@ export async function getEmbeddingDurationHistogram() {
     FROM embeddings
     WHERE deleted = false AND duration > 0
     GROUP BY model
-  `));
+  `),
+  );
   return result as unknown as Record<string, string>[];
 }
 

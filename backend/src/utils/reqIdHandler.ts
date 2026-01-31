@@ -8,7 +8,7 @@
  * 4. Finalize requests after completion
  */
 
-import { consola } from "consola";
+import type { CachedResponseType } from "@/db/schema";
 import {
   findCompletionByReqId,
   createPendingCompletion,
@@ -18,6 +18,7 @@ import {
   type CompletionInsert,
 } from "@/db";
 import { safeParseToolArgs } from "@/utils/json";
+import { createLogger } from "@/utils/logger";
 import {
   markInFlight,
   getInFlight,
@@ -26,9 +27,8 @@ import {
   isRedisAvailable,
   type InFlightRequest,
 } from "./reqIdCache";
-import type { CachedResponseType } from "@/db/schema";
 
-const logger = consola.withTag("reqIdHandler");
+const logger = createLogger("reqIdHandler");
 
 /**
  * HTTP header name for client-provided request ID
@@ -84,12 +84,16 @@ export async function checkReqId(
     return { type: "no_reqid" };
   }
 
-  const { apiKeyId, model, modelId, prompt, apiFormat, endpoint, isStream } = data;
+  const { apiKeyId, model, modelId, prompt, apiFormat, endpoint, isStream } =
+    data;
 
   // Step 1: Check database for existing completed request
   const existingCompletion = await findCompletionByReqId(apiKeyId, reqId);
   if (existingCompletion) {
-    logger.info("Cache hit for ReqId", { reqId, completionId: existingCompletion.id });
+    logger.info("Cache hit for ReqId", {
+      reqId,
+      completionId: existingCompletion.id,
+    });
     return { type: "cache_hit", completion: existingCompletion };
   }
 
@@ -109,7 +113,9 @@ export async function checkReqId(
       return { type: "in_flight", inFlight, retryAfter };
     }
   } else {
-    logger.warn("Redis unavailable, skipping in-flight check - race conditions possible until DB constraint catches duplicates");
+    logger.warn(
+      "Redis unavailable, skipping in-flight check - race conditions possible until DB constraint catches duplicates",
+    );
   }
 
   // Step 3: Create pending completion and mark as in-flight
@@ -133,7 +139,9 @@ export async function checkReqId(
   if (!newCompletion) {
     // Unique constraint violation - another request beat us to it
     // Re-check database (might have completed) or Redis (might be in-flight)
-    logger.warn("Failed to create pending completion, re-checking state", { reqId });
+    logger.warn("Failed to create pending completion, re-checking state", {
+      reqId,
+    });
 
     const recheck = await findCompletionByReqId(apiKeyId, reqId);
     if (recheck) {
@@ -179,7 +187,10 @@ export async function checkReqId(
     }
   }
 
-  logger.debug("Created new pending request", { reqId, completionId: newCompletion.id });
+  logger.debug("Created new pending request", {
+    reqId,
+    completionId: newCompletion.id,
+  });
   return { type: "new_request", completionId: newCompletion.id };
 }
 
@@ -208,7 +219,11 @@ export async function finalizeReqId(
       await clearInFlight(apiKeyId, reqId);
     }
 
-    logger.debug("Finalized request", { reqId, completionId, status: updates.status });
+    logger.debug("Finalized request", {
+      reqId,
+      completionId,
+      status: updates.status,
+    });
   } catch (error) {
     logger.error("Failed to finalize request", { reqId, completionId, error });
     // Still try to clear in-flight marker
@@ -288,7 +303,8 @@ export function buildInFlightErrorResponse(
       type: "error",
       error: {
         type: "conflict",
-        message: "A request with this X-NexusGate-ReqId is already being processed",
+        message:
+          "A request with this X-NexusGate-ReqId is already being processed",
         req_id: reqId,
         retry_after: retryAfter,
         started_at: startedAt,
@@ -300,7 +316,8 @@ export function buildInFlightErrorResponse(
   return {
     error: {
       code: "request_in_flight",
-      message: "A request with this X-NexusGate-ReqId is already being processed",
+      message:
+        "A request with this X-NexusGate-ReqId is already being processed",
       type: "conflict",
       req_id: reqId,
       retry_after: retryAfter,
@@ -348,7 +365,10 @@ export function extractReqId(headers: Headers): ExtractReqIdResult {
   }
   // Validate ReqId length (max 127 chars as per schema)
   if (trimmedReqId.length > REQID_MAX_LENGTH) {
-    logger.warn("ReqId too long", { length: trimmedReqId.length, maxLength: REQID_MAX_LENGTH });
+    logger.warn("ReqId too long", {
+      length: trimmedReqId.length,
+      maxLength: REQID_MAX_LENGTH,
+    });
     return { type: "too_long", length: trimmedReqId.length };
   }
   // Validate ReqId contains only allowed characters
@@ -366,7 +386,9 @@ export function extractReqId(headers: Headers): ExtractReqIdResult {
 /**
  * Build OpenAI Chat Completion format response from cached completion
  */
-export function buildOpenAIChatResponse(completion: Completion): Record<string, unknown> {
+export function buildOpenAIChatResponse(
+  completion: Completion,
+): Record<string, unknown> {
   return {
     id: `chatcmpl-cache-${completion.id}`,
     object: "chat.completion",
@@ -392,7 +414,9 @@ export function buildOpenAIChatResponse(completion: Completion): Record<string, 
 /**
  * Build Anthropic Messages format response from cached completion
  */
-export function buildAnthropicResponse(completion: Completion): Record<string, unknown> {
+export function buildAnthropicResponse(
+  completion: Completion,
+): Record<string, unknown> {
   // Build content blocks including both text and tool_use
   const contentBlocks: Array<Record<string, unknown>> = [];
   for (const c of completion.completion) {
@@ -418,7 +442,8 @@ export function buildAnthropicResponse(completion: Completion): Record<string, u
     id: `msg-cache-${completion.id}`,
     type: "message",
     role: "assistant",
-    content: contentBlocks.length > 0 ? contentBlocks : [{ type: "text", text: "" }],
+    content:
+      contentBlocks.length > 0 ? contentBlocks : [{ type: "text", text: "" }],
     model: completion.model,
     stop_reason: hasToolUse ? "tool_use" : "end_turn",
     usage: {
@@ -431,7 +456,9 @@ export function buildAnthropicResponse(completion: Completion): Record<string, u
 /**
  * Build OpenAI Responses API format response from cached completion
  */
-export function buildOpenAIResponsesResponse(completion: Completion): Record<string, unknown> {
+export function buildOpenAIResponsesResponse(
+  completion: Completion,
+): Record<string, unknown> {
   // Build output items including both messages and function_call
   const outputItems: Array<Record<string, unknown>> = [];
   for (const c of completion.completion) {
@@ -466,11 +493,16 @@ export function buildOpenAIResponsesResponse(completion: Completion): Record<str
     object: "response",
     created_at: Math.floor(completion.createdAt.getTime() / 1000),
     model: completion.model,
-    output: outputItems.length > 0 ? outputItems : [{
-      type: "message",
-      role: "assistant",
-      content: [{ type: "output_text", text: "" }],
-    }],
+    output:
+      outputItems.length > 0
+        ? outputItems
+        : [
+            {
+              type: "message",
+              role: "assistant",
+              content: [{ type: "output_text", text: "" }],
+            },
+          ],
     usage: {
       input_tokens: completion.promptTokens,
       output_tokens: completion.completionTokens,
@@ -526,14 +558,19 @@ export async function finalizeReqIdOnError(
     return;
   }
 
-  await finalizeReqId(context.apiKeyId, context.reqId, context.preCreatedCompletionId, {
-    status: "failed",
-    promptTokens: 0,
-    completionTokens: 0,
-    completion: [],
-    ttft: -1,
-    duration: Date.now() - begin,
-  });
+  await finalizeReqId(
+    context.apiKeyId,
+    context.reqId,
+    context.preCreatedCompletionId,
+    {
+      status: "failed",
+      promptTokens: 0,
+      completionTokens: 0,
+      completion: [],
+      ttft: -1,
+      duration: Date.now() - begin,
+    },
+  );
 }
 
 // =============================================================================
@@ -563,9 +600,19 @@ export function extractAndValidateReqId(
 ): ReqIdExtractionResult {
   const extraction = extractReqId(headers);
 
-  if (extraction.type === "too_long" || extraction.type === "invalid_characters") {
-    const errorResponse = buildReqIdValidationErrorResponse(extraction, apiFormat);
-    return { type: "error", status: errorResponse.status, body: errorResponse.body };
+  if (
+    extraction.type === "too_long" ||
+    extraction.type === "invalid_characters"
+  ) {
+    const errorResponse = buildReqIdValidationErrorResponse(
+      extraction,
+      apiFormat,
+    );
+    return {
+      type: "error",
+      status: errorResponse.status,
+      body: errorResponse.body,
+    };
   }
 
   if (extraction.type === "valid") {
@@ -580,7 +627,12 @@ export function extractAndValidateReqId(
  */
 export type ReqIdHandleResult =
   | { type: "cache_hit"; response: Record<string, unknown> }
-  | { type: "in_flight"; status: 409; retryAfter: number; response: Record<string, unknown> }
+  | {
+      type: "in_flight";
+      status: 409;
+      retryAfter: number;
+      response: Record<string, unknown>;
+    }
   | { type: "continue"; context: ReqIdContext | null };
 
 /**
@@ -629,19 +681,25 @@ export async function handleReqIdResult(
       type: "in_flight",
       status: 409,
       retryAfter: result.retryAfter,
-      response: buildInFlightErrorResponse(reqId, result.inFlight, result.retryAfter, apiFormat),
+      response: buildInFlightErrorResponse(
+        reqId,
+        result.inFlight,
+        result.retryAfter,
+        apiFormat,
+      ),
     };
   }
 
   // Build context for new_request or no_reqid
-  const context: ReqIdContext | null = (result.type === "new_request" && reqId)
-    ? {
-        reqId,
-        apiKeyId,
-        preCreatedCompletionId: result.completionId,
-        apiFormat,
-      }
-    : null;
+  const context: ReqIdContext | null =
+    result.type === "new_request" && reqId
+      ? {
+          reqId,
+          apiKeyId,
+          preCreatedCompletionId: result.completionId,
+          apiFormat,
+        }
+      : null;
 
   return { type: "continue", context };
 }
@@ -666,17 +724,26 @@ function buildReqIdValidationErrorResponse(
   }
 
   if (extraction.type === "invalid_characters") {
-    const message = "X-NexusGate-ReqId contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, colons, and forward slashes are allowed.";
+    const message =
+      "X-NexusGate-ReqId contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, colons, and forward slashes are allowed.";
     return {
       status: 400,
-      body: buildValidationErrorBody(message, "reqid_invalid_characters", format),
+      body: buildValidationErrorBody(
+        message,
+        "reqid_invalid_characters",
+        format,
+      ),
     };
   }
 
   // Should not reach here, but provide a fallback
   return {
     status: 400,
-    body: buildValidationErrorBody("Invalid X-NexusGate-ReqId", "reqid_invalid", format),
+    body: buildValidationErrorBody(
+      "Invalid X-NexusGate-ReqId",
+      "reqid_invalid",
+      format,
+    ),
   };
 }
 

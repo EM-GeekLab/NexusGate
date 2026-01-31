@@ -1,4 +1,3 @@
-import { consola } from "consola";
 import type {
   CompletionsCompletionType,
   CompletionsPromptType,
@@ -6,6 +5,9 @@ import type {
   SrvLogsLevelEnumType,
 } from "@/db/schema";
 import { findApiKey, insertCompletion, insertLog } from "@/db";
+import { createLogger } from "@/utils/logger";
+
+const logger = createLogger("completions");
 
 export type Completion = {
   model: string;
@@ -29,7 +31,7 @@ export type Completion = {
 export async function addCompletions(
   c: Completion,
   apiKey: string,
-  log?: {
+  logEntry?: {
     level: SrvLogsLevelEnumType;
     message: string;
     details?: {
@@ -48,16 +50,16 @@ export async function addCompletions(
     apiKeyId: keyId,
     ...c,
   });
-  if (log !== undefined) {
+  if (logEntry !== undefined) {
     if (completion === null) {
-      consola.error("Failed to insert completion");
+      logger.error("Failed to insert completion");
       return null;
     }
     await insertLog({
       relatedApiKeyId: keyId,
       relatedUpstreamId: completion.upstreamId,
       relatedCompletionId: completion.id,
-      ...log,
+      ...logEntry,
     });
   }
   return completion;

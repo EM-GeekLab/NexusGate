@@ -3,6 +3,7 @@
  * Converts OpenAI Chat format requests to internal format
  */
 
+import { safeParseToolArgs } from "@/utils/json";
 import type {
   ImageContentBlock,
   ImageSource,
@@ -15,7 +16,6 @@ import type {
   ToolResultContentBlock,
   ToolUseContentBlock,
 } from "../types";
-import { safeParseToolArgs } from "@/utils/json";
 
 // =============================================================================
 // Helper Functions

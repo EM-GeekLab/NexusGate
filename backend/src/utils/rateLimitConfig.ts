@@ -1,7 +1,7 @@
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import { DEFAULT_RATE_LIMIT, DEFAULT_REFILL_RATE } from "./config";
 
-const logger = consola.withTag("rateLimitConfig");
+const logger = createLogger("rateLimitConfig");
 
 export interface RateLimitConfig {
   limit: number;

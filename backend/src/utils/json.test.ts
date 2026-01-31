@@ -96,7 +96,7 @@ describe("parseJsonResponse", () => {
     const input = '{"status": "success", "data": [1, 2, 3]}';
     const result = parseJsonResponse<{ status: string; data: number[] }>(
       input,
-      "TestAPI"
+      "TestAPI",
     );
     expect(result).toEqual({ status: "success", data: [1, 2, 3] });
   });
@@ -110,21 +110,22 @@ describe("parseJsonResponse", () => {
   test("should throw error for malformed JSON with context", () => {
     const input = '{"status": "error", invalid}';
     expect(() => parseJsonResponse(input, "ErrorAPI")).toThrow(
-      "Failed to parse ErrorAPI response as JSON"
+      "Failed to parse ErrorAPI response as JSON",
     );
   });
 
   test("should throw error for HTML content with context", () => {
-    const input = "<html><body><h1>500 Internal Server Error</h1></body></html>";
+    const input =
+      "<html><body><h1>500 Internal Server Error</h1></body></html>";
     expect(() => parseJsonResponse(input, "OpenAI Chat")).toThrow(
-      "Failed to parse OpenAI Chat response as JSON"
+      "Failed to parse OpenAI Chat response as JSON",
     );
   });
 
   test("should throw error for truncated JSON", () => {
     const input = '{"status": "success", "data": [1, 2, ';
     expect(() => parseJsonResponse(input, "Anthropic")).toThrow(
-      "Failed to parse Anthropic response as JSON"
+      "Failed to parse Anthropic response as JSON",
     );
   });
 
@@ -163,7 +164,7 @@ describe("parseJsonResponse", () => {
   test("should throw error for empty string", () => {
     const input = "";
     expect(() => parseJsonResponse(input, "EmptyAPI")).toThrow(
-      "Failed to parse EmptyAPI response as JSON"
+      "Failed to parse EmptyAPI response as JSON",
     );
   });
 

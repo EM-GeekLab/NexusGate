@@ -191,6 +191,11 @@ export const anthropicResponseAdapter: ResponseAdapter<AnthropicMessage> = {
             type: "thinking_delta",
             thinking: chunk.delta.thinking || "",
           };
+        } else if (chunk.delta?.type === "signature_delta") {
+          delta = {
+            type: "signature_delta",
+            signature: chunk.delta.signature || "",
+          };
         } else if (chunk.delta?.type === "input_json_delta") {
           delta = {
             type: "input_json_delta",

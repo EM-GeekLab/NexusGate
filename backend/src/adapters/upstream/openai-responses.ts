@@ -3,6 +3,7 @@
  * Handles communication with OpenAI Response API
  */
 
+import { safeParseToolArgs, parseJsonResponse } from "@/utils/json";
 import type {
   InternalContentBlock,
   InternalMessage,
@@ -17,7 +18,6 @@ import type {
   UpstreamAdapter,
 } from "../types";
 import { convertImageToUrl, hasImages } from "./utils";
-import { safeParseToolArgs, parseJsonResponse } from "@/utils/json";
 
 // =============================================================================
 // Response API Types
@@ -237,9 +237,7 @@ function convertResponse(resp: ResponseApiResponse): InternalResponse {
         type: "tool_use",
         id: output.call_id || output.id || "",
         name: output.name || "",
-        input: output.arguments
-          ? safeParseToolArgs(output.arguments)
-          : {},
+        input: output.arguments ? safeParseToolArgs(output.arguments) : {},
       } as ToolUseContentBlock);
     }
   }
@@ -366,7 +364,10 @@ export const openaiResponsesUpstreamAdapter: UpstreamAdapter = {
 
   async parseResponse(response: Response): Promise<InternalResponse> {
     const text = await response.text();
-    const json = parseJsonResponse<ResponseApiResponse>(text, "OpenAI Responses");
+    const json = parseJsonResponse<ResponseApiResponse>(
+      text,
+      "OpenAI Responses",
+    );
     return convertResponse(json);
   },
 

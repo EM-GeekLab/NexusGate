@@ -1,10 +1,13 @@
 import type { CreateEmbeddingResponse } from "openai/resources";
-import { consola } from "consola";
 import { Elysia, t } from "elysia";
 import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
-import { apiKeyRateLimitPlugin, consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
+import {
+  apiKeyRateLimitPlugin,
+  consumeTokens,
+} from "@/plugins/apiKeyRateLimitPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import { addEmbedding, type EmbeddingRecord } from "@/utils/embeddings";
+import { createLogger } from "@/utils/logger";
 import { selectModel, buildUpstreamUrl, getRemoteModelId } from "@/utils/model";
 
 /**
@@ -31,7 +34,7 @@ function normalizeEmbedding(embedding: number[] | string): number[] {
   return embedding;
 }
 
-const logger = consola.withTag("embeddingsApi");
+const logger = createLogger("embeddingsApi");
 
 // OpenAI-compatible embeddings request schema
 interface EmbeddingCreateBody {

@@ -54,7 +54,8 @@ export function DetailPanel() {
   }, [embedding?.embedding])
 
   // Calculate actual dimensions from normalized data
-  const actualDimensions = normalizedEmbeddings.length > 0 ? normalizedEmbeddings[0].length : embedding?.dimensions ?? 0
+  const actualDimensions =
+    normalizedEmbeddings.length > 0 ? normalizedEmbeddings[0].length : (embedding?.dimensions ?? 0)
 
   if (!isSelectedEmbedding) return null
 

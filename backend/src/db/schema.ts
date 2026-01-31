@@ -153,7 +153,12 @@ export const CompletionsStatusEnum = pgEnum("completions_status", [
   "aborted",
   "cache_hit",
 ]);
-export type CompletionsStatusEnumType = "pending" | "completed" | "failed" | "aborted" | "cache_hit";
+export type CompletionsStatusEnumType =
+  | "pending"
+  | "completed"
+  | "failed"
+  | "aborted"
+  | "cache_hit";
 
 /**
  * Cached response type for ReqId deduplication

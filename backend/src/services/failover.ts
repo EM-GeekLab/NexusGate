@@ -6,10 +6,10 @@
  * tries the next available provider.
  */
 
-import { consola } from "consola";
 import type { ModelWithProvider } from "@/adapters/types";
+import { createLogger } from "@/utils/logger";
 
-const logger = consola.withTag("failover");
+const logger = createLogger("failover");
 
 // =============================================================================
 // Configuration Types
@@ -365,7 +365,9 @@ export function reorderCandidatesWithPreferred(
     return candidates;
   }
 
-  const others = candidates.filter((c) => c.provider.id !== preferredProviderId);
+  const others = candidates.filter(
+    (c) => c.provider.id !== preferredProviderId,
+  );
   return [preferred, ...others];
 }
 

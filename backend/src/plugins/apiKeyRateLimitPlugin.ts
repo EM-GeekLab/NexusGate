@@ -1,13 +1,13 @@
-import { consola } from "consola";
 import { Elysia } from "elysia";
-import { apiKeyPlugin } from "./apiKeyPlugin";
 import { checkRpmLimit, checkTpmLimit } from "@/utils/apiKeyRateLimit";
+import { createLogger } from "@/utils/logger";
 import { redisClient } from "@/utils/redisClient";
+import { apiKeyPlugin } from "./apiKeyPlugin";
 
 // Re-export consumeTokens for use in API handlers
 export { consumeTokens } from "@/utils/apiKeyRateLimit";
 
-const logger = consola.withTag("apiKeyRateLimitPlugin");
+const logger = createLogger("apiKeyRateLimitPlugin");
 
 // Redis key for tracking rate limit rejections (for Prometheus metrics)
 const RATE_LIMIT_REJECTIONS_KEY = "nexusgate:metrics:rate_limit_rejections";
@@ -111,9 +111,11 @@ export const apiKeyRateLimitPlugin = new Elysia({
 
         // Set rate limit headers for successful requests
         set.headers["X-RateLimit-Limit-RPM"] = apiKeyRecord.rpmLimit.toString();
-        set.headers["X-RateLimit-Remaining-RPM"] = rpmResult.remaining.toString();
+        set.headers["X-RateLimit-Remaining-RPM"] =
+          rpmResult.remaining.toString();
         set.headers["X-RateLimit-Limit-TPM"] = apiKeyRecord.tpmLimit.toString();
-        set.headers["X-RateLimit-Remaining-TPM"] = tpmResult.remaining.toString();
+        set.headers["X-RateLimit-Remaining-TPM"] =
+          tpmResult.remaining.toString();
       },
     },
   });

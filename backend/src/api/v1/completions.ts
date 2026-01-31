@@ -3,9 +3,14 @@
  * Refactored to use adapter pattern for multi-API format support
  */
 
-import { consola } from "consola";
 import { Elysia, t } from "elysia";
 import type { ModelWithProvider } from "@/adapters/types";
+import type {
+  CompletionsMessageType,
+  ToolDefinitionType,
+  ToolChoiceType,
+  CachedResponseType,
+} from "@/db/schema";
 import {
   getRequestAdapter,
   getResponseAdapter,
@@ -13,14 +18,16 @@ import {
 } from "@/adapters";
 import { getModelsWithProviderBySystemName } from "@/db";
 import { apiKeyPlugin, type ApiKey } from "@/plugins/apiKeyPlugin";
-import { apiKeyRateLimitPlugin, consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
+import {
+  apiKeyRateLimitPlugin,
+  consumeTokens,
+} from "@/plugins/apiKeyRateLimitPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
-import type {
-  CompletionsMessageType,
-  ToolDefinitionType,
-  ToolChoiceType,
-  CachedResponseType,
-} from "@/db/schema";
+import {
+  executeWithFailover,
+  selectMultipleCandidates,
+  type FailoverConfig,
+} from "@/services/failover";
 import {
   extractUpstreamHeaders,
   filterCandidates,
@@ -31,12 +38,7 @@ import {
   PROVIDER_HEADER,
 } from "@/utils/api-helpers";
 import { addCompletions, type Completion } from "@/utils/completions";
-import { StreamingContext } from "@/utils/streaming-context";
-import {
-  executeWithFailover,
-  selectMultipleCandidates,
-  type FailoverConfig,
-} from "@/services/failover";
+import { createLogger } from "@/utils/logger";
 import {
   checkReqId,
   finalizeReqId,
@@ -46,8 +48,9 @@ import {
   type ApiFormat,
   type ReqIdContext,
 } from "@/utils/reqIdHandler";
+import { StreamingContext } from "@/utils/streaming-context";
 
-const logger = consola.withTag("completionsApi");
+const logger = createLogger("completionsApi");
 
 // =============================================================================
 // Request Schema
@@ -92,11 +95,9 @@ const tContentPart = t.Union([
     type: t.Literal("image_url"),
     image_url: t.Object({
       url: t.String(),
-      detail: t.Optional(t.Union([
-        t.Literal("auto"),
-        t.Literal("low"),
-        t.Literal("high"),
-      ])),
+      detail: t.Optional(
+        t.Union([t.Literal("auto"), t.Literal("low"), t.Literal("high")]),
+      ),
     }),
   }),
 ]);
@@ -105,19 +106,19 @@ const tContentPart = t.Union([
 const tMessage = t.Object(
   {
     role: t.String(),
-    content: t.Optional(t.Union([
-      t.String(),
-      t.Null(),
-      t.Array(tContentPart),
-    ])),
-    tool_calls: t.Optional(t.Array(t.Object({
-      id: t.String(),
-      type: t.Literal("function"),
-      function: t.Object({
-        name: t.String(),
-        arguments: t.String(),
-      }),
-    }))),
+    content: t.Optional(t.Union([t.String(), t.Null(), t.Array(tContentPart)])),
+    tool_calls: t.Optional(
+      t.Array(
+        t.Object({
+          id: t.String(),
+          type: t.Literal("function"),
+          function: t.Object({
+            name: t.String(),
+            arguments: t.String(),
+          }),
+        }),
+      ),
+    ),
     tool_call_id: t.Optional(t.String()),
     name: t.Optional(t.String()),
   },
@@ -261,7 +262,11 @@ async function processNonStreamingResponse(
 
   // Consume tokens for TPM rate limiting (post-flight)
   // Only consume if token counts are valid (not -1 which indicates parsing failure)
-  if (apiKeyRecord && completion.promptTokens > 0 && completion.completionTokens > 0) {
+  if (
+    apiKeyRecord &&
+    completion.promptTokens > 0 &&
+    completion.completionTokens > 0
+  ) {
     const totalTokens = completion.promptTokens + completion.completionTokens;
     await consumeTokens(apiKeyRecord.id, apiKeyRecord.tpmLimit, totalTokens);
   }
@@ -327,7 +332,14 @@ async function* processStreamingResponse(
     : undefined;
 
   // Create streaming context with abort handling
-  const ctx = new StreamingContext(completion, bearer, apiKeyRecord, begin, signal, streamingReqIdContext);
+  const ctx = new StreamingContext(
+    completion,
+    bearer,
+    apiKeyRecord,
+    begin,
+    signal,
+    streamingReqIdContext,
+  );
 
   // Track whether we've logged the client abort (to avoid duplicate logs)
   let loggedAbort = false;
@@ -342,7 +354,9 @@ async function* processStreamingResponse(
       // Log client disconnect once when first detected
       if (clientAborted && !loggedAbort) {
         loggedAbort = true;
-        logger.info("Client disconnected during streaming, continuing to collect upstream data");
+        logger.info(
+          "Client disconnected during streaming, continuing to collect upstream data",
+        );
       }
 
       ctx.recordTTFT();
@@ -372,7 +386,10 @@ async function* processStreamingResponse(
           chunk.delta.thinking
         ) {
           ctx.thinkingParts.push(chunk.delta.thinking);
-        } else if (chunk.delta?.type === "input_json_delta" && chunk.delta.partialJson) {
+        } else if (
+          chunk.delta?.type === "input_json_delta" &&
+          chunk.delta.partialJson
+        ) {
           // Collect tool call arguments - lookup by index to get tool ID
           // Skip if index is missing to avoid data corruption
           if (chunk.index !== undefined) {
@@ -446,7 +463,10 @@ async function* processStreamingResponse(
     if (!ctx.isSaved()) {
       if (ctx.isAborted()) {
         // If client aborted and we got an error, still save as aborted with the error info
-        await ctx.saveCompletion("aborted", `Client disconnected, stream error: ${String(error)}`);
+        await ctx.saveCompletion(
+          "aborted",
+          `Client disconnected, stream error: ${String(error)}`,
+        );
       } else {
         await ctx.saveCompletion("failed", String(error));
       }
@@ -636,7 +656,12 @@ export const completionsApi = new Elysia({
             extraHeaders,
           );
 
-          const errorResult = await processFailoverError(result, completion, bearer, "streaming");
+          const errorResult = await processFailoverError(
+            result,
+            completion,
+            bearer,
+            "streaming",
+          );
 
           // Finalize pre-created completion if ReqId was used
           await finalizeReqIdOnError(reqIdContext, begin);
@@ -733,7 +758,12 @@ export const completionsApi = new Elysia({
             extraHeaders,
           );
 
-          const errorResult = await processFailoverError(result, completion, bearer, "non-streaming");
+          const errorResult = await processFailoverError(
+            result,
+            completion,
+            bearer,
+            "non-streaming",
+          );
 
           // Finalize pre-created completion if ReqId was used
           await finalizeReqIdOnError(reqIdContext, begin);
@@ -795,7 +825,8 @@ export const completionsApi = new Elysia({
           return JSON.parse(response) as Record<string, unknown>;
         } catch (error) {
           // Handle error based on whether client aborted
-          const errorMsg = error instanceof Error ? error.message : String(error);
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
           // Only save if completion wasn't already saved in processNonStreamingResponse
           const alreadySaved = completion.status !== "pending";
           if (request.signal.aborted) {
@@ -812,7 +843,10 @@ export const completionsApi = new Elysia({
                   },
                 });
               } catch (logError: unknown) {
-                logger.error("Failed to log aborted completion after processing error", logError);
+                logger.error(
+                  "Failed to log aborted completion after processing error",
+                  logError,
+                );
               }
             }
             // Return nothing for aborted requests
@@ -831,7 +865,10 @@ export const completionsApi = new Elysia({
                   },
                 });
               } catch (logError: unknown) {
-                logger.error("Failed to log completion after processing error", logError);
+                logger.error(
+                  "Failed to log completion after processing error",
+                  logError,
+                );
               }
             }
             set.status = 500;

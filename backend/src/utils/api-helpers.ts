@@ -3,11 +3,11 @@
  * Extracted from completions.ts, messages.ts, and responses.ts to reduce code duplication
  */
 
-import { consola } from "consola";
 import type { InternalResponse, ModelWithProvider } from "@/adapters/types";
 import type { ToolCallType } from "@/db/schema";
+import { createLogger } from "@/utils/logger";
 
-const logger = consola.withTag("api-helpers");
+const logger = createLogger("api-helpers");
 
 // =============================================================================
 // Header Constants
@@ -31,7 +31,6 @@ export const EXCLUDED_HEADERS = new Set([
   "accept",
   "accept-encoding",
   "accept-language",
-  "user-agent",
   "origin",
   "referer",
   "cookie",

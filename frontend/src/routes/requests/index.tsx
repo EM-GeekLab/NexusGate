@@ -42,7 +42,13 @@ const requestsQueryOptions = ({ page, pageSize, apiKeyId, upstreamId, model }: R
 
 export const Route = createFileRoute('/requests/')({
   validateSearch: zodValidator(requestsSearchSchema),
-  loaderDeps: ({ search: { page, pageSize, apiKeyId, upstreamId, model } }) => ({ page, pageSize, apiKeyId, upstreamId, model }),
+  loaderDeps: ({ search: { page, pageSize, apiKeyId, upstreamId, model } }) => ({
+    page,
+    pageSize,
+    apiKeyId,
+    upstreamId,
+    model,
+  }),
   loader: ({ deps }) => queryClient.ensureQueryData(requestsQueryOptions(deps)),
   component: RouteComponent,
   errorComponent: AppErrorComponent,

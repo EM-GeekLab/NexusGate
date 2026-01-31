@@ -36,9 +36,7 @@ export const columns: ColumnDef<EmbeddingRequest>[] = [
           </MiniIndicatorBadge>
         ))
         .with('aborted', () => (
-          <MiniIndicatorBadge className="bg-amber-500">
-            {i18n.t('pages.embeddings.columns.Aborted')}
-          </MiniIndicatorBadge>
+          <MiniIndicatorBadge className="bg-amber-500">{i18n.t('pages.embeddings.columns.Aborted')}</MiniIndicatorBadge>
         ))
         .exhaustive()
       return (

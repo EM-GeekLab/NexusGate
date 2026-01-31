@@ -8,9 +8,9 @@ import type {
   CompletionsStatusEnumType,
   ToolCallType,
 } from "@/db/schema";
-import { addCompletions, type Completion } from "@/utils/completions";
-import { consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
 import type { ApiKey } from "@/plugins/apiKeyPlugin";
+import { consumeTokens } from "@/plugins/apiKeyRateLimitPlugin";
+import { addCompletions, type Completion } from "@/utils/completions";
 import { finalizeReqId } from "@/utils/reqIdHandler";
 
 /**
@@ -132,7 +132,9 @@ export class StreamingContext {
     // Save to database - use finalizeReqId if ReqId context is present
     if (this.reqIdContext) {
       // Build cached response if callback is provided
-      const cachedResponse = this.reqIdContext.buildCachedResponse?.(this.completion);
+      const cachedResponse = this.reqIdContext.buildCachedResponse?.(
+        this.completion,
+      );
 
       await finalizeReqId(
         this.reqIdContext.apiKeyId,
@@ -162,7 +164,11 @@ export class StreamingContext {
     const outputTokens = Math.max(0, this.outputTokens);
     const totalTokens = inputTokens + outputTokens;
     if (this.apiKeyRecord && totalTokens > 0) {
-      await consumeTokens(this.apiKeyRecord.id, this.apiKeyRecord.tpmLimit, totalTokens);
+      await consumeTokens(
+        this.apiKeyRecord.id,
+        this.apiKeyRecord.tpmLimit,
+        totalTokens,
+      );
     }
   }
 

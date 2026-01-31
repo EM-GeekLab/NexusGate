@@ -1,4 +1,3 @@
-import { consola } from "consola";
 import {
   getCompletionMetricsByModelAndStatus,
   getEmbeddingMetricsByModelAndStatus,
@@ -10,12 +9,13 @@ import {
   getCompletionCostMetrics,
   LATENCY_BUCKETS_MS,
 } from "@/db";
-import { COMMIT_SHA, METRICS_CACHE_TTL_SECONDS } from "@/utils/config";
-import { redisClient } from "@/utils/redisClient";
-import { getRateLimitStatus } from "@/utils/apiKeyRateLimit";
 import { getRateLimitRejections } from "@/plugins/apiKeyRateLimitPlugin";
+import { getRateLimitStatus } from "@/utils/apiKeyRateLimit";
+import { COMMIT_SHA, METRICS_CACHE_TTL_SECONDS } from "@/utils/config";
+import { createLogger } from "@/utils/logger";
+import { redisClient } from "@/utils/redisClient";
 
-const logger = consola.withTag("prometheus");
+const logger = createLogger("prometheus");
 
 // Redis cache key for metrics
 const METRICS_CACHE_KEY = "nexusgate:metrics:cache";
@@ -37,7 +37,9 @@ function escapeLabelValue(value: string): string {
 /**
  * Format labels as Prometheus label string
  */
-function formatLabels(labels: Record<string, string | number | null | undefined>): string {
+function formatLabels(
+  labels: Record<string, string | number | null | undefined>,
+): string {
   const parts: string[] = [];
   for (const [key, value] of Object.entries(labels)) {
     if (value !== null && value !== undefined && value !== "") {
@@ -55,11 +57,12 @@ interface MetricValue {
 /**
  * Format a counter metric in Prometheus exposition format
  */
-function formatCounter(name: string, help: string, values: MetricValue[]): string {
-  const lines: string[] = [
-    `# HELP ${name} ${help}`,
-    `# TYPE ${name} counter`,
-  ];
+function formatCounter(
+  name: string,
+  help: string,
+  values: MetricValue[],
+): string {
+  const lines: string[] = [`# HELP ${name} ${help}`, `# TYPE ${name} counter`];
   for (const { labels, value } of values) {
     lines.push(`${name}${formatLabels(labels)} ${value}`);
   }
@@ -69,11 +72,12 @@ function formatCounter(name: string, help: string, values: MetricValue[]): strin
 /**
  * Format a gauge metric in Prometheus exposition format
  */
-function formatGauge(name: string, help: string, values: MetricValue[]): string {
-  const lines: string[] = [
-    `# HELP ${name} ${help}`,
-    `# TYPE ${name} gauge`,
-  ];
+function formatGauge(
+  name: string,
+  help: string,
+  values: MetricValue[],
+): string {
+  const lines: string[] = [`# HELP ${name} ${help}`, `# TYPE ${name} gauge`];
   for (const { labels, value } of values) {
     lines.push(`${name}${formatLabels(labels)} ${value}`);
   }
@@ -90,7 +94,12 @@ interface HistogramValue {
 /**
  * Format a histogram metric in Prometheus exposition format
  */
-function formatHistogram(name: string, help: string, buckets: number[], values: HistogramValue[]): string {
+function formatHistogram(
+  name: string,
+  help: string,
+  buckets: number[],
+  values: HistogramValue[],
+): string {
   const lines: string[] = [
     `# HELP ${name} ${help}`,
     `# TYPE ${name} histogram`,
@@ -99,10 +108,14 @@ function formatHistogram(name: string, help: string, buckets: number[], values: 
     // Output bucket lines
     for (const le of buckets) {
       const bucketCount = bucketCounts.get(le) ?? 0;
-      lines.push(`${name}_bucket${formatLabels({ ...labels, le })} ${bucketCount}`);
+      lines.push(
+        `${name}_bucket${formatLabels({ ...labels, le })} ${bucketCount}`,
+      );
     }
     // +Inf bucket (total count)
-    lines.push(`${name}_bucket${formatLabels({ ...labels, le: "+Inf" })} ${count}`);
+    lines.push(
+      `${name}_bucket${formatLabels({ ...labels, le: "+Inf" })} ${count}`,
+    );
     // Sum and count
     lines.push(`${name}_sum${formatLabels(labels)} ${sum}`);
     lines.push(`${name}_count${formatLabels(labels)} ${count}`);
@@ -126,7 +139,9 @@ export async function generatePrometheusMetrics(): Promise<string> {
     const metrics = await generateMetricsInternal();
 
     // Cache the metrics
-    await redisClient.set(METRICS_CACHE_KEY, metrics, { EX: METRICS_CACHE_TTL_SECONDS });
+    await redisClient.set(METRICS_CACHE_KEY, metrics, {
+      EX: METRICS_CACHE_TTL_SECONDS,
+    });
 
     return metrics;
   } catch (error) {
@@ -151,9 +166,11 @@ function generateFallbackMetrics(): string {
 
   // Error indicator
   sections.push(
-    formatGauge("nexusgate_metrics_error", "Indicates metrics generation failed", [
-      { labels: {}, value: 1 },
-    ]),
+    formatGauge(
+      "nexusgate_metrics_error",
+      "Indicates metrics generation failed",
+      [{ labels: {}, value: 1 }],
+    ),
   );
 
   return sections.join("\n\n") + "\n";
@@ -216,7 +233,10 @@ async function generateMetricsInternal(): Promise<string> {
     promptTokenCounts.set(row.model, currentPrompt + Number(row.prompt_tokens));
 
     const currentCompletion = completionTokenCounts.get(row.model) ?? 0;
-    completionTokenCounts.set(row.model, currentCompletion + Number(row.completion_tokens));
+    completionTokenCounts.set(
+      row.model,
+      currentCompletion + Number(row.completion_tokens),
+    );
   }
 
   if (completionCounts.length > 0) {
@@ -274,7 +294,10 @@ async function generateMetricsInternal(): Promise<string> {
     });
 
     const currentTokens = embeddingTokenCounts.get(row.model) ?? 0;
-    embeddingTokenCounts.set(row.model, currentTokens + Number(row.input_tokens));
+    embeddingTokenCounts.set(
+      row.model,
+      currentTokens + Number(row.input_tokens),
+    );
   }
 
   if (embeddingCounts.length > 0) {
@@ -361,7 +384,10 @@ async function generateMetricsInternal(): Promise<string> {
   }
 
   // Completion duration histogram
-  const durationHistValues = parseHistogramData(completionDurationHist, "duration");
+  const durationHistValues = parseHistogramData(
+    completionDurationHist,
+    "duration",
+  );
   if (durationHistValues.length > 0) {
     sections.push(
       formatHistogram(
@@ -387,7 +413,10 @@ async function generateMetricsInternal(): Promise<string> {
   }
 
   // Embedding duration histogram
-  const embeddingDurationHistValues = parseHistogramData(embeddingDurationHist, "duration");
+  const embeddingDurationHistValues = parseHistogramData(
+    embeddingDurationHist,
+    "duration",
+  );
   if (embeddingDurationHistValues.length > 0) {
     sections.push(
       formatHistogram(
@@ -401,9 +430,11 @@ async function generateMetricsInternal(): Promise<string> {
 
   // Gauge metrics for active entities
   sections.push(
-    formatGauge("nexusgate_active_api_keys", "Number of active (non-revoked) API keys", [
-      { labels: {}, value: entityCounts.apiKeys },
-    ]),
+    formatGauge(
+      "nexusgate_active_api_keys",
+      "Number of active (non-revoked) API keys",
+      [{ labels: {}, value: entityCounts.apiKeys }],
+    ),
   );
 
   sections.push(

@@ -23,6 +23,8 @@ export interface TextContentBlock {
 export interface ThinkingContentBlock {
   type: "thinking";
   thinking: string;
+  /** Signature for thinking blocks (required when replaying in multi-turn) */
+  signature?: string;
 }
 
 /**
@@ -121,6 +123,8 @@ export interface InternalToolDefinition {
   name: string;
   description?: string;
   inputSchema: JsonSchema;
+  /** Anthropic cache control for prompt caching */
+  cacheControl?: { type: "ephemeral" };
 }
 
 // =============================================================================
@@ -230,9 +234,10 @@ export interface InternalStreamChunk {
   contentBlock?: InternalContentBlock;
   /** Delta content (for content_block_delta) */
   delta?: {
-    type: "text_delta" | "thinking_delta" | "input_json_delta";
+    type: "text_delta" | "thinking_delta" | "signature_delta" | "input_json_delta";
     text?: string;
     thinking?: string;
+    signature?: string;
     partialJson?: string;
   };
   /** Message delta (for message_delta) */

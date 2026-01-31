@@ -38,6 +38,7 @@ interface AnthropicContentBlock {
   content?: string | AnthropicContentBlock[];
   is_error?: boolean;
   cache_control?: { type: "ephemeral" };
+  signature?: string;
 }
 
 interface AnthropicMessage {
@@ -109,6 +110,7 @@ function convertContentBlock(
       return {
         type: "thinking",
         thinking: block.thinking || "",
+        signature: block.signature,
       } as ThinkingContentBlock;
 
     case "tool_use":
@@ -249,6 +251,7 @@ function convertTools(
     name: tool.name,
     description: tool.description,
     inputSchema: tool.input_schema,
+    cacheControl: tool.cache_control,
   }));
 }
 

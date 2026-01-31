@@ -1,7 +1,7 @@
-import { consola } from "consola";
+import { createLogger } from "@/utils/logger";
 import { redisClient } from "./redisClient";
 
-const logger = consola.withTag("tokenBucket");
+const logger = createLogger("tokenBucket");
 
 export type TokenBucketOptions = {
   capacity: number;

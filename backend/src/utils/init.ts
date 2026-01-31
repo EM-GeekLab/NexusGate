@@ -1,6 +1,6 @@
-import { consola } from "consola";
 import * as db from "@/db";
 import { getSetting, upsertSetting } from "@/db";
+import { createLogger } from "@/utils/logger";
 import {
   ENABLE_INIT_CONFIG,
   FORCILY_ADD_API_KEYS,
@@ -10,7 +10,7 @@ import {
   type InitConfigJson,
 } from "./config";
 
-const logger = consola.withTag("init");
+const logger = createLogger("init");
 
 export async function initConfig(): Promise<void> {
   logger.debug("Initializing configuration...");
@@ -35,7 +35,7 @@ export async function initConfig(): Promise<void> {
       });
 
       if (result) {
-        logger.success(
+        logger.info(
           `Created upstream: ${upstream.name} (${upstream.model})(${upstream.url})`,
         );
       } else {
@@ -59,7 +59,7 @@ export async function initConfig(): Promise<void> {
       try {
         const result = await db.upsertApiKey({ key });
         if (result) {
-          logger.success(`Created API key: ${key}`);
+          logger.info(`Created API key: ${key}`);
         } else {
           logger.warn(`Failed to insert API key: ${key}`);
         }

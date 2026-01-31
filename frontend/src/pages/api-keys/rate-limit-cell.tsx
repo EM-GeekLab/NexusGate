@@ -49,7 +49,9 @@ export function RateLimitCell({ apiKey, type }: RateLimitCellProps) {
   return (
     <div className="flex min-w-28 items-center gap-2">
       <Progress value={percentageUsed} className="h-2 w-16 flex-shrink-0" />
-      <span className={`text-xs whitespace-nowrap ${isOverLimit ? 'text-orange-500 font-medium' : 'text-muted-foreground'}`}>
+      <span
+        className={`text-xs whitespace-nowrap ${isOverLimit ? 'font-medium text-orange-500' : 'text-muted-foreground'}`}
+      >
         {formatNumber(current)}/{formatNumber(limit)}
       </span>
     </div>

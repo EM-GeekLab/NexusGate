@@ -7,8 +7,8 @@ import {
   HelpCircleIcon,
   ImageIcon,
   ReplyIcon,
-  WrenchIcon,
   TerminalIcon,
+  WrenchIcon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { match, P } from 'ts-pattern'
@@ -150,13 +150,14 @@ function MessageContent({ message }: { message: RequestMessage }) {
     .otherwise(() => ({ reasoning: null, content: messageText }))
 
   return (
-    <div data-role={message.role} className="data-[role=user]:bg-muted/75 p-4 data-[role=system]:not-last:border-b data-[role=tool]:bg-amber-50/50 dark:data-[role=tool]:bg-amber-950/20">
+    <div
+      data-role={message.role}
+      className="data-[role=user]:bg-muted/75 p-4 data-[role=system]:not-last:border-b data-[role=tool]:bg-amber-50/50 dark:data-[role=tool]:bg-amber-950/20"
+    >
       <h4 className="text-muted-foreground mb-3 flex items-center gap-1.5 text-sm/none font-semibold">
         {isToolMessage && <TerminalIcon className="size-3.5" />}
         {message.role}
-        {toolCallId && (
-          <span className="text-muted-foreground/70 font-mono text-xs">({toolCallId})</span>
-        )}
+        {toolCallId && <span className="text-muted-foreground/70 font-mono text-xs">({toolCallId})</span>}
       </h4>
       {reasoning && <ReasoningContent className="my-4" content={reasoning} />}
       {content && <Markdown text={content} />}
@@ -387,11 +388,13 @@ function RequestMetaInfo() {
         typeof toolChoice === 'string' ? (
           <span className="font-mono text-xs">{toolChoice}</span>
         ) : (
-          <pre className="bg-muted/50 max-w-full overflow-auto rounded px-2 py-1 font-mono text-xs whitespace-pre-wrap break-all">
+          <pre className="bg-muted/50 max-w-full overflow-auto rounded px-2 py-1 font-mono text-xs break-all whitespace-pre-wrap">
             {JSON.stringify(toolChoice, null, 2)}
           </pre>
         )
-      ) : '-',
+      ) : (
+        '-'
+      ),
       hidden: !toolChoice,
       fullWidth: typeof toolChoice === 'object',
     },
@@ -423,7 +426,10 @@ function RequestMetaInfo() {
             .map(({ key, name, value, help, className, fullWidth }) => (
               <dl
                 key={key}
-                className={cn('gap-2 p-2 not-last:border-b', fullWidth ? 'flex flex-col' : 'flex items-center justify-between')}
+                className={cn(
+                  'gap-2 p-2 not-last:border-b',
+                  fullWidth ? 'flex flex-col' : 'flex items-center justify-between',
+                )}
               >
                 <dt className="text-muted-foreground flex items-center gap-1 text-sm">
                   {name}
@@ -467,7 +473,7 @@ function ExtraDataDisplay({ data }: { data?: Record<string, unknown> }) {
   if (entries.length === 0) return '-'
 
   return (
-    <pre className="bg-muted/50 max-w-full overflow-auto rounded px-2 py-1 font-mono text-xs whitespace-pre-wrap break-all">
+    <pre className="bg-muted/50 max-w-full overflow-auto rounded px-2 py-1 font-mono text-xs break-all whitespace-pre-wrap">
       {JSON.stringify(data, null, 2)}
     </pre>
   )
@@ -590,7 +596,7 @@ function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
           <div className="text-muted-foreground mb-1 text-xs font-medium">
             {t('pages.requests.detail-panel.pretty-view.Arguments')}
           </div>
-          <pre className="bg-muted/50 max-h-64 overflow-auto rounded px-2 py-1 font-mono text-xs whitespace-pre-wrap break-all">
+          <pre className="bg-muted/50 max-h-64 overflow-auto rounded px-2 py-1 font-mono text-xs break-all whitespace-pre-wrap">
             {parsedArgs ? JSON.stringify(parsedArgs, null, 2) : toolCall.function.arguments}
           </pre>
         </div>
@@ -634,7 +640,7 @@ function ToolsDefinitionDisplay({ tools }: { tools: ToolDefinition[] }) {
                   <div className="text-muted-foreground mb-0.5 text-[10px] font-medium uppercase">
                     {t('pages.requests.detail-panel.pretty-view.Parameters')}
                   </div>
-                  <pre className="bg-muted/50 max-h-48 overflow-auto rounded px-2 py-1 font-mono text-[10px] whitespace-pre-wrap break-all">
+                  <pre className="bg-muted/50 max-h-48 overflow-auto rounded px-2 py-1 font-mono text-[10px] break-all whitespace-pre-wrap">
                     {JSON.stringify(tool.function.parameters, null, 2)}
                   </pre>
                 </div>

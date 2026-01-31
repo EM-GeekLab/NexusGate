@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
+import type { ApiKey } from "@/db";
 import { validateApiKey } from "@/utils/apiKey.ts";
 import { ADMIN_SUPER_SECRET } from "@/utils/config.ts";
-import type { ApiKey } from "@/db";
 
 // Re-export ApiKey type for consumers
 export type { ApiKey } from "@/db";

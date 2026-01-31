@@ -9,17 +9,17 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { api } from '@/lib/api'
-import {
-  PROVIDER_TYPES,
-  PROVIDER_TYPE_LABELS,
-  requiresApiVersion,
-  getApiVersionPlaceholder,
-} from '@/constants/providers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  getApiVersionPlaceholder,
+  PROVIDER_TYPE_LABELS,
+  PROVIDER_TYPES,
+  requiresApiVersion,
+} from '@/constants/providers'
 
 import { ManageModelsDialog } from './manage-models-dialog'
 import type { Provider } from './providers-columns'
@@ -91,7 +91,10 @@ export function ProvidersSettingsPage({ data }: { data: Provider[] }) {
       // API returns { success: true, models: [...] }
       const response = data as { success: boolean; models: { id: string }[] }
       const modelCount = response.models?.length || 0
-      toast.success(t('pages.settings.providers.TestSuccess') + ` - ${t('pages.settings.providers.ModelsFound', { count: modelCount })}`)
+      toast.success(
+        t('pages.settings.providers.TestSuccess') +
+          ` - ${t('pages.settings.providers.ModelsFound', { count: modelCount })}`,
+      )
     },
     onError: () => {
       toast.error(t('pages.settings.providers.TestFailed'))
@@ -187,10 +190,7 @@ export function ProvidersSettingsPage({ data }: { data: Provider[] }) {
                     <FormItem>
                       <FormLabel>{t('pages.settings.providers.APIVersion')}</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder={getApiVersionPlaceholder(watchType)}
-                          {...field}
-                        />
+                        <Input placeholder={getApiVersionPlaceholder(watchType)} {...field} />
                       </FormControl>
                     </FormItem>
                   )}
@@ -208,7 +208,9 @@ export function ProvidersSettingsPage({ data }: { data: Provider[] }) {
       </Card>
 
       <div>
-        <h3 className="text-muted-foreground mb-5 text-sm font-medium">{t('routes.settings.providers.ConfiguredProviders')}</h3>
+        <h3 className="text-muted-foreground mb-5 text-sm font-medium">
+          {t('routes.settings.providers.ConfiguredProviders')}
+        </h3>
         <div className="space-y-4">
           {data.map((provider) => (
             <ProviderCard
@@ -246,7 +248,7 @@ function ProviderCard({ provider, onTest, onDelete, isTestPending, isDeletePendi
   return (
     <>
       <Card>
-        <CardContent className="flex items-center justify-between gap-4 py-5 px-6">
+        <CardContent className="flex items-center justify-between gap-4 px-6 py-5">
           <div className="flex min-w-0 flex-1 items-center gap-4">
             <div className="bg-muted flex size-12 shrink-0 items-center justify-center rounded-lg">
               <BoxesIcon className="text-muted-foreground size-6" />
@@ -259,7 +261,8 @@ function ProviderCard({ provider, onTest, onDelete, isTestPending, isDeletePendi
               <div className="text-muted-foreground mt-1 truncate text-sm">
                 {provider.baseUrl}
                 <span className="mx-2">·</span>
-                {t('routes.settings.providers.CreatedAt')} {formatDistanceToNow(new Date(provider.createdAt), { addSuffix: true })}
+                {t('routes.settings.providers.CreatedAt')}{' '}
+                {formatDistanceToNow(new Date(provider.createdAt), { addSuffix: true })}
               </div>
             </div>
           </div>
@@ -278,11 +281,7 @@ function ProviderCard({ provider, onTest, onDelete, isTestPending, isDeletePendi
         </CardContent>
       </Card>
 
-      <ManageModelsDialog
-        open={showModelsDialog}
-        onOpenChange={setShowModelsDialog}
-        provider={provider}
-      />
+      <ManageModelsDialog open={showModelsDialog} onOpenChange={setShowModelsDialog} provider={provider} />
     </>
   )
 }

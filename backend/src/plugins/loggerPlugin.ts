@@ -1,10 +1,10 @@
-import { consola } from "consola";
 import { Elysia } from "elysia";
+import { createLogger } from "@/utils/logger";
 
-const logger = consola.withTag("router");
+const logger = createLogger("router");
 
 export const loggerPlugin = new Elysia({
   name: "loggerPlugin",
 }).onAfterResponse({ as: "global" }, ({ request, set }) => {
-  logger.log(`${request.url} ${set.status}`);
+  logger.info(`${request.url} ${set.status}`);
 });

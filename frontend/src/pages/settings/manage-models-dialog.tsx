@@ -36,7 +36,7 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
 
   // Check if this provider type supports remote model listing
   const supportsRemoteModels = !UNSUPPORTED_REMOTE_MODEL_TYPES.includes(
-    provider.type as (typeof UNSUPPORTED_REMOTE_MODEL_TYPES)[number]
+    provider.type as (typeof UNSUPPORTED_REMOTE_MODEL_TYPES)[number],
   )
 
   // Fetch saved models for this provider
@@ -143,12 +143,14 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
       <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col overflow-hidden p-0">
         <DialogHeader className="shrink-0 border-b px-6 py-5">
           <DialogTitle className="text-lg font-semibold">{t('pages.settings.manageModels.Title')}</DialogTitle>
-          <p className="text-muted-foreground text-sm">
-            for {provider.name}
-          </p>
+          <p className="text-muted-foreground text-sm">for {provider.name}</p>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'saved' | 'remote')} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as 'saved' | 'remote')}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        >
           <TabsList className="mx-6 mt-4 w-fit shrink-0">
             <TabsTrigger value="saved" className="px-6">
               {t('pages.settings.manageModels.SavedModels')} ({savedModels.length})
@@ -160,7 +162,7 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
 
           <div className="shrink-0 px-6 py-4">
             <div className="relative">
-              <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+              <SearchIcon className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
               <Input
                 placeholder={t('pages.settings.manageModels.SearchPlaceholder')}
                 value={searchQuery}
@@ -171,10 +173,7 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
           </div>
 
           <TabsContent value="saved" className="mt-0 min-h-0 flex-1 overflow-y-auto px-6 pb-6">
-            <ManualAddForm
-              onAdd={(model) => createMutation.mutate(model)}
-              isPending={createMutation.isPending}
-            />
+            <ManualAddForm onAdd={(model) => createMutation.mutate(model)} isPending={createMutation.isPending} />
             <div className="mt-4 space-y-3">
               {isLoadingSaved ? (
                 <div className="text-muted-foreground py-8 text-center text-sm">
@@ -204,33 +203,25 @@ export function ManageModelsDialog({ open, onOpenChange, provider }: ManageModel
                 <p className="text-muted-foreground text-sm">
                   {t('pages.settings.manageModels.RemoteModelsUnsupported')}
                 </p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  {t('pages.settings.manageModels.UseManualAdd')}
-                </p>
+                <p className="text-muted-foreground mt-1 text-xs">{t('pages.settings.manageModels.UseManualAdd')}</p>
               </div>
             ) : remoteModelsMessage ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircleIcon className="text-muted-foreground mb-3 size-10" />
                 <p className="text-muted-foreground text-sm">{remoteModelsMessage}</p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  {t('pages.settings.manageModels.UseManualAdd')}
-                </p>
+                <p className="text-muted-foreground mt-1 text-xs">{t('pages.settings.manageModels.UseManualAdd')}</p>
               </div>
             ) : remoteModelsError ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircleIcon className="text-destructive mb-3 size-10" />
-                <p className="text-muted-foreground text-sm">
-                  {t('pages.settings.manageModels.FetchRemoteFailed')}
-                </p>
+                <p className="text-muted-foreground text-sm">{t('pages.settings.manageModels.FetchRemoteFailed')}</p>
                 <Button variant="outline" size="sm" className="mt-3" onClick={() => refetchRemote()}>
                   {t('pages.settings.manageModels.Retry')}
                 </Button>
               </div>
             ) : (
               <>
-                <p className="text-muted-foreground mb-4 text-sm">
-                  {t('pages.settings.manageModels.ClickToAddHint')}
-                </p>
+                <p className="text-muted-foreground mb-4 text-sm">{t('pages.settings.manageModels.ClickToAddHint')}</p>
                 <div className="space-y-3">
                   {isLoadingRemote ? (
                     <div className="text-muted-foreground py-8 text-center text-sm">
@@ -386,28 +377,15 @@ function SavedModelItem({ model, onDelete, isDeleting }: SavedModelItemProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            onClick={() => setShowConfig(!showConfig)}
-          >
+          <Button variant="ghost" size="icon" className="size-8" onClick={() => setShowConfig(!showConfig)}>
             <SettingsIcon className="size-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            onClick={onDelete}
-            disabled={isDeleting}
-          >
+          <Button variant="ghost" size="icon" className="size-8" onClick={onDelete} disabled={isDeleting}>
             <XIcon className="size-4" />
           </Button>
         </div>
       </div>
-      {showConfig && (
-        <ModelConfigForm model={model} onClose={() => setShowConfig(false)} />
-      )}
+      {showConfig && <ModelConfigForm model={model} onClose={() => setShowConfig(false)} />}
     </div>
   )
 }
@@ -487,7 +465,13 @@ function ModelConfigForm({ model, onClose }: ModelConfigFormProps) {
 interface RemoteModelItemProps {
   model: RemoteModel
   isAdded: boolean
-  onAdd: (systemName: string, modelType: 'chat' | 'embedding', contextLength?: number, inputPrice?: number, outputPrice?: number) => void
+  onAdd: (
+    systemName: string,
+    modelType: 'chat' | 'embedding',
+    contextLength?: number,
+    inputPrice?: number,
+    outputPrice?: number,
+  ) => void
   isPending: boolean
 }
 
@@ -518,7 +502,7 @@ function RemoteModelItem({ model, isAdded, onAdd, isPending }: RemoteModelItemPr
           <p className="font-medium">{model.id}</p>
           <p className="text-muted-foreground text-sm">Owner: {model.owned_by || 'unknown'}</p>
         </div>
-        <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-1 rounded px-2 py-1 text-xs">
+        <span className="flex items-center gap-1 rounded bg-green-100 px-2 py-1 text-xs text-green-700 dark:bg-green-900/30 dark:text-green-400">
           <CheckIcon className="size-3" />
           {t('pages.settings.manageModels.Configured')}
         </span>

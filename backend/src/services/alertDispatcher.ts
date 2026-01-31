@@ -48,6 +48,27 @@ async function computeHmacSha256(
 }
 
 /**
+ * Compute Feishu webhook signature.
+ * Per Feishu docs: HMAC-SHA256 with key = "timestamp\nsecret", data = "", then Base64.
+ */
+async function computeFeishuSignature(
+  timestamp: string,
+  secret: string,
+): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(`${timestamp}\n${secret}`);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new Uint8Array(0));
+  return btoa(String.fromCharCode(...new Uint8Array(signature)));
+}
+
+/**
  * Dispatch alert via webhook
  */
 async function dispatchWebhook(
@@ -149,8 +170,7 @@ async function dispatchFeishu(
 
   if (config.secret) {
     const timestamp = Math.floor(Date.now() / 1000).toString();
-    const stringToSign = `${timestamp}\n${config.secret}`;
-    const signature = await computeHmacSha256(config.secret, stringToSign);
+    const signature = await computeFeishuSignature(timestamp, config.secret);
     Object.assign(body, { timestamp, sign: signature });
   }
 

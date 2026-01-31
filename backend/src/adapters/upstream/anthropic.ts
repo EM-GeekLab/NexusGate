@@ -3,6 +3,7 @@
  * Handles communication with Anthropic Claude API
  */
 
+import { parseJsonResponse } from "@/utils/json";
 import type {
   InternalContentBlock,
   InternalMessage,
@@ -17,7 +18,6 @@ import type {
   ToolUseContentBlock,
   UpstreamAdapter,
 } from "../types";
-import { parseJsonResponse } from "@/utils/json";
 
 // =============================================================================
 // Anthropic Request/Response Types
@@ -40,6 +40,7 @@ interface AnthropicContentBlock {
   content?: string | AnthropicContentBlock[];
   is_error?: boolean;
   cache_control?: { type: "ephemeral" };
+  signature?: string;
 }
 
 interface AnthropicMessage {
@@ -96,6 +97,7 @@ interface AnthropicStreamEvent {
     text?: string;
     thinking?: string;
     partial_json?: string;
+    signature?: string;
     stop_reason?: string;
     stop_sequence?: string | null;
   };
@@ -162,7 +164,11 @@ function convertMessage(msg: InternalMessage): AnthropicMessage | null {
         if (block.type === "text") {
           content.push({ type: "text", text: block.text });
         } else if (block.type === "thinking") {
-          content.push({ type: "thinking", thinking: block.thinking });
+          content.push({
+            type: "thinking",
+            thinking: block.thinking,
+            signature: block.signature,
+          });
         }
       }
     }
@@ -245,6 +251,7 @@ function convertTools(
     name: tool.name,
     description: tool.description,
     input_schema: tool.inputSchema,
+    cache_control: tool.cacheControl,
   }));
 }
 
@@ -304,6 +311,7 @@ function convertContentBlock(
       return {
         type: "thinking",
         thinking: block.thinking || "",
+        signature: block.signature,
       } as ThinkingContentBlock;
     case "tool_use":
       return {
@@ -458,11 +466,15 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
       ...request.extraParams,
     };
 
-    // Build URL
-    const baseUrl = provider.baseUrl.endsWith("/")
-      ? provider.baseUrl.slice(0, -1)
-      : provider.baseUrl;
-    const url = `${baseUrl}/messages`;
+    // Build URL — strip trailing slash and /v1 suffix to normalize,
+    // then always append /v1/messages. This handles both
+    // "https://api.anthropic.com" and "https://api.anthropic.com/v1".
+    // Note: Any path ending with /v1 will have it stripped (e.g., /custom/v1 → /custom).
+    let baseUrl = provider.baseUrl.replace(/\/+$/, "");
+    if (baseUrl.endsWith("/v1")) {
+      baseUrl = baseUrl.slice(0, -3);
+    }
+    const url = `${baseUrl}/v1/messages`;
 
     // Build headers (Anthropic uses x-api-key instead of Authorization Bearer)
     const headers: Record<string, string> = {
@@ -565,6 +577,15 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
               type: "content_block_delta",
               index: event.index,
               delta: { type: "thinking_delta", thinking: delta.thinking },
+            };
+          } else if (delta?.type === "signature_delta") {
+            yield {
+              type: "content_block_delta",
+              index: event.index,
+              delta: {
+                type: "signature_delta",
+                signature: delta.signature,
+              },
             };
           } else if (delta?.type === "input_json_delta") {
             yield {

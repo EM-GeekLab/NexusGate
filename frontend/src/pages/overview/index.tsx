@@ -63,12 +63,14 @@ export function OverviewPage() {
   const navigate = useNavigate()
   const { data: dashboardsData } = useGrafanaDashboards()
 
-  const dashboards = dashboardsData?.dashboards ?? []
+  const dashboards = useMemo(() => dashboardsData?.dashboards ?? [], [dashboardsData?.dashboards])
   const selectedDashboard = dashboards.find((d) => d.id === view)
   const timeRange = range as TimeRange
   const showGrafana = !!selectedDashboard
 
   // Auto-select first Grafana dashboard when dashboards are configured
+  // By design, when Grafana dashboards exist the built-in view is replaced;
+  // users switch between dashboards via the ViewModeToggle in the header.
   useEffect(() => {
     if (dashboards.length > 0 && view === 'builtin') {
       navigate({

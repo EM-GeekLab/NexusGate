@@ -97,6 +97,7 @@ interface AnthropicStreamEvent {
     text?: string;
     thinking?: string;
     partial_json?: string;
+    signature?: string;
     stop_reason?: string;
     stop_sequence?: string | null;
   };
@@ -310,6 +311,7 @@ function convertContentBlock(
       return {
         type: "thinking",
         thinking: block.thinking || "",
+        signature: block.signature,
       } as ThinkingContentBlock;
     case "tool_use":
       return {
@@ -467,6 +469,7 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
     // Build URL — strip trailing slash and /v1 suffix to normalize,
     // then always append /v1/messages. This handles both
     // "https://api.anthropic.com" and "https://api.anthropic.com/v1".
+    // Note: Any path ending with /v1 will have it stripped (e.g., /custom/v1 → /custom).
     let baseUrl = provider.baseUrl.replace(/\/+$/, "");
     if (baseUrl.endsWith("/v1")) {
       baseUrl = baseUrl.slice(0, -3);
@@ -574,6 +577,15 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
               type: "content_block_delta",
               index: event.index,
               delta: { type: "thinking_delta", thinking: delta.thinking },
+            };
+          } else if (delta?.type === "signature_delta") {
+            yield {
+              type: "content_block_delta",
+              index: event.index,
+              delta: {
+                type: "signature_delta",
+                signature: delta.signature,
+              },
             };
           } else if (delta?.type === "input_json_delta") {
             yield {

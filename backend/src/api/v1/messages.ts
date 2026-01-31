@@ -5,12 +5,12 @@
 
 import { Elysia, t } from "elysia";
 import type { ModelWithProvider } from "@/adapters/types";
+import type { CachedResponseType } from "@/db/schema";
 import {
   getRequestAdapter,
   getResponseAdapter,
   getUpstreamAdapter,
 } from "@/adapters";
-import { createLogger } from "@/utils/logger";
 import { getModelsWithProviderBySystemName } from "@/db";
 import { apiKeyPlugin, type ApiKey } from "@/plugins/apiKeyPlugin";
 import {
@@ -18,6 +18,11 @@ import {
   consumeTokens,
 } from "@/plugins/apiKeyRateLimitPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
+import {
+  executeWithFailover,
+  selectMultipleCandidates,
+  type FailoverConfig,
+} from "@/services/failover";
 import {
   extractUpstreamHeaders,
   filterCandidates,
@@ -27,12 +32,8 @@ import {
   PROVIDER_HEADER,
 } from "@/utils/api-helpers";
 import { addCompletions, type Completion } from "@/utils/completions";
-import { StreamingContext } from "@/utils/streaming-context";
-import {
-  executeWithFailover,
-  selectMultipleCandidates,
-  type FailoverConfig,
-} from "@/services/failover";
+import { safeParseToolArgs } from "@/utils/json";
+import { createLogger } from "@/utils/logger";
 import {
   checkReqId,
   finalizeReqId,
@@ -42,8 +43,7 @@ import {
   type ApiFormat,
   type ReqIdContext,
 } from "@/utils/reqIdHandler";
-import type { CachedResponseType } from "@/db/schema";
-import { safeParseToolArgs } from "@/utils/json";
+import { StreamingContext } from "@/utils/streaming-context";
 
 const logger = createLogger("messagesApi");
 
@@ -52,40 +52,58 @@ const logger = createLogger("messagesApi");
 // =============================================================================
 
 // Anthropic content block types
-const tAnthropicTextBlock = t.Object({
-  type: t.Literal("text"),
-  text: t.String(),
-});
+const tAnthropicTextBlock = t.Object(
+  {
+    type: t.Literal("text"),
+    text: t.String(),
+  },
+  { additionalProperties: true },
+);
 
-const tAnthropicImageBlock = t.Object({
-  type: t.Literal("image"),
-  source: t.Object({
-    type: t.String(),
-    media_type: t.Optional(t.String()),
-    data: t.Optional(t.String()),
-    url: t.Optional(t.String()),
-  }),
-});
+const tAnthropicImageBlock = t.Object(
+  {
+    type: t.Literal("image"),
+    source: t.Object(
+      {
+        type: t.String(),
+        media_type: t.Optional(t.String()),
+        data: t.Optional(t.String()),
+        url: t.Optional(t.String()),
+      },
+      { additionalProperties: true },
+    ),
+  },
+  { additionalProperties: true },
+);
 
-const tAnthropicToolUseBlock = t.Object({
-  type: t.Literal("tool_use"),
-  id: t.String(),
-  name: t.String(),
-  input: t.Record(t.String(), t.Unknown()),
-});
+const tAnthropicToolUseBlock = t.Object(
+  {
+    type: t.Literal("tool_use"),
+    id: t.String(),
+    name: t.String(),
+    input: t.Record(t.String(), t.Unknown()),
+  },
+  { additionalProperties: true },
+);
 
-const tAnthropicToolResultBlock = t.Object({
-  type: t.Literal("tool_result"),
-  tool_use_id: t.String(),
-  content: t.Optional(t.Union([t.String(), t.Array(t.Unknown())])),
-  is_error: t.Optional(t.Boolean()),
-});
+const tAnthropicToolResultBlock = t.Object(
+  {
+    type: t.Literal("tool_result"),
+    tool_use_id: t.String(),
+    content: t.Optional(t.Union([t.String(), t.Array(t.Unknown())])),
+    is_error: t.Optional(t.Boolean()),
+  },
+  { additionalProperties: true },
+);
 
-const tAnthropicThinkingBlock = t.Object({
-  type: t.Literal("thinking"),
-  thinking: t.String(),
-  signature: t.String(),
-});
+const tAnthropicThinkingBlock = t.Object(
+  {
+    type: t.Literal("thinking"),
+    thinking: t.String(),
+    signature: t.Optional(t.String()),
+  },
+  { additionalProperties: true },
+);
 
 const tAnthropicContentBlock = t.Union([
   tAnthropicTextBlock,
@@ -96,23 +114,32 @@ const tAnthropicContentBlock = t.Union([
 ]);
 
 // Anthropic tool definition
-const tAnthropicTool = t.Object({
-  name: t.String(),
-  description: t.Optional(t.String()),
-  input_schema: t.Record(t.String(), t.Unknown()),
-});
+const tAnthropicTool = t.Object(
+  {
+    name: t.String(),
+    description: t.Optional(t.String()),
+    input_schema: t.Record(t.String(), t.Unknown()),
+  },
+  { additionalProperties: true },
+);
 
 // Anthropic tool choice
 const tAnthropicToolChoice = t.Union([
-  t.Object({ type: t.Literal("auto") }),
-  t.Object({ type: t.Literal("any") }),
-  t.Object({ type: t.Literal("tool"), name: t.String() }),
+  t.Object({ type: t.Literal("auto") }, { additionalProperties: true }),
+  t.Object({ type: t.Literal("any") }, { additionalProperties: true }),
+  t.Object(
+    { type: t.Literal("tool"), name: t.String() },
+    { additionalProperties: true },
+  ),
 ]);
 
 // Anthropic metadata
-const tAnthropicMetadata = t.Object({
-  user_id: t.Optional(t.String()),
-});
+const tAnthropicMetadata = t.Object(
+  {
+    user_id: t.Optional(t.String()),
+  },
+  { additionalProperties: true },
+);
 
 // Anthropic Messages API request schema
 const tAnthropicMessageCreate = t.Object(

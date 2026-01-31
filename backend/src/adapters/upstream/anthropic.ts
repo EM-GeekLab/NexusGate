@@ -3,6 +3,7 @@
  * Handles communication with Anthropic Claude API
  */
 
+import { parseJsonResponse } from "@/utils/json";
 import type {
   InternalContentBlock,
   InternalMessage,
@@ -17,7 +18,6 @@ import type {
   ToolUseContentBlock,
   UpstreamAdapter,
 } from "../types";
-import { parseJsonResponse } from "@/utils/json";
 
 // =============================================================================
 // Anthropic Request/Response Types
@@ -462,7 +462,7 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
     const baseUrl = provider.baseUrl.endsWith("/")
       ? provider.baseUrl.slice(0, -1)
       : provider.baseUrl;
-    const url = `${baseUrl}/messages`;
+    const url = `${baseUrl}/v1/messages`;
 
     // Build headers (Anthropic uses x-api-key instead of Authorization Bearer)
     const headers: Record<string, string> = {

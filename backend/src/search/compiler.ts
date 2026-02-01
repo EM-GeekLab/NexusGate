@@ -269,8 +269,9 @@ class SqlCompiler {
 
       // Array-rooted JSONB (e.g., toolCalls — completion is an array of messages)
       if (mapping.jsonbRootIsArray) {
+        const safeUnwrapped = `CASE WHEN jsonb_typeof(${unwrapped}) = 'array' THEN ${unwrapped} ELSE '[]'::jsonb END`;
         if (parts.length === 1) {
-          return `EXISTS (SELECT 1 FROM jsonb_array_elements(${unwrapped}) _elem WHERE _elem->'${mapping.jsonbRootKey}' IS NOT NULL)`;
+          return `EXISTS (SELECT 1 FROM jsonb_array_elements(${safeUnwrapped}) _elem WHERE _elem->'${mapping.jsonbRootKey}' IS NOT NULL)`;
         }
         const pathSegments = parts.slice(1);
         validateJsonbPath(pathSegments);
@@ -279,7 +280,7 @@ class SqlCompiler {
           pathSql += `->'${pathSegments[i]}'`;
         }
         pathSql += `->>'${pathSegments[pathSegments.length - 1]}'`;
-        return `EXISTS (SELECT 1 FROM jsonb_array_elements(${unwrapped}) _elem WHERE ${pathSql} IS NOT NULL)`;
+        return `EXISTS (SELECT 1 FROM jsonb_array_elements(${safeUnwrapped}) _elem WHERE ${pathSql} IS NOT NULL)`;
       }
 
       if (parts.length === 1) {
@@ -345,7 +346,7 @@ class SqlCompiler {
       }
     }
 
-    return `EXISTS (SELECT 1 FROM jsonb_array_elements(${unwrapped}) _msg, jsonb_array_elements(_msg->'${mapping.jsonbRootKey}') _tc WHERE ${comparison})`;
+    return `EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(${unwrapped}) = 'array' THEN ${unwrapped} ELSE '[]'::jsonb END) _msg, jsonb_array_elements(CASE WHEN jsonb_typeof(_msg->'${mapping.jsonbRootKey}') = 'array' THEN _msg->'${mapping.jsonbRootKey}' ELSE '[]'::jsonb END) _tc WHERE ${comparison})`;
   }
 
   private compileComparison(expr: {
@@ -549,7 +550,9 @@ class SqlCompiler {
     let groupByField: string | undefined;
 
     if (agg.groupBy && agg.groupBy.length > 0) {
-      // Currently support single GROUP BY field
+      if (agg.groupBy.length > 1) {
+        throw new CompilerError("Only a single GROUP BY field is supported");
+      }
       const [field] = agg.groupBy;
       if (!field) {
         throw new CompilerError("Empty GROUP BY field");

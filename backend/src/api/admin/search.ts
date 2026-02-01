@@ -21,10 +21,26 @@ function parseTimeRange(
   if (!from || !to) {
     return undefined;
   }
-  return {
-    from: new Date(from),
-    to: new Date(to),
-  };
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    throw new Error("Invalid timeRange date");
+  }
+  if (fromDate > toDate) {
+    throw new Error("timeRange.from must be <= timeRange.to");
+  }
+  return { from: fromDate, to: toDate };
+}
+
+function escapeCsvField(value: unknown): string {
+  if (value == null) {
+    return "";
+  }
+  const str = typeof value === "object" ? JSON.stringify(value) : String(value as string | number | boolean);
+  if (str.includes(",") || str.includes("\n") || str.includes("\r") || str.includes('"')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
 }
 
 export const adminSearch = new Elysia()
@@ -40,7 +56,12 @@ export const adminSearch = new Elysia()
         });
       }
 
-      const timeRange = parseTimeRange(body.timeRange?.from, body.timeRange?.to);
+      let timeRange: { from: Date; to: Date } | undefined;
+      try {
+        timeRange = parseTimeRange(body.timeRange?.from, body.timeRange?.to);
+      } catch (err) {
+        return status(400, { error: err instanceof Error ? err.message : "Invalid timeRange" });
+      }
       const compiled = compileSearch(result.query, { timeRange });
 
       // If the query has aggregation, return aggregation results
@@ -103,7 +124,12 @@ export const adminSearch = new Elysia()
         });
       }
 
-      const timeRange = parseTimeRange(body.timeRange?.from, body.timeRange?.to);
+      let timeRange: { from: Date; to: Date } | undefined;
+      try {
+        timeRange = parseTimeRange(body.timeRange?.from, body.timeRange?.to);
+      } catch (err) {
+        return status(400, { error: err instanceof Error ? err.message : "Invalid timeRange" });
+      }
       const compiled = compileSearch(result.query, { timeRange });
 
       try {
@@ -160,7 +186,12 @@ export const adminSearch = new Elysia()
         });
       }
 
-      const timeRange = parseTimeRange(body.timeRange?.from, body.timeRange?.to);
+      let timeRange: { from: Date; to: Date } | undefined;
+      try {
+        timeRange = parseTimeRange(body.timeRange?.from, body.timeRange?.to);
+      } catch (err) {
+        return status(400, { error: err instanceof Error ? err.message : "Invalid timeRange" });
+      }
       const compiled = compileSearch(result.query, { timeRange });
 
       try {
@@ -187,17 +218,17 @@ export const adminSearch = new Elysia()
           ];
           const rows = data.data.map((row) =>
             [
-              row.id,
-              `"${(row.model || "").replace(/"/g, '""')}"`,
-              row.status,
-              row.duration,
-              row.ttft,
-              row.prompt_tokens,
-              row.completion_tokens,
-              row.created_at,
-              `"${(row.provider_name || "").replace(/"/g, '""')}"`,
-              row.api_format || "",
-              row.rating ?? "",
+              escapeCsvField(row.id),
+              escapeCsvField(row.model),
+              escapeCsvField(row.status),
+              escapeCsvField(row.duration),
+              escapeCsvField(row.ttft),
+              escapeCsvField(row.prompt_tokens),
+              escapeCsvField(row.completion_tokens),
+              escapeCsvField(row.created_at),
+              escapeCsvField(row.provider_name),
+              escapeCsvField(row.api_format),
+              escapeCsvField(row.rating),
             ].join(","),
           );
           return [headers.join(","), ...rows].join("\n");

@@ -18,9 +18,9 @@ interface SearchHistogramProps {
 export const SearchHistogram = memo(function SearchHistogram({ data }: SearchHistogramProps) {
   const chartData = data.map((item) => ({
     timestamp: typeof item.bucket === 'string' ? item.bucket : item.bucket.toISOString(),
-    completed: Number(item.completed),
-    failed: Number(item.failed),
-    other: Math.max(0, Number(item.total) - Number(item.completed) - Number(item.failed)),
+    completed: Number(item.completed) || 0,
+    failed: Number(item.failed) || 0,
+    other: Math.max(0, (Number(item.total) || 0) - (Number(item.completed) || 0) - (Number(item.failed) || 0)),
   }))
 
   if (chartData.length === 0) return null

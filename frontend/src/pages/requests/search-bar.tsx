@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { XIcon } from 'lucide-react'
 
@@ -12,6 +12,11 @@ export function SearchBar() {
   const navigate = useNavigate()
 
   const [queryText, setQueryText] = useState(q ?? '')
+
+  // Sync queryText with URL q param on back/forward navigation
+  useEffect(() => {
+    setQueryText(q ?? '')
+  }, [q])
 
   const handleSubmit = () => {
     const trimmed = queryText.trim()

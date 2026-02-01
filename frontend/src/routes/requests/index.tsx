@@ -97,6 +97,14 @@ function DefaultResults() {
   )
 }
 
+function safeJsonParse(value: string): unknown {
+  try {
+    return JSON.parse(value)
+  } catch {
+    return null
+  }
+}
+
 function SearchResults() {
   const { q, range, page, pageSize } = Route.useSearch()
 
@@ -164,8 +172,8 @@ function SearchResults() {
     sourceCompletionId: null,
     apiFormat: row.api_format ?? null,
     cachedResponse: null,
-    prompt: typeof row.prompt === 'string' ? JSON.parse(row.prompt) : row.prompt,
-    completion: typeof row.completion === 'string' ? JSON.parse(row.completion) : row.completion,
+    prompt: typeof row.prompt === 'string' ? safeJsonParse(row.prompt) : row.prompt,
+    completion: typeof row.completion === 'string' ? safeJsonParse(row.completion) : row.completion,
     providerName: row.provider_name ?? null,
   })) as unknown as ChatRequest[]
 

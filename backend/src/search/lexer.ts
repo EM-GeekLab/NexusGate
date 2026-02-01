@@ -122,7 +122,14 @@ export function tokenize(input: string): Token[] {
     if (/\d/.test(ch) || (ch === "-" && pos + 1 < input.length && /\d/.test(charAt(pos + 1)))) {
       let num = ch;
       pos++;
+      let hasDot = false;
       while (pos < input.length && /[\d.]/.test(charAt(pos))) {
+        if (charAt(pos) === ".") {
+          if (hasDot) {
+            break; // Stop at second dot to reject "1.2.3"
+          }
+          hasDot = true;
+        }
         num += charAt(pos);
         pos++;
       }

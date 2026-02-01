@@ -45,8 +45,8 @@ export function ExportButton({ query, timeRange, disabled }: ExportButtonProps) 
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch {
-      // Silently fail — could add toast notification here
+    } catch (err) {
+      console.error('Export failed', err)
     } finally {
       setLoading(false)
     }

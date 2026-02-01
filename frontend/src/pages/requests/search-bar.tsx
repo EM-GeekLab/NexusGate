@@ -4,7 +4,7 @@ import { XIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { QueryInput } from '@/pages/search/query-input'
-import { TimeRangePicker, type TimeRangePreset } from '@/pages/search/time-range-picker'
+import { TimeRangePicker, getTimeRangeISO, type TimeRangePreset } from '@/pages/search/time-range-picker'
 import { ExportButton } from '@/pages/search/export-button'
 
 export function SearchBar() {
@@ -52,21 +52,8 @@ export function SearchBar() {
 
   const isSearching = !!q?.trim()
 
-  const now = new Date()
-  const rangeMs: Record<string, number> = {
-    '15m': 15 * 60_000,
-    '1h': 3600_000,
-    '4h': 4 * 3600_000,
-    '12h': 12 * 3600_000,
-    '24h': 24 * 3600_000,
-    '7d': 7 * 86400_000,
-    '30d': 30 * 86400_000,
-  }
   const timeRange = isSearching
-    ? {
-        from: new Date(now.getTime() - (rangeMs[range ?? '24h'] ?? 86400_000)).toISOString(),
-        to: now.toISOString(),
-      }
+    ? getTimeRangeISO((range as TimeRangePreset) ?? '24h')
     : undefined
 
   return (

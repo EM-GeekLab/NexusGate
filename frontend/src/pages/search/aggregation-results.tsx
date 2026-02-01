@@ -10,7 +10,11 @@ export function AggregationResults({ results }: AggregationResultsProps) {
   }
 
   // Get column names from first result
-  const columns = Object.keys(results[0])
+  const firstRow = results[0]
+  if (!firstRow) {
+    return <div className="text-muted-foreground py-12 text-center text-sm">No aggregation results</div>
+  }
+  const columns = Object.keys(firstRow)
 
   return (
     <div className="flex-1 overflow-auto">

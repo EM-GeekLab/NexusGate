@@ -10,17 +10,20 @@ import {
   searchCompletionsTimeSeries,
   getDistinctFieldValues,
 } from "@/db";
+import { createLogger } from "@/utils/logger";
+
+const logger = createLogger("search");
 
 function parseTimeRange(
   from?: string,
   to?: string,
 ): { from: Date; to: Date } | undefined {
-  if (!from && !to) {
+  if (!from || !to) {
     return undefined;
   }
   return {
-    from: from ? new Date(from) : new Date(Date.now() - 3600_000), // default: 1h ago
-    to: to ? new Date(to) : new Date(),
+    from: new Date(from),
+    to: new Date(to),
   };
 }
 
@@ -46,9 +49,9 @@ export const adminSearch = new Elysia()
           const results = await aggregateCompletions(compiled);
           return { type: "aggregation" as const, results };
         } catch (err) {
+          logger.error("Aggregation failed", { error: err });
           return status(500, {
             error: "Aggregation failed",
-            details: String(err),
           });
         }
       }
@@ -68,9 +71,9 @@ export const adminSearch = new Elysia()
         });
         return { type: "documents" as const, ...data };
       } catch (err) {
+        logger.error("Search failed", { error: err });
         return status(500, {
           error: "Search failed",
-          details: String(err),
         });
       }
     },
@@ -110,9 +113,9 @@ export const adminSearch = new Elysia()
         );
         return { buckets };
       } catch (err) {
+        logger.error("Histogram query failed", { error: err });
         return status(500, {
           error: "Histogram query failed",
-          details: String(err),
         });
       }
     },
@@ -206,9 +209,9 @@ export const adminSearch = new Elysia()
           'attachment; filename="search-results.json"';
         return JSON.stringify(data.data, null, 2);
       } catch (err) {
+        logger.error("Export failed", { error: err });
         return status(500, {
           error: "Export failed",
-          details: String(err),
         });
       }
     },

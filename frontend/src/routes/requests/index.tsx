@@ -13,6 +13,7 @@ import type { ChatRequest } from '@/pages/requests/columns'
 import { RequestsDataTable } from '@/pages/requests/data-table'
 import { SearchBar } from '@/pages/requests/search-bar'
 import { AggregationResults } from '@/pages/search/aggregation-results'
+import { getTimeRangeISO, type TimeRangePreset } from '@/pages/search/time-range-picker'
 
 const requestsSearchSchema = z.object({
   page: z.number().catch(1),
@@ -99,18 +100,7 @@ function DefaultResults() {
 function SearchResults() {
   const { q, range, page, pageSize } = Route.useSearch()
 
-  const now = new Date()
-  const rangeMs: Record<string, number> = {
-    '15m': 15 * 60_000,
-    '1h': 3600_000,
-    '4h': 4 * 3600_000,
-    '12h': 12 * 3600_000,
-    '24h': 24 * 3600_000,
-    '7d': 7 * 86400_000,
-    '30d': 30 * 86400_000,
-  }
-  const from = new Date(now.getTime() - (rangeMs[range ?? '24h'] ?? 86400_000)).toISOString()
-  const to = now.toISOString()
+  const { from, to } = getTimeRangeISO((range ?? '24h') as TimeRangePreset)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['search', { q, range, page, pageSize }],

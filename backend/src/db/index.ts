@@ -2041,6 +2041,8 @@ export async function aggregateCompletions(
     compiled.aggregation;
 
   // Build SELECT clause
+  // SAFETY: selectExpressions and groupByColumn are produced by the compiler
+  // from the trusted FIELD_REGISTRY whitelist — they never contain user input.
   const selectParts: string[] = [];
   if (groupByColumn && groupByField) {
     selectParts.push(`${groupByColumn} AS "${groupByField}"`);

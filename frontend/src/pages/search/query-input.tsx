@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { SearchIcon } from 'lucide-react'
 
 import { api } from '@/lib/api'
+import { parseKql } from '@/lib/kql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -119,32 +120,21 @@ export function QueryInput({ value, onChange, onSubmit, className }: QueryInputP
 
   const suggestions = getSuggestions()
 
-  // Validate query on change (debounced)
+  // Validate query on change (debounced, purely client-side)
   useEffect(() => {
     if (!value.trim()) {
       setValidationError(null)
       return
     }
 
-    const timeout = setTimeout(async () => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (api.admin.search.validate as any).post({
-          query: value,
-        })
-        if (error || !data) {
-          setValidationError(null)
-          return
-        }
-        if (data.valid) {
-          setValidationError(null)
-        } else if (data.error) {
-          setValidationError(data.error.message)
-        }
-      } catch {
-        // Ignore validation errors during typing
+    const timeout = setTimeout(() => {
+      const result = parseKql(value)
+      if (result.success) {
+        setValidationError(null)
+      } else {
+        setValidationError(result.error.message)
       }
-    }, 500)
+    }, 300)
 
     return () => clearTimeout(timeout)
   }, [value])

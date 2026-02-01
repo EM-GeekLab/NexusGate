@@ -129,22 +129,6 @@ export const adminSearch = new Elysia()
       }),
     },
   )
-  // Validate KQL query
-  .post(
-    "/search/validate",
-    ({ body }) => {
-      const result = parseKql(body.query);
-      if (result.success) {
-        return { valid: true, hasAggregation: !!result.query.aggregation };
-      }
-      return { valid: false, error: result.error };
-    },
-    {
-      body: t.Object({
-        query: t.String({ maxLength: 2000 }),
-      }),
-    },
-  )
   // Get searchable fields (for autocomplete)
   .get("/search/fields", async () => {
     const fields = getSearchableFields();

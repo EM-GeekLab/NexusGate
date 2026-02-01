@@ -22,6 +22,9 @@ coverage
 # Docs build output (generated from docs/ workspace)
 backend/docs/
 
+CLAUDE.md
+TODOs.md
+
 .turbo
 
 # Python test code (ignore all except essential files)

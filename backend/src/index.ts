@@ -18,7 +18,7 @@ import { join } from "node:path";
 import { routes } from "@/api";
 import { metricsApi } from "@/api/metrics";
 import { loggerPlugin } from "@/plugins/loggerPlugin";
-import { startAlertEngine } from "@/services/alertEngine";
+import { startAlertEngine, stopAlertEngine } from "@/services/alertEngine";
 import {
   ALLOWED_ORIGINS,
   DOCS_DIR,
@@ -227,5 +227,14 @@ const app = new Elysia()
 log.info(`Elysia is running at ${app.server?.hostname}:${app.server?.port}`);
 
 startAlertEngine();
+
+const shutdown = () => {
+  log.info("Shutting down...");
+  stopAlertEngine();
+  void app.stop().then(() => process.exit(0));
+};
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
 
 export type App = typeof app;

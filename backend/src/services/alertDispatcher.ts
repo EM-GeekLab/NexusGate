@@ -42,9 +42,7 @@ async function computeHmacSha256(
     key,
     encoder.encode(payload),
   );
-  return Array.from(new Uint8Array(signature))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return Buffer.from(signature).toString("hex");
 }
 
 /**

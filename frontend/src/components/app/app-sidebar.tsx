@@ -8,6 +8,7 @@ import {
   LayoutGridIcon,
   SettingsIcon,
   WaypointsIcon,
+  WrenchIcon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -51,6 +52,11 @@ const navItems = [
   },
   {
     icon: <SettingsIcon className="size-4" />,
+    title: i18n.t('components.app.app-sidebar.Models'),
+    href: '/models',
+  },
+  {
+    icon: <WrenchIcon className="size-4" />,
     title: i18n.t('components.app.app-sidebar.Settings'),
     href: '/settings',
   },

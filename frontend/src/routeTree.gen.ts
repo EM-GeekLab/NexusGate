@@ -9,18 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
-import { Route as DashboardRouteRouteImport } from './routes/_dashboard/route'
-import { Route as AppsIndexRouteImport } from './routes/apps/index'
-import { Route as AppsRouteRouteImport } from './routes/apps/route'
-import { Route as EmbeddingsIndexRouteImport } from './routes/embeddings/index'
-import { Route as EmbeddingsRouteRouteImport } from './routes/embeddings/route'
-import { Route as RequestsIndexRouteImport } from './routes/requests/index'
-import { Route as RequestsRouteRouteImport } from './routes/requests/route'
-import { Route as SettingsIndexRouteImport } from './routes/settings/index'
-import { Route as SettingsModelsRouteImport } from './routes/settings/models'
-import { Route as SettingsProvidersRouteImport } from './routes/settings/providers'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
+import { Route as RequestsRouteRouteImport } from './routes/requests/route'
+import { Route as ModelsRouteRouteImport } from './routes/models/route'
+import { Route as EmbeddingsRouteRouteImport } from './routes/embeddings/route'
+import { Route as AppsRouteRouteImport } from './routes/apps/route'
+import { Route as DashboardRouteRouteImport } from './routes/_dashboard/route'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
+import { Route as RequestsIndexRouteImport } from './routes/requests/index'
+import { Route as ModelsIndexRouteImport } from './routes/models/index'
+import { Route as EmbeddingsIndexRouteImport } from './routes/embeddings/index'
+import { Route as AppsIndexRouteImport } from './routes/apps/index'
+import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
+import { Route as SettingsGrafanaRouteImport } from './routes/settings/grafana'
+import { Route as SettingsAlertsRouteImport } from './routes/settings/alerts'
+import { Route as ModelsRegistryRouteImport } from './routes/models/registry'
+import { Route as ModelsProvidersRouteImport } from './routes/models/providers'
 
 const SettingsRouteRoute = SettingsRouteRouteImport.update({
   id: '/settings',
@@ -30,6 +34,11 @@ const SettingsRouteRoute = SettingsRouteRouteImport.update({
 const RequestsRouteRoute = RequestsRouteRouteImport.update({
   id: '/requests',
   path: '/requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModelsRouteRoute = ModelsRouteRouteImport.update({
+  id: '/models',
+  path: '/models',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmbeddingsRouteRoute = EmbeddingsRouteRouteImport.update({
@@ -56,6 +65,11 @@ const RequestsIndexRoute = RequestsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => RequestsRouteRoute,
 } as any)
+const ModelsIndexRoute = ModelsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ModelsRouteRoute,
+} as any)
 const EmbeddingsIndexRoute = EmbeddingsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -71,36 +85,53 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const SettingsProvidersRoute = SettingsProvidersRouteImport.update({
-  id: '/providers',
-  path: '/providers',
+const SettingsGrafanaRoute = SettingsGrafanaRouteImport.update({
+  id: '/grafana',
+  path: '/grafana',
   getParentRoute: () => SettingsRouteRoute,
 } as any)
-const SettingsModelsRoute = SettingsModelsRouteImport.update({
-  id: '/models',
-  path: '/models',
+const SettingsAlertsRoute = SettingsAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
   getParentRoute: () => SettingsRouteRoute,
+} as any)
+const ModelsRegistryRoute = ModelsRegistryRouteImport.update({
+  id: '/registry',
+  path: '/registry',
+  getParentRoute: () => ModelsRouteRoute,
+} as any)
+const ModelsProvidersRoute = ModelsProvidersRouteImport.update({
+  id: '/providers',
+  path: '/providers',
+  getParentRoute: () => ModelsRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/apps': typeof AppsRouteRouteWithChildren
   '/embeddings': typeof EmbeddingsRouteRouteWithChildren
+  '/models': typeof ModelsRouteRouteWithChildren
   '/requests': typeof RequestsRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
-  '/settings/models': typeof SettingsModelsRoute
-  '/settings/providers': typeof SettingsProvidersRoute
+  '/models/providers': typeof ModelsProvidersRoute
+  '/models/registry': typeof ModelsRegistryRoute
+  '/settings/alerts': typeof SettingsAlertsRoute
+  '/settings/grafana': typeof SettingsGrafanaRoute
   '/': typeof DashboardIndexRoute
   '/apps/': typeof AppsIndexRoute
   '/embeddings/': typeof EmbeddingsIndexRoute
+  '/models/': typeof ModelsIndexRoute
   '/requests/': typeof RequestsIndexRoute
   '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/settings/models': typeof SettingsModelsRoute
-  '/settings/providers': typeof SettingsProvidersRoute
+  '/models/providers': typeof ModelsProvidersRoute
+  '/models/registry': typeof ModelsRegistryRoute
+  '/settings/alerts': typeof SettingsAlertsRoute
+  '/settings/grafana': typeof SettingsGrafanaRoute
   '/': typeof DashboardIndexRoute
   '/apps': typeof AppsIndexRoute
   '/embeddings': typeof EmbeddingsIndexRoute
+  '/models': typeof ModelsIndexRoute
   '/requests': typeof RequestsIndexRoute
   '/settings': typeof SettingsIndexRoute
 }
@@ -109,13 +140,17 @@ export interface FileRoutesById {
   '/_dashboard': typeof DashboardRouteRouteWithChildren
   '/apps': typeof AppsRouteRouteWithChildren
   '/embeddings': typeof EmbeddingsRouteRouteWithChildren
+  '/models': typeof ModelsRouteRouteWithChildren
   '/requests': typeof RequestsRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
-  '/settings/models': typeof SettingsModelsRoute
-  '/settings/providers': typeof SettingsProvidersRoute
+  '/models/providers': typeof ModelsProvidersRoute
+  '/models/registry': typeof ModelsRegistryRoute
+  '/settings/alerts': typeof SettingsAlertsRoute
+  '/settings/grafana': typeof SettingsGrafanaRoute
   '/_dashboard/': typeof DashboardIndexRoute
   '/apps/': typeof AppsIndexRoute
   '/embeddings/': typeof EmbeddingsIndexRoute
+  '/models/': typeof ModelsIndexRoute
   '/requests/': typeof RequestsIndexRoute
   '/settings/': typeof SettingsIndexRoute
 }
@@ -124,29 +159,47 @@ export interface FileRouteTypes {
   fullPaths:
     | '/apps'
     | '/embeddings'
+    | '/models'
     | '/requests'
     | '/settings'
-    | '/settings/models'
-    | '/settings/providers'
+    | '/models/providers'
+    | '/models/registry'
+    | '/settings/alerts'
+    | '/settings/grafana'
     | '/'
     | '/apps/'
     | '/embeddings/'
+    | '/models/'
     | '/requests/'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/settings/models' | '/settings/providers' | '/' | '/apps' | '/embeddings' | '/requests' | '/settings'
+  to:
+    | '/models/providers'
+    | '/models/registry'
+    | '/settings/alerts'
+    | '/settings/grafana'
+    | '/'
+    | '/apps'
+    | '/embeddings'
+    | '/models'
+    | '/requests'
+    | '/settings'
   id:
     | '__root__'
     | '/_dashboard'
     | '/apps'
     | '/embeddings'
+    | '/models'
     | '/requests'
     | '/settings'
-    | '/settings/models'
-    | '/settings/providers'
+    | '/models/providers'
+    | '/models/registry'
+    | '/settings/alerts'
+    | '/settings/grafana'
     | '/_dashboard/'
     | '/apps/'
     | '/embeddings/'
+    | '/models/'
     | '/requests/'
     | '/settings/'
   fileRoutesById: FileRoutesById
@@ -155,6 +208,7 @@ export interface RootRouteChildren {
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   AppsRouteRoute: typeof AppsRouteRouteWithChildren
   EmbeddingsRouteRoute: typeof EmbeddingsRouteRouteWithChildren
+  ModelsRouteRoute: typeof ModelsRouteRouteWithChildren
   RequestsRouteRoute: typeof RequestsRouteRouteWithChildren
   SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
 }
@@ -173,6 +227,13 @@ declare module '@tanstack/react-router' {
       path: '/requests'
       fullPath: '/requests'
       preLoaderRoute: typeof RequestsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/models': {
+      id: '/models'
+      path: '/models'
+      fullPath: '/models'
+      preLoaderRoute: typeof ModelsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/embeddings': {
@@ -210,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RequestsIndexRouteImport
       parentRoute: typeof RequestsRouteRoute
     }
+    '/models/': {
+      id: '/models/'
+      path: '/'
+      fullPath: '/models/'
+      preLoaderRoute: typeof ModelsIndexRouteImport
+      parentRoute: typeof ModelsRouteRoute
+    }
     '/embeddings/': {
       id: '/embeddings/'
       path: '/'
@@ -231,19 +299,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/settings/providers': {
-      id: '/settings/providers'
-      path: '/providers'
-      fullPath: '/settings/providers'
-      preLoaderRoute: typeof SettingsProvidersRouteImport
+    '/settings/grafana': {
+      id: '/settings/grafana'
+      path: '/grafana'
+      fullPath: '/settings/grafana'
+      preLoaderRoute: typeof SettingsGrafanaRouteImport
       parentRoute: typeof SettingsRouteRoute
     }
-    '/settings/models': {
-      id: '/settings/models'
-      path: '/models'
-      fullPath: '/settings/models'
-      preLoaderRoute: typeof SettingsModelsRouteImport
+    '/settings/alerts': {
+      id: '/settings/alerts'
+      path: '/alerts'
+      fullPath: '/settings/alerts'
+      preLoaderRoute: typeof SettingsAlertsRouteImport
       parentRoute: typeof SettingsRouteRoute
+    }
+    '/models/registry': {
+      id: '/models/registry'
+      path: '/registry'
+      fullPath: '/models/registry'
+      preLoaderRoute: typeof ModelsRegistryRouteImport
+      parentRoute: typeof ModelsRouteRoute
+    }
+    '/models/providers': {
+      id: '/models/providers'
+      path: '/providers'
+      fullPath: '/models/providers'
+      preLoaderRoute: typeof ModelsProvidersRouteImport
+      parentRoute: typeof ModelsRouteRoute
     }
   }
 }
@@ -256,7 +338,9 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
 }
 
-const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(DashboardRouteRouteChildren)
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
+  DashboardRouteRouteChildren,
+)
 
 interface AppsRouteRouteChildren {
   AppsIndexRoute: typeof AppsIndexRoute
@@ -266,7 +350,9 @@ const AppsRouteRouteChildren: AppsRouteRouteChildren = {
   AppsIndexRoute: AppsIndexRoute,
 }
 
-const AppsRouteRouteWithChildren = AppsRouteRoute._addFileChildren(AppsRouteRouteChildren)
+const AppsRouteRouteWithChildren = AppsRouteRoute._addFileChildren(
+  AppsRouteRouteChildren,
+)
 
 interface EmbeddingsRouteRouteChildren {
   EmbeddingsIndexRoute: typeof EmbeddingsIndexRoute
@@ -276,7 +362,25 @@ const EmbeddingsRouteRouteChildren: EmbeddingsRouteRouteChildren = {
   EmbeddingsIndexRoute: EmbeddingsIndexRoute,
 }
 
-const EmbeddingsRouteRouteWithChildren = EmbeddingsRouteRoute._addFileChildren(EmbeddingsRouteRouteChildren)
+const EmbeddingsRouteRouteWithChildren = EmbeddingsRouteRoute._addFileChildren(
+  EmbeddingsRouteRouteChildren,
+)
+
+interface ModelsRouteRouteChildren {
+  ModelsProvidersRoute: typeof ModelsProvidersRoute
+  ModelsRegistryRoute: typeof ModelsRegistryRoute
+  ModelsIndexRoute: typeof ModelsIndexRoute
+}
+
+const ModelsRouteRouteChildren: ModelsRouteRouteChildren = {
+  ModelsProvidersRoute: ModelsProvidersRoute,
+  ModelsRegistryRoute: ModelsRegistryRoute,
+  ModelsIndexRoute: ModelsIndexRoute,
+}
+
+const ModelsRouteRouteWithChildren = ModelsRouteRoute._addFileChildren(
+  ModelsRouteRouteChildren,
+)
 
 interface RequestsRouteRouteChildren {
   RequestsIndexRoute: typeof RequestsIndexRoute
@@ -286,27 +390,34 @@ const RequestsRouteRouteChildren: RequestsRouteRouteChildren = {
   RequestsIndexRoute: RequestsIndexRoute,
 }
 
-const RequestsRouteRouteWithChildren = RequestsRouteRoute._addFileChildren(RequestsRouteRouteChildren)
+const RequestsRouteRouteWithChildren = RequestsRouteRoute._addFileChildren(
+  RequestsRouteRouteChildren,
+)
 
 interface SettingsRouteRouteChildren {
-  SettingsModelsRoute: typeof SettingsModelsRoute
-  SettingsProvidersRoute: typeof SettingsProvidersRoute
+  SettingsAlertsRoute: typeof SettingsAlertsRoute
+  SettingsGrafanaRoute: typeof SettingsGrafanaRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
-  SettingsModelsRoute: SettingsModelsRoute,
-  SettingsProvidersRoute: SettingsProvidersRoute,
+  SettingsAlertsRoute: SettingsAlertsRoute,
+  SettingsGrafanaRoute: SettingsGrafanaRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }
 
-const SettingsRouteRouteWithChildren = SettingsRouteRoute._addFileChildren(SettingsRouteRouteChildren)
+const SettingsRouteRouteWithChildren = SettingsRouteRoute._addFileChildren(
+  SettingsRouteRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   AppsRouteRoute: AppsRouteRouteWithChildren,
   EmbeddingsRouteRoute: EmbeddingsRouteRouteWithChildren,
+  ModelsRouteRoute: ModelsRouteRouteWithChildren,
   RequestsRouteRoute: RequestsRouteRouteWithChildren,
   SettingsRouteRoute: SettingsRouteRouteWithChildren,
 }
-export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()
+export const routeTree = rootRouteImport
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()

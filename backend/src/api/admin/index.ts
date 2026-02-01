@@ -1,9 +1,11 @@
 import { Elysia } from "elysia";
 import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 import { COMMIT_SHA } from "@/utils/config";
+import { adminAlerts } from "./alerts";
 import { adminApiKey } from "./apiKey";
 import { adminCompletions } from "./completions";
 import { adminDashboards } from "./dashboards";
+import { adminGrafana } from "./grafana";
 import { adminEmbeddings } from "./embeddings";
 import { adminModels } from "./models";
 import { adminProviders } from "./providers";
@@ -22,6 +24,7 @@ export const routes = new Elysia({
   .group("/admin", (app) =>
     app.guard({ checkAdminApiKey: true }, (app) =>
       app
+        .use(adminAlerts)
         .use(adminApiKey)
         .use(adminUpstream)
         .use(adminCompletions)
@@ -33,6 +36,7 @@ export const routes = new Elysia({
         .use(adminStats)
         .use(adminSettings)
         .use(adminDashboards)
+        .use(adminGrafana)
         .get("/", () => true, {
           detail: { description: "Check whether the admin secret is valid." },
         })

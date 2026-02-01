@@ -11,6 +11,68 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
+// ============================================
+// Alert System Types
+// ============================================
+
+export type WebhookChannelConfig = {
+  url: string;
+  headers?: Record<string, string>;
+  secret?: string;
+};
+export type EmailChannelConfig = {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  from: string;
+  to: string[];
+};
+export type FeishuChannelConfig = {
+  webhookUrl: string;
+  secret?: string;
+};
+export type AlertChannelConfig =
+  | WebhookChannelConfig
+  | EmailChannelConfig
+  | FeishuChannelConfig;
+
+export type BudgetCondition = {
+  thresholdUsd: number;
+  periodDays: number;
+  apiKeyId?: number;
+};
+export type ErrorRateCondition = {
+  thresholdPercent: number;
+  windowMinutes: number;
+  model?: string;
+};
+export type LatencyCondition = {
+  thresholdMs: number;
+  percentile: number;
+  windowMinutes: number;
+  model?: string;
+};
+export type QuotaCondition = {
+  thresholdPercent: number;
+  apiKeyId?: number;
+  limitType: "rpm" | "tpm" | "both";
+};
+export type AlertCondition =
+  | BudgetCondition
+  | ErrorRateCondition
+  | LatencyCondition
+  | QuotaCondition;
+
+export type AlertPayload = {
+  ruleType: string;
+  ruleName: string;
+  message: string;
+  currentValue: number;
+  threshold: number;
+  details?: Record<string, unknown>;
+};
+
 /**
  * API Key source enum - tracks how the key was created
  */
@@ -350,4 +412,72 @@ export const EmbeddingsTable = pgTable("embeddings", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deleted: boolean("deleted").notNull().default(false),
+});
+
+// ============================================
+// Alert System Tables
+// ============================================
+
+export const AlertChannelTypeEnum = pgEnum("alert_channel_type", [
+  "webhook",
+  "email",
+  "feishu",
+]);
+export type AlertChannelTypeEnumType =
+  (typeof AlertChannelTypeEnum.enumValues)[number];
+
+export const AlertRuleTypeEnum = pgEnum("alert_rule_type", [
+  "budget",
+  "error_rate",
+  "latency",
+  "quota",
+]);
+export type AlertRuleTypeEnumType =
+  (typeof AlertRuleTypeEnum.enumValues)[number];
+
+export const AlertHistoryStatusEnum = pgEnum("alert_history_status", [
+  "sent",
+  "failed",
+  "suppressed",
+]);
+export type AlertHistoryStatusEnumType =
+  (typeof AlertHistoryStatusEnum.enumValues)[number];
+
+export const AlertChannelsTable = pgTable("alert_channels", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar("name", { length: 100 }).notNull(),
+  type: AlertChannelTypeEnum("type").notNull(),
+  config: jsonb("config").notNull().$type<AlertChannelConfig>(),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  grafanaUid: varchar("grafana_uid", { length: 127 }),
+  grafanaSyncedAt: timestamp("grafana_synced_at"),
+  grafanaSyncError: varchar("grafana_sync_error", { length: 500 }),
+});
+
+export const AlertRulesTable = pgTable("alert_rules", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar("name", { length: 100 }).notNull(),
+  type: AlertRuleTypeEnum("type").notNull(),
+  condition: jsonb("condition").notNull().$type<AlertCondition>(),
+  channelIds: integer("channel_ids").array().notNull(),
+  cooldownMinutes: integer("cooldown_minutes").notNull().default(60),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  grafanaUid: varchar("grafana_uid", { length: 127 }),
+  grafanaSyncedAt: timestamp("grafana_synced_at"),
+  grafanaSyncError: varchar("grafana_sync_error", { length: 500 }),
+});
+
+export const AlertHistoryTable = pgTable("alert_history", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  ruleId: integer("rule_id")
+    .notNull()
+    .references((): AnyPgColumn => AlertRulesTable.id, { onDelete: "cascade" }),
+  triggeredAt: timestamp("triggered_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+  payload: jsonb("payload").notNull().$type<AlertPayload>(),
+  status: AlertHistoryStatusEnum("status").notNull(),
 });

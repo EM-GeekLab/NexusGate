@@ -3,7 +3,13 @@ import { drizzle } from "drizzle-orm/bun-sql";
 import { migrate } from "drizzle-orm/bun-sql/migrator";
 import { DATABASE_URL } from "@/utils/config";
 import { createLogger } from "@/utils/logger";
-import type { ModelTypeEnumType } from "./schema";
+import type {
+  ModelTypeEnumType,
+  AlertChannelConfig,
+  AlertCondition,
+  AlertPayload,
+  AlertHistoryStatusEnumType,
+} from "./schema";
 import * as schema from "./schema";
 
 const globalThis_ = globalThis as typeof globalThis & {
@@ -44,6 +50,14 @@ export type Model = typeof schema.ModelsTable.$inferSelect;
 export type ModelInsert = typeof schema.ModelsTable.$inferInsert;
 export type Embedding = typeof schema.EmbeddingsTable.$inferSelect;
 export type EmbeddingInsert = typeof schema.EmbeddingsTable.$inferInsert;
+
+// Alert system types
+export type AlertChannel = typeof schema.AlertChannelsTable.$inferSelect;
+export type AlertChannelInsert = typeof schema.AlertChannelsTable.$inferInsert;
+export type AlertRule = typeof schema.AlertRulesTable.$inferSelect;
+export type AlertRuleInsert = typeof schema.AlertRulesTable.$inferInsert;
+export type AlertHistory = typeof schema.AlertHistoryTable.$inferSelect;
+export type AlertHistoryInsert = typeof schema.AlertHistoryTable.$inferInsert;
 
 export type PartialList<T> = {
   data: T[];
@@ -1584,4 +1598,330 @@ export async function getCompletionCostMetrics() {
     completion_cost_usd: string;
     total_cost_usd: string;
   }[];
+}
+
+// ============================================
+// Alert Channel CRUD Operations
+// ============================================
+
+export async function listAlertChannels(): Promise<AlertChannel[]> {
+  logger.debug("listAlertChannels");
+  return await db
+    .select()
+    .from(schema.AlertChannelsTable)
+    .orderBy(asc(schema.AlertChannelsTable.id));
+}
+
+export async function findAlertChannel(
+  id: number,
+): Promise<AlertChannel | null> {
+  logger.debug("findAlertChannel", id);
+  const r = await db
+    .select()
+    .from(schema.AlertChannelsTable)
+    .where(eq(schema.AlertChannelsTable.id, id));
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function insertAlertChannel(c: {
+  name: string;
+  type: schema.AlertChannelTypeEnumType;
+  config: AlertChannelConfig;
+  enabled?: boolean;
+}): Promise<AlertChannel | null> {
+  logger.debug("insertAlertChannel", c.name);
+  const r = await db.insert(schema.AlertChannelsTable).values(c).returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function updateAlertChannel(
+  id: number,
+  c: Partial<{
+    name: string;
+    type: schema.AlertChannelTypeEnumType;
+    config: AlertChannelConfig;
+    enabled: boolean;
+  }>,
+): Promise<AlertChannel | null> {
+  logger.debug("updateAlertChannel", id);
+  const r = await db
+    .update(schema.AlertChannelsTable)
+    .set({ ...c, updatedAt: new Date() })
+    .where(eq(schema.AlertChannelsTable.id, id))
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function deleteAlertChannel(
+  id: number,
+): Promise<AlertChannel | null> {
+  logger.debug("deleteAlertChannel", id);
+  const r = await db
+    .delete(schema.AlertChannelsTable)
+    .where(eq(schema.AlertChannelsTable.id, id))
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+// ============================================
+// Alert Rule CRUD Operations
+// ============================================
+
+export async function listAlertRules(): Promise<AlertRule[]> {
+  logger.debug("listAlertRules");
+  return await db
+    .select()
+    .from(schema.AlertRulesTable)
+    .orderBy(asc(schema.AlertRulesTable.id));
+}
+
+export async function findAlertRule(id: number): Promise<AlertRule | null> {
+  logger.debug("findAlertRule", id);
+  const r = await db
+    .select()
+    .from(schema.AlertRulesTable)
+    .where(eq(schema.AlertRulesTable.id, id));
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function insertAlertRule(c: {
+  name: string;
+  type: schema.AlertRuleTypeEnumType;
+  condition: AlertCondition;
+  channelIds: number[];
+  cooldownMinutes?: number;
+  enabled?: boolean;
+}): Promise<AlertRule | null> {
+  logger.debug("insertAlertRule", c.name);
+  const r = await db.insert(schema.AlertRulesTable).values(c).returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function updateAlertRule(
+  id: number,
+  c: Partial<{
+    name: string;
+    type: schema.AlertRuleTypeEnumType;
+    condition: AlertCondition;
+    channelIds: number[];
+    cooldownMinutes: number;
+    enabled: boolean;
+  }>,
+): Promise<AlertRule | null> {
+  logger.debug("updateAlertRule", id);
+  const r = await db
+    .update(schema.AlertRulesTable)
+    .set({ ...c, updatedAt: new Date() })
+    .where(eq(schema.AlertRulesTable.id, id))
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function deleteAlertRule(id: number): Promise<AlertRule | null> {
+  logger.debug("deleteAlertRule", id);
+  const r = await db
+    .delete(schema.AlertRulesTable)
+    .where(eq(schema.AlertRulesTable.id, id))
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+// ============================================
+// Alert History Operations
+// ============================================
+
+export async function listAlertHistory(
+  offset: number,
+  limit: number,
+  ruleId?: number,
+): Promise<PartialList<AlertHistory>> {
+  logger.debug("listAlertHistory", offset, limit, ruleId);
+  const whereClause = ruleId
+    ? eq(schema.AlertHistoryTable.ruleId, ruleId)
+    : undefined;
+
+  const r = await db
+    .select()
+    .from(schema.AlertHistoryTable)
+    .where(whereClause)
+    .orderBy(desc(schema.AlertHistoryTable.id))
+    .offset(offset)
+    .limit(limit);
+
+  const [total] = await db
+    .select({ total: count(schema.AlertHistoryTable.id) })
+    .from(schema.AlertHistoryTable)
+    .where(whereClause);
+
+  if (!total) {
+    throw new Error("total count failed");
+  }
+
+  return {
+    data: r,
+    total: total.total,
+    from: offset,
+  };
+}
+
+export async function insertAlertHistory(c: {
+  ruleId: number;
+  payload: AlertPayload;
+  status: AlertHistoryStatusEnumType;
+}): Promise<AlertHistory | null> {
+  logger.debug("insertAlertHistory", c.ruleId, c.status);
+  const r = await db.insert(schema.AlertHistoryTable).values(c).returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function getLastAlertForRule(
+  ruleId: number,
+): Promise<AlertHistory | null> {
+  logger.debug("getLastAlertForRule", ruleId);
+  const r = await db
+    .select()
+    .from(schema.AlertHistoryTable)
+    .where(
+      and(
+        eq(schema.AlertHistoryTable.ruleId, ruleId),
+        eq(schema.AlertHistoryTable.status, "sent"),
+      ),
+    )
+    .orderBy(desc(schema.AlertHistoryTable.triggeredAt))
+    .limit(1);
+  const [first] = r;
+  return first ?? null;
+}
+
+// ============================================
+// Alert Aggregation Queries
+// ============================================
+
+/**
+ * Get total cost in a given period (for budget alerts)
+ * @param periodDays number of days to look back
+ * @param apiKeyId optional, filter by specific API key
+ */
+export async function getCompletionCostInPeriod(
+  periodDays: number,
+  apiKeyId?: number,
+): Promise<number> {
+  logger.debug("getCompletionCostInPeriod", periodDays, apiKeyId);
+  const result = await db.execute(sql`
+    SELECT COALESCE(SUM(
+      CASE WHEN c.prompt_tokens > 0 AND m.input_price IS NOT NULL
+        THEN (c.prompt_tokens::numeric / 1000000) * m.input_price
+        ELSE 0
+      END +
+      CASE WHEN c.completion_tokens > 0 AND m.output_price IS NOT NULL
+        THEN (c.completion_tokens::numeric / 1000000) * m.output_price
+        ELSE 0
+      END
+    ), 0) AS total_cost
+    FROM completions c
+    LEFT JOIN models m ON c.model_id = m.id
+    WHERE c.deleted = false
+      AND c.created_at >= NOW() - INTERVAL '${sql.raw(String(periodDays))} days'
+      ${apiKeyId ? sql`AND c.api_key_id = ${apiKeyId}` : sql``}
+  `);
+  const row = (result as unknown as { total_cost: string }[])[0];
+  return Number(row?.total_cost ?? 0);
+}
+
+/**
+ * Get error rate in a given window (for error rate alerts)
+ * @param windowMinutes number of minutes to look back
+ * @param model optional, filter by model name
+ */
+export async function getCompletionErrorRate(
+  windowMinutes: number,
+  model?: string,
+): Promise<{ total: number; failed: number; rate: number }> {
+  logger.debug("getCompletionErrorRate", windowMinutes, model);
+  const result = await db.execute(sql`
+    SELECT
+      COUNT(*) AS total,
+      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed
+    FROM completions
+    WHERE deleted = false
+      AND created_at >= NOW() - INTERVAL '${sql.raw(String(windowMinutes))} minutes'
+      ${model ? sql`AND model = ${model}` : sql``}
+  `);
+  const row = (result as unknown as { total: string; failed: string }[])[0];
+  const total = Number(row?.total ?? 0);
+  const failed = Number(row?.failed ?? 0);
+  return {
+    total,
+    failed,
+    rate: total > 0 ? (failed / total) * 100 : 0,
+  };
+}
+
+/**
+ * Get latency percentile in a given window (for latency alerts)
+ * @param windowMinutes number of minutes to look back
+ * @param percentile the percentile to calculate (e.g. 95 for P95)
+ * @param model optional, filter by model name
+ */
+export async function getCompletionLatencyPercentile(
+  windowMinutes: number,
+  percentile: number,
+  model?: string,
+): Promise<number> {
+  logger.debug("getCompletionLatencyPercentile", windowMinutes, percentile, model);
+  const pValue = percentile / 100;
+  const result = await db.execute(sql`
+    SELECT COALESCE(
+      percentile_cont(${pValue}) WITHIN GROUP (ORDER BY duration), 0
+    ) AS latency_percentile
+    FROM completions
+    WHERE deleted = false
+      AND status = 'completed'
+      AND duration > 0
+      AND created_at >= NOW() - INTERVAL '${sql.raw(String(windowMinutes))} minutes'
+      ${model ? sql`AND model = ${model}` : sql``}
+  `);
+  const row = (result as unknown as { latency_percentile: string }[])[0];
+  return Number(row?.latency_percentile ?? 0);
+}
+
+// ============================================
+// Grafana Sync Helpers
+// ============================================
+
+export async function updateAlertRuleGrafanaSync(
+  id: number,
+  fields: {
+    grafanaUid?: string | null;
+    grafanaSyncedAt?: Date | null;
+    grafanaSyncError?: string | null;
+  },
+): Promise<void> {
+  await db
+    .update(schema.AlertRulesTable)
+    .set(fields)
+    .where(eq(schema.AlertRulesTable.id, id));
+}
+
+export async function updateAlertChannelGrafanaSync(
+  id: number,
+  fields: {
+    grafanaUid?: string | null;
+    grafanaSyncedAt?: Date | null;
+    grafanaSyncError?: string | null;
+  },
+): Promise<void> {
+  await db
+    .update(schema.AlertChannelsTable)
+    .set(fields)
+    .where(eq(schema.AlertChannelsTable.id, id));
 }

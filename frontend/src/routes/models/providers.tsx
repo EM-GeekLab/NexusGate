@@ -18,7 +18,7 @@ const providersQueryOptions = () =>
     },
   })
 
-export const Route = createFileRoute('/settings/providers')({
+export const Route = createFileRoute('/models/providers')({
   loader: () => queryClient.ensureQueryData(providersQueryOptions()),
   component: RouteComponent,
   errorComponent: AppErrorComponent,

@@ -10,6 +10,7 @@ import { adminEmbeddings } from "./embeddings";
 import { adminModels } from "./models";
 import { adminProviders } from "./providers";
 import { adminRateLimits } from "./rateLimits";
+import { adminSearch } from "./search";
 import { adminSettings } from "./settings";
 import { adminStats } from "./stats";
 import { adminUpstream } from "./upstream";
@@ -34,6 +35,7 @@ export const routes = new Elysia({
         .use(adminModels)
         .use(adminEmbeddings)
         .use(adminStats)
+        .use(adminSearch)
         .use(adminSettings)
         .use(adminDashboards)
         .use(adminGrafana)

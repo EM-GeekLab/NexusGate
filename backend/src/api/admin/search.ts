@@ -62,7 +62,15 @@ export const adminSearch = new Elysia()
       } catch (err) {
         return status(400, { error: err instanceof Error ? err.message : "Invalid timeRange" });
       }
-      const compiled = compileSearch(result.query, { timeRange });
+      let compiled;
+      try {
+        compiled = compileSearch(result.query, { timeRange });
+      } catch (err) {
+        return status(400, {
+          error: "Invalid query",
+          details: err instanceof Error ? err.message : "Compilation failed",
+        });
+      }
 
       // If the query has aggregation, return aggregation results
       if (compiled.aggregation) {
@@ -130,7 +138,15 @@ export const adminSearch = new Elysia()
       } catch (err) {
         return status(400, { error: err instanceof Error ? err.message : "Invalid timeRange" });
       }
-      const compiled = compileSearch(result.query, { timeRange });
+      let compiled;
+      try {
+        compiled = compileSearch(result.query, { timeRange });
+      } catch (err) {
+        return status(400, {
+          error: "Invalid query",
+          details: err instanceof Error ? err.message : "Compilation failed",
+        });
+      }
 
       try {
         const buckets = await searchCompletionsTimeSeries(
@@ -192,7 +208,15 @@ export const adminSearch = new Elysia()
       } catch (err) {
         return status(400, { error: err instanceof Error ? err.message : "Invalid timeRange" });
       }
-      const compiled = compileSearch(result.query, { timeRange });
+      let compiled;
+      try {
+        compiled = compileSearch(result.query, { timeRange });
+      } catch (err) {
+        return status(400, {
+          error: "Invalid query",
+          details: err instanceof Error ? err.message : "Compilation failed",
+        });
+      }
 
       try {
         // Fetch all results (up to 10000 for export)

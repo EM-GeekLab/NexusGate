@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nexusgate.fullname" . }}-config
+  labels:
+    {{- include "nexusgate.labels" . | nindent 4 }}
+data:
+  # PostgreSQL connection info (non-sensitive)
+  POSTGRES_HOST: {{ include "nexusgate.postgresql.host" . | quote }}
+  POSTGRES_PORT: {{ include "nexusgate.postgresql.port" . | quote }}
+  POSTGRES_DATABASE: {{ include "nexusgate.postgresql.database" . | quote }}
+  POSTGRES_USER: {{ include "nexusgate.postgresql.username" . | quote }}
+  # Redis connection info (non-sensitive)
+  REDIS_HOST: {{ include "nexusgate.redis.host" . | quote }}
+  REDIS_PORT: {{ include "nexusgate.redis.port" . | quote }}
+  # Application config
+  LOG_LEVEL: {{ .Values.nexusgate.logLevel | quote }}

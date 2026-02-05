@@ -1,0 +1,165 @@
+{{- if .Values.operator.enabled }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: nexusgateapps.gateway.nexusgate.io
+  labels:
+    {{- include "nexusgate.operator.labels" . | nindent 4 }}
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+spec:
+  group: gateway.nexusgate.io
+  names:
+    kind: NexusGateApp
+    listKind: NexusGateAppList
+    plural: nexusgateapps
+    singular: nexusgateapp
+    shortNames:
+      - nga
+      - ngapp
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - jsonPath: .spec.appName
+          name: App
+          type: string
+        - jsonPath: .status.phase
+          name: Phase
+          type: string
+        - jsonPath: .spec.secretRef.name
+          name: Secret
+          type: string
+        - jsonPath: .status.secretSynced
+          name: Synced
+          type: boolean
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      schema:
+        openAPIV3Schema:
+          description: NexusGateApp is the Schema for the nexusgateapps API
+          type: object
+          required:
+            - spec
+          properties:
+            apiVersion:
+              description: APIVersion defines the versioned schema of this representation of an object.
+              type: string
+            kind:
+              description: Kind is a string value representing the REST resource this object represents.
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: spec defines the desired state of NexusGateApp
+              type: object
+              required:
+                - appName
+                - secretRef
+              properties:
+                appName:
+                  description: |
+                    AppName is the application name used as identifier in NexusGate.
+                    This will be stored in the API key's externalId field as k8s/{cluster}/{namespace}/{appName}
+                  type: string
+                  minLength: 1
+                  maxLength: 63
+                  pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                secretRef:
+                  description: SecretRef defines where to store the API key
+                  type: object
+                  required:
+                    - name
+                  properties:
+                    name:
+                      description: Name is the name of the Secret
+                      type: string
+                      minLength: 1
+                    namespace:
+                      description: Namespace is the namespace of the Secret (defaults to the NexusGateApp's namespace)
+                      type: string
+                    key:
+                      description: Key is the key in the Secret data where the API key will be stored
+                      type: string
+                      default: NEXUSGATE_API_KEY
+                deletionPolicy:
+                  description: DeletionPolicy defines what happens to the API key when this resource is deleted
+                  type: string
+                  enum:
+                    - Revoke
+                    - Retain
+                  default: Revoke
+            status:
+              description: status defines the observed state of NexusGateApp
+              type: object
+              properties:
+                phase:
+                  description: Phase indicates the current phase of the NexusGateApp
+                  type: string
+                  enum:
+                    - Pending
+                    - Ready
+                    - Error
+                    - Deleting
+                apiKeyId:
+                  description: APIKeyID is the ID of the API key in NexusGate database
+                  type: integer
+                apiKeyPrefix:
+                  description: APIKeyPrefix is the masked prefix of the API key (e.g., sk-xxxx...xxxx)
+                  type: string
+                secretSynced:
+                  description: SecretSynced indicates whether the Secret has been successfully synced
+                  type: boolean
+                lastSyncTime:
+                  description: LastSyncTime is the last time the resource was successfully synced
+                  type: string
+                  format: date-time
+                message:
+                  description: Message provides human-readable status information
+                  type: string
+                conditions:
+                  description: Conditions represent the current state of the NexusGateApp resource
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    properties:
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      message:
+                        type: string
+                        maxLength: 32768
+                      observedGeneration:
+                        type: integer
+                        format: int64
+                        minimum: 0
+                      reason:
+                        type: string
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: "^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$"
+                      status:
+                        type: string
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                      type:
+                        type: string
+                        maxLength: 316
+                        pattern: "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$"
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+      subresources:
+        status: {}
+{{- end }}

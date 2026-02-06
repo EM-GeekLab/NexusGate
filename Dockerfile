@@ -12,6 +12,7 @@ RUN --mount=type=cache,target=/cache \
     bun ci
 
 COPY . .
+RUN mkdir -p backend/docs
 RUN bun run build
 RUN cd docs && bun run build
 

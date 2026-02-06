@@ -1925,3 +1925,215 @@ export async function updateAlertChannelGrafanaSync(
     .set(fields)
     .where(eq(schema.AlertChannelsTable.id, id));
 }
+
+// ============================================
+// KQL Search Operations
+// ============================================
+
+import type { CompiledQuery } from "@/search/types";
+
+/**
+ * Convert a compiled KQL query (string with $N placeholders + params array)
+ * into a Drizzle SQL object with proper parameterization.
+ */
+function buildDrizzleSql(template: string, params: unknown[]) {
+  // Split on $N placeholders, interleave raw SQL with parameterized values
+  const parts = template.split(/\$(\d+)/);
+  const chunks: ReturnType<typeof sql>[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (i % 2 === 0) {
+      // Raw SQL structure (from trusted field whitelist)
+      if (part) {
+        chunks.push(sql.raw(part));
+      }
+    } else if (part) {
+      // Parameter value (user-provided, properly parameterized)
+      const paramIdx = parseInt(part) - 1;
+      const value = params[paramIdx];
+      chunks.push(sql`${value}`);
+    }
+  }
+  return sql.join(chunks, sql.raw(""));
+}
+
+export type SearchCompletionRow = {
+  id: number;
+  api_key_id: number;
+  model: string;
+  status: string;
+  duration: number;
+  ttft: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  created_at: Date;
+  updated_at: Date;
+  rating: number | null;
+  req_id: string | null;
+  api_format: string | null;
+  prompt: unknown;
+  completion: unknown;
+  provider_name: string | null;
+};
+
+/**
+ * Execute a compiled KQL search query with pagination.
+ */
+export async function searchCompletions(
+  compiled: CompiledQuery,
+  offset: number,
+  limit: number,
+): Promise<{ data: SearchCompletionRow[]; total: number; from: number }> {
+  logger.debug("searchCompletions", compiled.whereClause, offset, limit);
+
+  const whereSql = buildDrizzleSql(compiled.whereClause, compiled.params);
+
+  // Get paginated results with provider join
+  const result = await db.execute(sql`
+    SELECT
+      c.id, c.api_key_id, c.model, c.status, c.duration, c.ttft,
+      c.prompt_tokens, c.completion_tokens, c.created_at, c.updated_at,
+      c.rating, c.req_id, c.api_format, c.prompt, c.completion,
+      p.name AS provider_name
+    FROM completions c
+    LEFT JOIN models m ON c.model_id = m.id
+    LEFT JOIN providers p ON m.provider_id = p.id
+    WHERE ${whereSql}
+    ORDER BY c.id DESC
+    OFFSET ${offset}
+    LIMIT ${limit}
+  `);
+
+  // Get total count
+  const countResult = await db.execute(sql`
+    SELECT COUNT(*) AS total
+    FROM completions c
+    LEFT JOIN models m ON c.model_id = m.id
+    LEFT JOIN providers p ON m.provider_id = p.id
+    WHERE ${whereSql}
+  `);
+
+  const total = Number(
+    (countResult as unknown as { total: string }[])[0]?.total ?? 0,
+  );
+
+  return {
+    data: result as unknown as SearchCompletionRow[],
+    total,
+    from: offset,
+  };
+}
+
+/**
+ * Execute a compiled KQL aggregation query.
+ */
+export async function aggregateCompletions(
+  compiled: CompiledQuery,
+): Promise<Record<string, unknown>[]> {
+  if (!compiled.aggregation) {
+    throw new Error("No aggregation defined in compiled query");
+  }
+
+  logger.debug("aggregateCompletions", compiled.whereClause);
+
+  const whereSql = buildDrizzleSql(compiled.whereClause, compiled.params);
+  const { selectExpressions, groupByColumn, groupByField } =
+    compiled.aggregation;
+
+  // Build SELECT clause
+  // SAFETY: selectExpressions and groupByColumn are produced by the compiler
+  // from the trusted FIELD_REGISTRY whitelist — they never contain user input.
+  const selectParts: string[] = [];
+  if (groupByColumn && groupByField) {
+    selectParts.push(`${groupByColumn} AS "${groupByField}"`);
+  }
+  for (const expr of selectExpressions) {
+    selectParts.push(`${expr.sql} AS "${expr.alias}"`);
+  }
+  const selectClause = selectParts.join(", ");
+  const groupBySql = groupByColumn
+    ? sql.raw(`GROUP BY ${groupByColumn} ORDER BY COUNT(*) DESC NULLS LAST`)
+    : sql.raw("");
+
+  const result = await db.execute(
+    sql`SELECT ${sql.raw(selectClause)}
+    FROM completions c
+    LEFT JOIN models m ON c.model_id = m.id
+    LEFT JOIN providers p ON m.provider_id = p.id
+    WHERE ${whereSql}
+    ${groupBySql}
+    LIMIT 1000`,
+  );
+
+  return result as unknown as Record<string, unknown>[];
+}
+
+/**
+ * Execute a compiled KQL search query and return time-bucketed histogram data.
+ */
+export async function searchCompletionsTimeSeries(
+  compiled: CompiledQuery,
+  bucketSeconds: number,
+): Promise<
+  {
+    bucket: Date;
+    total: string;
+    completed: string;
+    failed: string;
+  }[]
+> {
+  logger.debug("searchCompletionsTimeSeries", compiled.whereClause, bucketSeconds);
+
+  const whereSql = buildDrizzleSql(compiled.whereClause, compiled.params);
+
+  const result = await db.execute(sql`
+    SELECT
+      to_timestamp(floor(extract(epoch from c.created_at) / ${bucketSeconds}) * ${bucketSeconds}) AS bucket,
+      COUNT(*) AS total,
+      SUM(CASE WHEN c.status = 'completed' THEN 1 ELSE 0 END) AS completed,
+      SUM(CASE WHEN c.status = 'failed' THEN 1 ELSE 0 END) AS failed
+    FROM completions c
+    LEFT JOIN models m ON c.model_id = m.id
+    LEFT JOIN providers p ON m.provider_id = p.id
+    WHERE ${whereSql}
+    GROUP BY bucket
+    ORDER BY bucket ASC
+  `);
+
+  return result as unknown as {
+    bucket: Date;
+    total: string;
+    completed: string;
+    failed: string;
+  }[];
+}
+
+/**
+ * Get distinct values for a field (for autocomplete suggestions).
+ */
+export async function getDistinctFieldValues(
+  column: string,
+  maxResults = 50,
+): Promise<string[]> {
+  // Only allow known safe column expressions
+  const SAFE_COLUMNS: Record<string, string> = {
+    model: "model",
+    status: "status",
+    api_format: "api_format",
+  };
+
+  const safeColumn = SAFE_COLUMNS[column];
+  if (!safeColumn) {
+    return [];
+  }
+
+  const result = await db.execute(sql`
+    SELECT DISTINCT ${sql.raw(safeColumn)} AS value
+    FROM completions
+    WHERE deleted = false AND ${sql.raw(safeColumn)} IS NOT NULL
+    ORDER BY value ASC
+    LIMIT ${maxResults}
+  `);
+
+  return (result as unknown as { value: string }[]).map((r) => r.value);
+}

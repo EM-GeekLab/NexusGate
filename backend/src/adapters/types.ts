@@ -322,6 +322,8 @@ export interface ProviderConfig {
   baseUrl: string;
   apiKey: string | null;
   apiVersion?: string | null;
+  proxyUrl?: string | null;
+  proxyEnabled?: boolean;
 }
 
 /**

@@ -832,9 +832,28 @@ export async function findModelsBySystemName(
 
 /**
  * insert model into database
+ * If a soft-deleted model with the same (providerId, systemName) exists, re-activate it with the new values.
  */
 export async function insertModel(m: ModelInsert): Promise<Model | null> {
   logger.debug("insertModel", m.systemName);
+
+  // Atomically re-activate a soft-deleted model with the same key if it exists
+  const [reactivated] = await db
+    .update(schema.ModelsTable)
+    .set({ ...m, deleted: false, updatedAt: new Date() })
+    .where(
+      and(
+        eq(schema.ModelsTable.providerId, m.providerId),
+        eq(schema.ModelsTable.systemName, m.systemName),
+        eq(schema.ModelsTable.deleted, true),
+      ),
+    )
+    .returning();
+
+  if (reactivated) {
+    return reactivated;
+  }
+
   const r = await db
     .insert(schema.ModelsTable)
     .values(m)

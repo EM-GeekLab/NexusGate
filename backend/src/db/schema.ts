@@ -333,6 +333,9 @@ export const ProvidersTable = pgTable("providers", {
   // API version header (required for Anthropic: anthropic-version)
   apiVersion: varchar("api_version", { length: 31 }),
   comment: varchar("comment"),
+  // HTTP proxy configuration
+  proxyUrl: varchar("proxy_url", { length: 255 }),
+  proxyEnabled: boolean("proxy_enabled").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deleted: boolean("deleted").notNull().default(false),

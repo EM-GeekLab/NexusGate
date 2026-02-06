@@ -8,6 +8,7 @@
 
 import type { ModelWithProvider } from "@/adapters/types";
 import { createLogger } from "@/utils/logger";
+import { proxyFetch } from "@/utils/proxy-fetch";
 
 const logger = createLogger("failover");
 
@@ -152,6 +153,7 @@ export async function fetchWithTimeout(
   url: string,
   init: RequestInit,
   timeoutMs: number,
+  proxy?: string,
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -159,10 +161,11 @@ export async function fetchWithTimeout(
   }, timeoutMs);
 
   try {
-    const response = await fetch(url, {
-      ...init,
-      signal: controller.signal,
-    });
+    const response = await proxyFetch(
+      url,
+      { ...init, signal: controller.signal },
+      proxy,
+    );
     return response;
   } finally {
     clearTimeout(timeoutId);
@@ -174,7 +177,11 @@ export async function fetchWithTimeout(
 // =============================================================================
 
 export interface RequestBuilder {
-  (provider: ModelWithProvider): { url: string; init: RequestInit };
+  (provider: ModelWithProvider): {
+    url: string;
+    init: RequestInit;
+    proxy?: string;
+  };
 }
 
 /**
@@ -199,7 +206,7 @@ export async function executeWithFailover(
   const providersToTry = candidates.slice(0, cfg.maxProviderAttempts);
 
   for (const [providerIndex, provider] of providersToTry.entries()) {
-    const { url, init } = buildRequest(provider);
+    const { url, init, proxy } = buildRequest(provider);
 
     // Try this provider with same-provider retries for transient errors
     for (
@@ -229,7 +236,7 @@ export async function executeWithFailover(
           url,
         });
 
-        const response = await fetchWithTimeout(url, init, cfg.timeoutMs);
+        const response = await fetchWithTimeout(url, init, cfg.timeoutMs, proxy);
 
         // Success - return immediately
         if (response.ok) {

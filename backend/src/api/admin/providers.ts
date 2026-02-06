@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
 import { OpenAI } from "openai";
 import type { ProviderTypeEnumType } from "@/db/schema";
+import { proxyFetch, getProviderProxy } from "@/utils/proxy-fetch";
 import {
   deleteProvider,
   findProvider,
@@ -27,9 +28,26 @@ interface Provider {
   baseUrl: string;
   apiKey: string | null;
   apiVersion: string | null;
+  proxyUrl: string | null;
+  proxyEnabled: boolean;
 }
 
 type ProviderTestFn = (provider: Provider) => Promise<ProviderTestResult>;
+
+/**
+ * Create an OpenAI client with optional proxy support from provider config.
+ */
+function createOpenAIClient(provider: Provider): OpenAI {
+  const proxy = getProviderProxy(provider);
+  return new OpenAI({
+    baseURL: provider.baseUrl,
+    apiKey: provider.apiKey || "not-required",
+    ...(proxy && {
+      fetch: async (url: string | URL | Request, init?: RequestInit) =>
+        proxyFetch(url, init ?? {}, proxy),
+    }),
+  });
+}
 
 /**
  * Check if an error indicates that the OpenAI models endpoint is unavailable.
@@ -61,19 +79,24 @@ async function testAnthropicConnection(
     ? provider.baseUrl.slice(0, -1)
     : provider.baseUrl;
 
-  const response = await fetch(`${baseUrl}/messages`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "anthropic-version": provider.apiVersion || "2023-06-01",
-      ...(provider.apiKey && { "x-api-key": provider.apiKey }),
+  const proxy = getProviderProxy(provider);
+  const response = await proxyFetch(
+    `${baseUrl}/messages`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "anthropic-version": provider.apiVersion || "2023-06-01",
+        ...(provider.apiKey && { "x-api-key": provider.apiKey }),
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307", // Use a common model for testing
+        messages: [{ role: "user", content: "Hi" }],
+        max_tokens: 1,
+      }),
     },
-    body: JSON.stringify({
-      model: "claude-3-haiku-20240307", // Use a common model for testing
-      messages: [{ role: "user", content: "Hi" }],
-      max_tokens: 1,
-    }),
-  });
+    proxy,
+  );
 
   if (!response.ok) {
     const text = await response.text();
@@ -102,10 +125,7 @@ async function testAnthropicConnection(
 async function testOpenAIResponsesConnection(
   provider: Provider,
 ): Promise<ProviderTestResult> {
-  const client = new OpenAI({
-    baseURL: provider.baseUrl,
-    apiKey: provider.apiKey || "not-required",
-  });
+  const client = createOpenAIClient(provider);
 
   try {
     const models = await client.models.list();
@@ -140,10 +160,7 @@ async function testOpenAIResponsesConnection(
 async function testDefaultOpenAIConnection(
   provider: Provider,
 ): Promise<ProviderTestResult> {
-  const client = new OpenAI({
-    baseURL: provider.baseUrl,
-    apiKey: provider.apiKey || "not-required",
-  });
+  const client = createOpenAIClient(provider);
 
   const models = await client.models.list();
   return {
@@ -238,6 +255,8 @@ export const adminProviders = new Elysia({ prefix: "/providers" })
         apiKey: t.Optional(t.String({ maxLength: 255 })),
         apiVersion: t.Optional(t.String({ maxLength: 31 })),
         comment: t.Optional(t.String()),
+        proxyUrl: t.Optional(t.String({ maxLength: 255 })),
+        proxyEnabled: t.Optional(t.Boolean()),
       }),
       detail: {
         description: "Create a new provider",
@@ -275,6 +294,8 @@ export const adminProviders = new Elysia({ prefix: "/providers" })
         apiKey: t.Optional(t.String({ maxLength: 255 })),
         apiVersion: t.Optional(t.String({ maxLength: 31 })),
         comment: t.Optional(t.String()),
+        proxyUrl: t.Optional(t.Union([t.String({ maxLength: 255 }), t.Null()])),
+        proxyEnabled: t.Optional(t.Boolean()),
       }),
       detail: {
         description: "Update a provider",
@@ -350,10 +371,7 @@ export const adminProviders = new Elysia({ prefix: "/providers" })
       }
 
       try {
-        const client = new OpenAI({
-          baseURL: provider.baseUrl,
-          apiKey: provider.apiKey || "not-required",
-        });
+        const client = createOpenAIClient(provider);
 
         const models = await client.models.list();
         return {

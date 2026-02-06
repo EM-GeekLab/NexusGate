@@ -17,8 +17,11 @@
 
 .env
 
-**/dist/
-**/out/
+# Build outputs (excluded locally; CI pre-builds frontend & docs then
+# removes these lines via sed to include them in the Docker context)
+frontend/dist/
+docs/dist/
+backend/out/
 **/.turbo/
 
 # Docs build output (generated, should not leak from local)

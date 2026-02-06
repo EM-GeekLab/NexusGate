@@ -52,16 +52,22 @@ jobs:
             ${{ github.event_name == 'release' && format('{0}/{1}', env.CN_REGISTRY, env.CN_IMAGE_NAME) || '' }}
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-      - name: Pre-build docs (prerender requires a normal environment, not Docker)
+      - name: Pre-build frontend and docs outside Docker
         run: |
           bun install
+          # Build frontend (static assets, no arch dependency)
+          bun x turbo run build --filter=nexus-gate-web
+          test -f frontend/dist/index.html
+          echo "Frontend built successfully"
+          # Build docs (prerender requires a normal environment, not Docker)
           mkdir -p backend/docs
           (cd docs && bun x fumadocs-mdx && bun run build)
-          # Verify pre-built docs have a valid index.html
           test -f backend/docs/index.html
           echo "Docs pre-built successfully with $(ls backend/docs/assets/*.js | wc -l) JS assets"
-      - name: Include pre-built docs in Docker build context
-        run: sed -i '/^backend\/docs\/$/d' .dockerignore
+      - name: Include pre-built assets in Docker build context
+        run: |
+          sed -i '/^frontend\/dist\/$/d' .dockerignore
+          sed -i '/^backend\/docs\/$/d' .dockerignore
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@v6

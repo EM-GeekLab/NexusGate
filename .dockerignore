@@ -1,7 +1,7 @@
 .git
 
 # dependencies (bun install)
-node_modules
+**/node_modules
 
 # IntelliJ based IDEs
 .idea
@@ -17,6 +17,9 @@ node_modules
 
 .env
 
-dist/
-out/
-.turbo/
+**/dist/
+**/out/
+**/.turbo/
+
+# Docs build output (generated, should not leak from local)
+backend/docs/

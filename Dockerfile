@@ -9,12 +9,24 @@ RUN --mount=type=cache,target=/cache \
     --mount=type=bind,source=frontend/package.json,target=frontend/package.json \
     --mount=type=bind,source=docs/package.json,target=docs/package.json \
     BUN_INSTALL_CACHE_DIR=/cache \
-    bun ci
+    bun ci --ignore-scripts
 
 COPY . .
-RUN mkdir -p backend/docs
-RUN bun run build
-RUN cd docs && bun run build
+RUN mkdir -p backend/docs && cd docs && bun x fumadocs-mdx
+# If docs are pre-built by CI (index.html exists), only build backend + frontend.
+# Otherwise, build everything and generate a fallback SPA shell for docs since
+# TanStack Start v1.147.1 forces prerender in SPA mode but the Vite preview
+# server crashes with ECONNREFUSED inside Docker build.
+RUN if [ -f backend/docs/index.html ]; then \
+      echo "Pre-built docs detected, skipping docs build"; \
+      bun x turbo run build --filter=nexus-gate-server --filter=nexus-gate-web; \
+    else \
+      bun run build; \
+      (cd docs && bun run build); \
+      if [ ! -f backend/docs/index.html ]; then \
+        node scripts/generate-docs-shell.cjs backend/docs/assets backend/docs/index.html; \
+      fi; \
+    fi
 
 FROM oven/bun:1-alpine AS runner
 

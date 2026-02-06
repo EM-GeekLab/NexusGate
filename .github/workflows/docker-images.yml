@@ -50,6 +50,18 @@ jobs:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
             ${{ github.event_name == 'release' && format('{0}/{1}', env.CN_REGISTRY, env.CN_IMAGE_NAME) || '' }}
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Pre-build docs (prerender requires a normal environment, not Docker)
+        run: |
+          bun install
+          mkdir -p backend/docs
+          cd docs && bun x fumadocs-mdx && bun run build
+          # Verify pre-built docs have a valid index.html
+          test -f backend/docs/index.html
+          echo "Docs pre-built successfully with $(ls backend/docs/assets/*.js | wc -l) JS assets"
+      - name: Include pre-built docs in Docker build context
+        run: sed -i '/^backend\/docs\/$/d' .dockerignore
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@v6

@@ -33,3 +33,5 @@ python_test_code/
 !python_test_code/uv.lock
 !python_test_code/test_unified_suite.py
 !python_test_code/test_metrics.py
+
+db

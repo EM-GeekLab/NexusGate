@@ -21,6 +21,7 @@ import {
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import {
   getApiVersionPlaceholder,
   PROVIDER_TYPE_LABELS,
@@ -34,6 +35,8 @@ const providerSchema = z.object({
   baseUrl: z.string().min(1).max(255).url(),
   apiKey: z.string().max(255).optional(),
   apiVersion: z.string().max(31).optional(),
+  proxyEnabled: z.boolean().default(false),
+  proxyUrl: z.string().max(255).optional(),
 })
 
 type ProviderFormValues = z.infer<typeof providerSchema>
@@ -51,6 +54,8 @@ export function ProviderAddButton({ size = 'default', ...props }: ComponentProps
       baseUrl: '',
       apiKey: '',
       apiVersion: '',
+      proxyEnabled: false,
+      proxyUrl: '',
     },
   })
 
@@ -175,6 +180,39 @@ export function ProviderAddButton({ size = 'default', ...props }: ComponentProps
                 )}
               />
             )}
+            <div className="space-y-3 rounded-md border p-3">
+              <FormField
+                control={form.control}
+                name="proxyEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between">
+                    <div>
+                      <FormLabel>{t('pages.settings.providers.ProxyEnabled')}</FormLabel>
+                      <FormDescription>{t('pages.settings.providers.ProxyEnabledDescription')}</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              {form.watch('proxyEnabled') && (
+                <FormField
+                  control={form.control}
+                  name="proxyUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('pages.settings.providers.ProxyURL')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder="http://proxy:8080" {...field} />
+                      </FormControl>
+                      <FormDescription>{t('pages.settings.providers.ProxyURLDescription')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 {t('pages.settings.providers.Cancel')}

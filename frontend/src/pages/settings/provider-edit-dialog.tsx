@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -18,6 +19,7 @@ import {
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import {
   getApiVersionPlaceholder,
   PROVIDER_TYPE_LABELS,
@@ -34,6 +36,8 @@ const providerSchema = z.object({
   baseUrl: z.string().min(1).max(255).url().optional(),
   apiKey: z.string().max(255).optional(),
   apiVersion: z.string().max(31).optional(),
+  proxyEnabled: z.boolean().optional(),
+  proxyUrl: z.string().max(255).optional().nullable(),
 })
 
 type ProviderFormValues = z.infer<typeof providerSchema>
@@ -56,8 +60,24 @@ export function ProviderEditDialog({ provider, open, onOpenChange }: ProviderEdi
       baseUrl: provider.baseUrl,
       apiKey: provider.apiKey ?? '',
       apiVersion: provider.apiVersion ?? '',
+      proxyEnabled: provider.proxyEnabled ?? false,
+      proxyUrl: provider.proxyUrl ?? '',
     },
   })
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: provider.name,
+        type: provider.type as ProviderType | undefined,
+        baseUrl: provider.baseUrl,
+        apiKey: provider.apiKey ?? '',
+        apiVersion: provider.apiVersion ?? '',
+        proxyEnabled: provider.proxyEnabled ?? false,
+        proxyUrl: provider.proxyUrl ?? '',
+      })
+    }
+  }, [open, provider, form])
 
   const watchType = form.watch('type')
 
@@ -173,6 +193,39 @@ export function ProviderEditDialog({ provider, open, onOpenChange }: ProviderEdi
                 )}
               />
             )}
+            <div className="space-y-3 rounded-md border p-3">
+              <FormField
+                control={form.control}
+                name="proxyEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between">
+                    <div>
+                      <FormLabel>{t('pages.settings.providers.ProxyEnabled')}</FormLabel>
+                      <FormDescription>{t('pages.settings.providers.ProxyEnabledDescription')}</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              {form.watch('proxyEnabled') && (
+                <FormField
+                  control={form.control}
+                  name="proxyUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('pages.settings.providers.ProxyURL')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder="http://proxy:8080" {...field} value={field.value ?? ''} />
+                      </FormControl>
+                      <FormDescription>{t('pages.settings.providers.ProxyURLDescription')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 {t('pages.settings.providers.Cancel')}

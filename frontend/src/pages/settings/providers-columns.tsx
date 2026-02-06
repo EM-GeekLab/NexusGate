@@ -15,6 +15,8 @@ export interface Provider {
   baseUrl: string
   apiKey: string | null
   apiVersion: string | null
+  proxyUrl: string | null
+  proxyEnabled: boolean
   deleted: boolean
   createdAt: string
   updatedAt: string

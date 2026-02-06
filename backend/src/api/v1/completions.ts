@@ -5,6 +5,7 @@
 
 import { Elysia, t } from "elysia";
 import type { ModelWithProvider } from "@/adapters/types";
+import { getProviderProxy } from "@/utils/proxy-fetch";
 import type {
   CompletionsMessageType,
   ToolDefinitionType,
@@ -627,7 +628,10 @@ export const completionsApi = new Elysia({
 
         const providerType = mp.provider.type || "openai";
         const upstreamAdapter = getUpstreamAdapter(providerType);
-        return upstreamAdapter.buildRequest(req, mp.provider);
+        return {
+          ...upstreamAdapter.buildRequest(req, mp.provider),
+          proxy: getProviderProxy(mp.provider),
+        };
       };
 
       // Handle streaming vs non-streaming

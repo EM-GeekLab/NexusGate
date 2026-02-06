@@ -9,6 +9,7 @@ import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import { addEmbedding, type EmbeddingRecord } from "@/utils/embeddings";
 import { createLogger } from "@/utils/logger";
 import { selectModel, buildUpstreamUrl, getRemoteModelId } from "@/utils/model";
+import { proxyFetch, getProviderProxy } from "@/utils/proxy-fetch";
 
 /**
  * Decode base64-encoded embedding to number array
@@ -121,7 +122,8 @@ export const embeddingsApi = new Elysia({
       const begin = Date.now();
 
       // Make request to upstream
-      const [resp, fetchError] = await fetch(upstreamEndpoint, reqInit)
+      const proxy = getProviderProxy(provider);
+      const [resp, fetchError] = await proxyFetch(upstreamEndpoint, reqInit, proxy)
         .then((r) => [r, null] as [Response, null])
         .catch((err: unknown) => {
           logger.error("fetch error", err);

@@ -56,7 +56,7 @@ jobs:
         run: |
           bun install
           mkdir -p backend/docs
-          cd docs && bun x fumadocs-mdx && bun run build
+          (cd docs && bun x fumadocs-mdx && bun run build)
           # Verify pre-built docs have a valid index.html
           test -f backend/docs/index.html
           echo "Docs pre-built successfully with $(ls backend/docs/assets/*.js | wc -l) JS assets"

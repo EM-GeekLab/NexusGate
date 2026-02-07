@@ -119,9 +119,8 @@ export function TestCaseDetailPage() {
         results.map(async (result: { id: number; model: string }) => {
           const startTime = Date.now()
 
-          await api.admin.playground['test-results']({ id: result.id }).put({ status: 'running' })
-
           try {
+            await api.admin.playground['test-results']({ id: result.id }).put({ status: 'running' })
             const response = await fetch(`${backendBaseURL}/v1/chat/completions`, {
               method: 'POST',
               headers: {

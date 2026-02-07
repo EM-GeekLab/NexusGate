@@ -351,6 +351,10 @@ const testRunRoutes = new Elysia({ prefix: "/test-runs" })
   .post(
     "/",
     async ({ body, status }) => {
+      const tc = await findPlaygroundTestCase(body.testCaseId);
+      if (!tc) {
+        return status(404, { error: "Test case not found" });
+      }
       const result = await insertPlaygroundTestRunWithResults(
         body,
         body.models,

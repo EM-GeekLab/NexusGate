@@ -2480,7 +2480,10 @@ export async function insertPlaygroundTestRunWithResults(
         .insert(schema.PlaygroundTestResultsTable)
         .values({ testRunId: run.id, model, status: "pending" })
         .returning();
-      if (result) results.push(result);
+      if (!result) {
+        throw new Error(`Failed to insert test result for model: ${model}`);
+      }
+      results.push(result);
     }
 
     return { run, results };

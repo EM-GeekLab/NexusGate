@@ -84,8 +84,12 @@ const conversationRoutes = new Elysia({ prefix: "/conversations" })
   )
   .post(
     "/",
-    async ({ body }) => {
-      return await insertPlaygroundConversation(body);
+    async ({ body, status }) => {
+      const conv = await insertPlaygroundConversation(body);
+      if (!conv) {
+        return status(500, { error: "Failed to create conversation" });
+      }
+      return conv;
     },
     {
       body: t.Object({
@@ -226,8 +230,12 @@ const testCaseRoutes = new Elysia({ prefix: "/test-cases" })
   )
   .post(
     "/",
-    async ({ body }) => {
-      return await insertPlaygroundTestCase(body);
+    async ({ body, status }) => {
+      const tc = await insertPlaygroundTestCase(body);
+      if (!tc) {
+        return status(500, { error: "Failed to create test case" });
+      }
+      return tc;
     },
     {
       body: t.Object({

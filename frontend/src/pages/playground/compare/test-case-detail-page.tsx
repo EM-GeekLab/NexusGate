@@ -97,7 +97,10 @@ export function TestCaseDetailPage() {
         testCaseId: id,
         models: selectedModels,
       })
-      if (!run?.id) return
+      if (!run?.id) {
+        toast.error(t('pages.playground.compare.RunCreationFailed'))
+        return
+      }
 
       // Build messages from test case
       const messages = (testCase.messages || []).map((m: { role: string; content: string }) => ({
@@ -175,12 +178,15 @@ export function TestCaseDetailPage() {
             })
           } catch (err) {
             const duration = Date.now() - startTime
-
-            await api.admin.playground['test-results']({ id: result.id }).put({
-              status: 'failed',
-              errorMessage: (err as Error).message,
-              duration,
-            })
+            try {
+              await api.admin.playground['test-results']({ id: result.id }).put({
+                status: 'failed',
+                errorMessage: (err as Error).message,
+                duration,
+              })
+            } catch {
+              // PUT itself failed — result stays in 'running' state
+            }
           }
         }),
       )
@@ -189,7 +195,7 @@ export function TestCaseDetailPage() {
     } finally {
       setIsRunning(false)
     }
-  }, [selectedModels, apiKeyValue, testCase, id, refetchRuns])
+  }, [selectedModels, apiKeyValue, testCase, id, refetchRuns, t])
 
   if (!testCase) return null
 

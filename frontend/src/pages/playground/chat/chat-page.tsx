@@ -103,10 +103,14 @@ export function ChatPage() {
       // Save assistant message to DB (use ref to avoid stale closure)
       const convId = currentConvIdRef.current
       if (convId) {
-        await api.admin.playground.conversations({ id: convId }).messages.post({
-          role: 'assistant',
-          content: fullContent,
-        })
+        try {
+          await api.admin.playground.conversations({ id: convId }).messages.post({
+            role: 'assistant',
+            content: fullContent,
+          })
+        } catch {
+          // Message already shown locally; silent failure is acceptable
+        }
       }
       queryClient.invalidateQueries({ queryKey: ['playground', 'conversations'] })
     },
@@ -126,15 +130,21 @@ export function ChatPage() {
       // Create conversation if new
       if (!convId) {
         const title = content.slice(0, 50) + (content.length > 50 ? '...' : '')
-
-        const { data: newConv } = await api.admin.playground.conversations.post({
-          title,
-          model,
-          params: playgroundParams,
-        })
-        if (!newConv?.id) return
-        convId = newConv.id
-        updateCurrentConvId(convId)
+        try {
+          const { data: newConv } = await api.admin.playground.conversations.post({
+            title,
+            model,
+            params: playgroundParams,
+          })
+          if (!newConv?.id) return
+          convId = newConv.id
+          updateCurrentConvId(convId)
+        } catch (err) {
+          toast.error(t('pages.playground.chat.FetchError'), {
+            description: err instanceof Error ? err.message : 'Failed to create conversation',
+          })
+          return
+        }
       }
 
       // Save user message
@@ -147,13 +157,10 @@ export function ChatPage() {
         return
       }
 
-      setMessages((prev) => {
-        const newMessages = [...prev, userMsg]
-        sendMessage(newMessages)
-        return newMessages
-      })
+      setMessages((prev) => [...prev, userMsg])
+      sendMessage([...messages, userMsg])
     },
-    [currentConvId, model, playgroundParams, sendMessage, updateCurrentConvId, t],
+    [currentConvId, model, playgroundParams, sendMessage, updateCurrentConvId, t, messages],
   )
 
   const handleDeleteConversation = useCallback(async () => {

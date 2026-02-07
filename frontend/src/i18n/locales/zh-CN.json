@@ -594,5 +594,6 @@
   "pages.playground.compare.Parameters": "参数",
   "pages.playground.compare.Edit": "编辑",
   "pages.playground.compare.AddModel": "+ 添加模型",
-  "pages.playground.compare.DeleteFailed": "删除测试用例失败"
+  "pages.playground.compare.DeleteFailed": "删除测试用例失败",
+  "pages.playground.compare.RunCreationFailed": "创建测试运行失败"
 }

@@ -138,16 +138,22 @@ export function ChatPage() {
       }
 
       // Save user message
+      try {
+        await api.admin.playground.conversations({ id: convId }).messages.post({ role: 'user', content })
+      } catch (err) {
+        toast.error(t('pages.playground.chat.FetchError'), {
+          description: err instanceof Error ? err.message : 'Failed to save message',
+        })
+        return
+      }
 
-      await api.admin.playground.conversations({ id: convId }).messages.post({ role: 'user', content })
-
-      const newMessages = [...messages, userMsg]
-      setMessages(newMessages)
-
-      // Send to LLM
-      sendMessage(newMessages)
+      setMessages((prev) => {
+        const newMessages = [...prev, userMsg]
+        sendMessage(newMessages)
+        return newMessages
+      })
     },
-    [currentConvId, messages, model, playgroundParams, sendMessage, updateCurrentConvId],
+    [currentConvId, model, playgroundParams, sendMessage, updateCurrentConvId, t],
   )
 
   const handleDeleteConversation = useCallback(async () => {
@@ -168,12 +174,18 @@ export function ChatPage() {
   const handleSaveAsTestCase = useCallback(async () => {
     if (messages.length === 0) return
 
-    await api.admin.playground['test-cases'].post({
-      title: conversationData?.title || 'Untitled Test Case',
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      params: playgroundParams,
-    })
-    toast.success(t('pages.playground.chat.SavedAsTestCase'))
+    try {
+      await api.admin.playground['test-cases'].post({
+        title: conversationData?.title || 'Untitled Test Case',
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        params: playgroundParams,
+      })
+      toast.success(t('pages.playground.chat.SavedAsTestCase'))
+    } catch (err) {
+      toast.error(t('pages.playground.chat.FetchError'), {
+        description: err instanceof Error ? err.message : 'Failed to save test case',
+      })
+    }
   }, [messages, conversationData, playgroundParams, t])
 
   // Build display messages with streaming

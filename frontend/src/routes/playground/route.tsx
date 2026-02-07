@@ -36,7 +36,7 @@ function RouteComponent() {
     },
   ]
 
-  const NavContent = () => (
+  const renderNav = () => (
     <nav className="space-y-2">
       {navItems.map((item) => {
         const isActive = !!matchRoute({ to: item.href, fuzzy: true })
@@ -80,7 +80,7 @@ function RouteComponent() {
                     <SheetDescription>Navigate between playground pages</SheetDescription>
                   </SheetHeader>
                   <div className="px-3 pt-8 pb-4">
-                    <NavContent />
+                    {renderNav()}
                   </div>
                 </SheetContent>
               </Sheet>
@@ -94,7 +94,7 @@ function RouteComponent() {
 
       <main className="flex min-h-0 flex-1 border-t">
         <div className="hidden w-48 shrink-0 border-r px-3 py-8 md:block lg:w-56">
-          <NavContent />
+          {renderNav()}
         </div>
 
         <div className="min-w-0 flex-1 overflow-hidden">

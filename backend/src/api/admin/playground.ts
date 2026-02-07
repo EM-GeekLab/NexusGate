@@ -22,6 +22,12 @@ import {
   updatePlaygroundTestResult,
 } from "@/db";
 
+const roleSchema = t.Union([
+  t.Literal("system"),
+  t.Literal("user"),
+  t.Literal("assistant"),
+]);
+
 const paramsSchema = t.Optional(
   t.Object({
     systemPrompt: t.Optional(t.String()),
@@ -50,7 +56,7 @@ const conversationRoutes = new Elysia({ prefix: "/conversations" })
     {
       query: t.Object({
         offset: t.Optional(t.Numeric()),
-        limit: t.Optional(t.Numeric()),
+        limit: t.Optional(t.Numeric({ maximum: 200 })),
       }),
       detail: {
         description: "List playground conversations",
@@ -149,11 +155,7 @@ const conversationRoutes = new Elysia({ prefix: "/conversations" })
     {
       params: t.Object({ id: t.Numeric() }),
       body: t.Object({
-        role: t.Union([
-          t.Literal("system"),
-          t.Literal("user"),
-          t.Literal("assistant"),
-        ]),
+        role: roleSchema,
         content: t.String(),
         completionId: t.Optional(t.Number()),
       }),
@@ -197,7 +199,7 @@ const testCaseRoutes = new Elysia({ prefix: "/test-cases" })
     {
       query: t.Object({
         offset: t.Optional(t.Numeric()),
-        limit: t.Optional(t.Numeric()),
+        limit: t.Optional(t.Numeric({ maximum: 200 })),
       }),
       detail: {
         description: "List test cases",
@@ -233,7 +235,7 @@ const testCaseRoutes = new Elysia({ prefix: "/test-cases" })
         description: t.Optional(t.String()),
         messages: t.Array(
           t.Object({
-            role: t.String(),
+            role: roleSchema,
             content: t.String(),
           }),
         ),
@@ -262,7 +264,7 @@ const testCaseRoutes = new Elysia({ prefix: "/test-cases" })
         messages: t.Optional(
           t.Array(
             t.Object({
-              role: t.String(),
+              role: roleSchema,
               content: t.String(),
             }),
           ),
@@ -308,7 +310,7 @@ const testRunRoutes = new Elysia({ prefix: "/test-runs" })
     {
       query: t.Object({
         offset: t.Optional(t.Numeric()),
-        limit: t.Optional(t.Numeric()),
+        limit: t.Optional(t.Numeric({ maximum: 200 })),
         testCaseId: t.Optional(t.Numeric()),
       }),
       detail: {
@@ -337,10 +339,10 @@ const testRunRoutes = new Elysia({ prefix: "/test-runs" })
   )
   .post(
     "/",
-    async ({ body }) => {
+    async ({ body, status }) => {
       const run = await insertPlaygroundTestRun(body);
       if (!run) {
-        return { error: "Failed to create test run" };
+        return status(500, { error: "Failed to create test run" });
       }
       // Create pending results for each model
       for (const model of body.models) {
@@ -389,8 +391,12 @@ const testRunRoutes = new Elysia({ prefix: "/test-runs" })
 
 const testResultRoutes = new Elysia({ prefix: "/test-results" }).put(
   "/:id",
-  async ({ params: { id }, body }) => {
-    return await updatePlaygroundTestResult(id, body);
+  async ({ params: { id }, body, status }) => {
+    const result = await updatePlaygroundTestResult(id, body);
+    if (!result) {
+      return status(404, { error: "Test result not found" });
+    }
+    return result;
   },
   {
     params: t.Object({ id: t.Numeric() }),

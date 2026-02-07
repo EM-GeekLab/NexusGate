@@ -43,6 +43,7 @@ export function useChatStreaming({ model, apiKey, params, onChunk, onDone, onErr
     async (messages: ChatMessage[]) => {
       if (!model || !apiKey) return
 
+      abortControllerRef.current?.abort()
       const controller = new AbortController()
       abortControllerRef.current = controller
       setIsStreaming(true)

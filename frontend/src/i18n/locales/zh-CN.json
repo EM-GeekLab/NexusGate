@@ -591,5 +591,8 @@
   "pages.playground.compare.TestCaseDeleted": "测试用例已删除",
   "pages.playground.compare.CreateFailed": "创建测试用例失败",
   "pages.playground.compare.UpdateFailed": "更新测试用例失败",
-  "pages.playground.compare.Parameters": "参数"
+  "pages.playground.compare.Parameters": "参数",
+  "pages.playground.compare.Edit": "编辑",
+  "pages.playground.compare.AddModel": "+ 添加模型",
+  "pages.playground.compare.DeleteFailed": "删除测试用例失败"
 }

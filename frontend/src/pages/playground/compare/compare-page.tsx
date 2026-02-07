@@ -34,21 +34,29 @@ export function ComparePage() {
     messages: { role: string; content: string }[]
     params?: Record<string, unknown>
   }) => {
-    const { data: created } = await api.admin.playground['test-cases'].post(tc)
-    if (created?.id) {
-      toast.success(t('pages.playground.compare.TestCaseCreated'))
-      queryClient.invalidateQueries({ queryKey: ['playground', 'test-cases'] })
-      setShowEditor(false)
-      navigate({ to: '/playground/compare/$testCaseId', params: { testCaseId: String(created.id) } })
-    } else {
-      toast.error(t('pages.playground.compare.CreateFailed'))
+    try {
+      const { data: created } = await api.admin.playground['test-cases'].post(tc)
+      if (created?.id) {
+        toast.success(t('pages.playground.compare.TestCaseCreated'))
+        queryClient.invalidateQueries({ queryKey: ['playground', 'test-cases'] })
+        setShowEditor(false)
+        navigate({ to: '/playground/compare/$testCaseId', params: { testCaseId: String(created.id) } })
+      } else {
+        toast.error(t('pages.playground.compare.CreateFailed'))
+      }
+    } catch (err) {
+      toast.error((err as Error).message || t('pages.playground.compare.CreateFailed'))
     }
   }
 
   const handleDelete = async (id: number) => {
-    await api.admin.playground['test-cases']({ id }).delete()
-    toast.success(t('pages.playground.compare.TestCaseDeleted'))
-    queryClient.invalidateQueries({ queryKey: ['playground', 'test-cases'] })
+    try {
+      await api.admin.playground['test-cases']({ id }).delete()
+      toast.success(t('pages.playground.compare.TestCaseDeleted'))
+      queryClient.invalidateQueries({ queryKey: ['playground', 'test-cases'] })
+    } catch (err) {
+      toast.error((err as Error).message || t('pages.playground.compare.DeleteFailed'))
+    }
   }
 
   if (showEditor) {

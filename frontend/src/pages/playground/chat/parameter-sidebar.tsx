@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Input } from '@/components/ui/input'
@@ -24,6 +25,12 @@ type ParameterSidebarProps = {
 
 export function ParameterSidebar({ params, onChange }: ParameterSidebarProps) {
   const { t } = useTranslation()
+  const [localStopSequences, setLocalStopSequences] = useState(params.stopSequences?.join(', ') || '')
+
+  // Sync local state when params.stopSequences changes from outside
+  useEffect(() => {
+    setLocalStopSequences(params.stopSequences?.join(', ') || '')
+  }, [params.stopSequences])
 
   const update = (key: keyof PlaygroundParams, value: unknown) => {
     onChange({ ...params, [key]: value })
@@ -117,18 +124,14 @@ export function ParameterSidebar({ params, onChange }: ParameterSidebarProps) {
         <div className="space-y-2">
           <Label className="text-xs">{t('pages.playground.chat.StopSequences')}</Label>
           <Input
-            value={(params.stopSequences || []).join(', ')}
-            onChange={(e) => {
-              const val = e.target.value
-              update(
-                'stopSequences',
-                val
-                  ? val
-                      .split(',')
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                  : undefined,
-              )
+            value={localStopSequences}
+            onChange={(e) => setLocalStopSequences(e.target.value)}
+            onBlur={() => {
+              const parsed = localStopSequences
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+              update('stopSequences', parsed.length > 0 ? parsed : undefined)
             }}
             placeholder="token1, token2"
             className="h-8 text-xs"

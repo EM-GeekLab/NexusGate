@@ -50,19 +50,29 @@ export function TestCaseDetailPage() {
     title: string
     description?: string
     messages: { role: string; content: string }[]
+    params?: Record<string, unknown>
   }) => {
-    await api.admin.playground['test-cases']({ id }).put(data)
-    toast.success(t('pages.playground.compare.TestCaseUpdated'))
-    queryClient.invalidateQueries({ queryKey: ['playground', 'test-case', id] })
-    queryClient.invalidateQueries({ queryKey: ['playground', 'test-cases'] })
-    setIsEditing(false)
+    try {
+      await api.admin.playground['test-cases']({ id }).put(data)
+      toast.success(t('pages.playground.compare.TestCaseUpdated'))
+      queryClient.invalidateQueries({ queryKey: ['playground', 'test-case', id] })
+      queryClient.invalidateQueries({ queryKey: ['playground', 'test-cases'] })
+    } catch (err) {
+      toast.error((err as Error).message || t('pages.playground.compare.UpdateFailed'))
+    } finally {
+      setIsEditing(false)
+    }
   }
 
   const handleDelete = async () => {
-    await api.admin.playground['test-cases']({ id }).delete()
-    toast.success(t('pages.playground.compare.TestCaseDeleted'))
-    queryClient.invalidateQueries({ queryKey: ['playground', 'test-cases'] })
-    navigate({ to: '/playground/compare' })
+    try {
+      await api.admin.playground['test-cases']({ id }).delete()
+      toast.success(t('pages.playground.compare.TestCaseDeleted'))
+      queryClient.invalidateQueries({ queryKey: ['playground', 'test-cases'] })
+      navigate({ to: '/playground/compare' })
+    } catch (err) {
+      toast.error((err as Error).message || t('pages.playground.compare.DeleteFailed'))
+    }
   }
 
   // Add model to comparison list
@@ -125,6 +135,18 @@ export function TestCaseDetailPage() {
                 ...(testCase.params?.maxTokens !== undefined && {
                   max_tokens: (testCase.params as { maxTokens: number }).maxTokens,
                 }),
+                ...(testCase.params?.topP !== undefined && {
+                  top_p: (testCase.params as { topP: number }).topP,
+                }),
+                ...(testCase.params?.frequencyPenalty !== undefined && {
+                  frequency_penalty: (testCase.params as { frequencyPenalty: number }).frequencyPenalty,
+                }),
+                ...(testCase.params?.presencePenalty !== undefined && {
+                  presence_penalty: (testCase.params as { presencePenalty: number }).presencePenalty,
+                }),
+                ...((testCase.params?.stopSequences as string[] | undefined)?.length && {
+                  stop: (testCase.params as { stopSequences: string[] }).stopSequences,
+                }),
               }),
             })
 
@@ -176,7 +198,12 @@ export function TestCaseDetailPage() {
       <div className="p-4 md:p-6">
         <TestCaseEditor
           initialData={
-            testCase as { title: string; description?: string | null; messages: { role: string; content: string }[] }
+            testCase as {
+              title: string
+              description?: string | null
+              messages: { role: string; content: string }[]
+              params?: Record<string, unknown>
+            }
           }
           onSave={handleUpdate}
           onCancel={() => setIsEditing(false)}
@@ -203,7 +230,7 @@ export function TestCaseDetailPage() {
             {testCase.description && <p className="text-muted-foreground text-sm">{testCase.description}</p>}
           </div>
           <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-            Edit
+            {t('pages.playground.compare.Edit')}
           </Button>
           <Button variant="outline" size="sm" className="text-destructive" onClick={handleDelete}>
             <Trash2Icon className="mr-1 size-3.5" />
@@ -244,7 +271,7 @@ export function TestCaseDetailPage() {
             />
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" variant="outline" onClick={toggleModel} disabled={!model}>
-                + Add Model
+                {t('pages.playground.compare.AddModel')}
               </Button>
               {selectedModels.map((m) => (
                 <Badge key={m} variant="secondary" className="cursor-pointer gap-1" onClick={() => removeModel(m)}>

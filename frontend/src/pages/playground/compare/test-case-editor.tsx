@@ -49,6 +49,7 @@ export function TestCaseEditor({ initialData, onSave, onCancel }: TestCaseEditor
       title: title.trim(),
       description: description.trim() || undefined,
       messages: validMessages,
+      ...(initialData?.params && { params: initialData.params }),
     })
   }
 
@@ -107,7 +108,7 @@ export function TestCaseEditor({ initialData, onSave, onCancel }: TestCaseEditor
       </div>
 
       <div className="flex gap-2">
-        <Button onClick={handleSave} disabled={!title.trim()}>
+        <Button onClick={handleSave} disabled={!title.trim() || !messages.some((m) => m.content.trim())}>
           {t('pages.playground.compare.Save')}
         </Button>
         <Button variant="outline" onClick={onCancel}>

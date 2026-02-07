@@ -590,5 +590,8 @@
   "pages.playground.compare.TestCaseDeleted": "Test case deleted",
   "pages.playground.compare.CreateFailed": "Failed to create test case",
   "pages.playground.compare.UpdateFailed": "Failed to update test case",
-  "pages.playground.compare.Parameters": "Parameters"
+  "pages.playground.compare.Parameters": "Parameters",
+  "pages.playground.compare.Edit": "Edit",
+  "pages.playground.compare.AddModel": "+ Add Model",
+  "pages.playground.compare.DeleteFailed": "Failed to delete test case"
 }

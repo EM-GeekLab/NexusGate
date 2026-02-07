@@ -21,8 +21,8 @@ export function MessageList({ messages, isStreaming, onClear, onDelete, onSaveAs
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    bottomRef.current?.scrollIntoView({ behavior: isStreaming ? 'instant' : 'smooth' })
+  }, [messages, isStreaming])
 
   if (messages.length === 0) {
     return (

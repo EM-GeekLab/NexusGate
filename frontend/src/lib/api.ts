@@ -2,7 +2,7 @@ import { treaty } from '@elysiajs/eden'
 // @ts-expect-error: Type definition requires backend build. Run `bun run build` in backend first.
 import type { App } from 'nexus-gate-server'
 
-const backendBaseURL = import.meta.env.PROD ? location.origin : import.meta.env.VITE_BASE_URL
+export const backendBaseURL = import.meta.env.PROD ? location.origin : import.meta.env.VITE_BASE_URL
 if (!backendBaseURL) {
   throw new Error('backend domain is not defined')
 }

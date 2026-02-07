@@ -11,12 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
 import { Route as RequestsRouteRouteImport } from './routes/requests/route'
+import { Route as PlaygroundRouteRouteImport } from './routes/playground/route'
 import { Route as ModelsRouteRouteImport } from './routes/models/route'
 import { Route as EmbeddingsRouteRouteImport } from './routes/embeddings/route'
 import { Route as AppsRouteRouteImport } from './routes/apps/route'
 import { Route as DashboardRouteRouteImport } from './routes/_dashboard/route'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as RequestsIndexRouteImport } from './routes/requests/index'
+import { Route as PlaygroundIndexRouteImport } from './routes/playground/index'
 import { Route as ModelsIndexRouteImport } from './routes/models/index'
 import { Route as EmbeddingsIndexRouteImport } from './routes/embeddings/index'
 import { Route as AppsIndexRouteImport } from './routes/apps/index'
@@ -25,6 +27,12 @@ import { Route as SettingsGrafanaRouteImport } from './routes/settings/grafana'
 import { Route as SettingsAlertsRouteImport } from './routes/settings/alerts'
 import { Route as ModelsRegistryRouteImport } from './routes/models/registry'
 import { Route as ModelsProvidersRouteImport } from './routes/models/providers'
+import { Route as PlaygroundCompareRouteRouteImport } from './routes/playground/compare/route'
+import { Route as PlaygroundChatRouteRouteImport } from './routes/playground/chat/route'
+import { Route as PlaygroundCompareIndexRouteImport } from './routes/playground/compare/index'
+import { Route as PlaygroundChatIndexRouteImport } from './routes/playground/chat/index'
+import { Route as PlaygroundCompareTestCaseIdRouteImport } from './routes/playground/compare/$testCaseId'
+import { Route as PlaygroundChatConversationIdRouteImport } from './routes/playground/chat/$conversationId'
 
 const SettingsRouteRoute = SettingsRouteRouteImport.update({
   id: '/settings',
@@ -34,6 +42,11 @@ const SettingsRouteRoute = SettingsRouteRouteImport.update({
 const RequestsRouteRoute = RequestsRouteRouteImport.update({
   id: '/requests',
   path: '/requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlaygroundRouteRoute = PlaygroundRouteRouteImport.update({
+  id: '/playground',
+  path: '/playground',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ModelsRouteRoute = ModelsRouteRouteImport.update({
@@ -64,6 +77,11 @@ const RequestsIndexRoute = RequestsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => RequestsRouteRoute,
+} as any)
+const PlaygroundIndexRoute = PlaygroundIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PlaygroundRouteRoute,
 } as any)
 const ModelsIndexRoute = ModelsIndexRouteImport.update({
   id: '/',
@@ -105,13 +123,48 @@ const ModelsProvidersRoute = ModelsProvidersRouteImport.update({
   path: '/providers',
   getParentRoute: () => ModelsRouteRoute,
 } as any)
+const PlaygroundCompareRouteRoute = PlaygroundCompareRouteRouteImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => PlaygroundRouteRoute,
+} as any)
+const PlaygroundChatRouteRoute = PlaygroundChatRouteRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => PlaygroundRouteRoute,
+} as any)
+const PlaygroundCompareIndexRoute = PlaygroundCompareIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PlaygroundCompareRouteRoute,
+} as any)
+const PlaygroundChatIndexRoute = PlaygroundChatIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PlaygroundChatRouteRoute,
+} as any)
+const PlaygroundCompareTestCaseIdRoute =
+  PlaygroundCompareTestCaseIdRouteImport.update({
+    id: '/$testCaseId',
+    path: '/$testCaseId',
+    getParentRoute: () => PlaygroundCompareRouteRoute,
+  } as any)
+const PlaygroundChatConversationIdRoute =
+  PlaygroundChatConversationIdRouteImport.update({
+    id: '/$conversationId',
+    path: '/$conversationId',
+    getParentRoute: () => PlaygroundChatRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/apps': typeof AppsRouteRouteWithChildren
   '/embeddings': typeof EmbeddingsRouteRouteWithChildren
   '/models': typeof ModelsRouteRouteWithChildren
+  '/playground': typeof PlaygroundRouteRouteWithChildren
   '/requests': typeof RequestsRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
+  '/playground/chat': typeof PlaygroundChatRouteRouteWithChildren
+  '/playground/compare': typeof PlaygroundCompareRouteRouteWithChildren
   '/models/providers': typeof ModelsProvidersRoute
   '/models/registry': typeof ModelsRegistryRoute
   '/settings/alerts': typeof SettingsAlertsRoute
@@ -120,8 +173,13 @@ export interface FileRoutesByFullPath {
   '/apps/': typeof AppsIndexRoute
   '/embeddings/': typeof EmbeddingsIndexRoute
   '/models/': typeof ModelsIndexRoute
+  '/playground/': typeof PlaygroundIndexRoute
   '/requests/': typeof RequestsIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/playground/chat/$conversationId': typeof PlaygroundChatConversationIdRoute
+  '/playground/compare/$testCaseId': typeof PlaygroundCompareTestCaseIdRoute
+  '/playground/chat/': typeof PlaygroundChatIndexRoute
+  '/playground/compare/': typeof PlaygroundCompareIndexRoute
 }
 export interface FileRoutesByTo {
   '/models/providers': typeof ModelsProvidersRoute
@@ -132,8 +190,13 @@ export interface FileRoutesByTo {
   '/apps': typeof AppsIndexRoute
   '/embeddings': typeof EmbeddingsIndexRoute
   '/models': typeof ModelsIndexRoute
+  '/playground': typeof PlaygroundIndexRoute
   '/requests': typeof RequestsIndexRoute
   '/settings': typeof SettingsIndexRoute
+  '/playground/chat/$conversationId': typeof PlaygroundChatConversationIdRoute
+  '/playground/compare/$testCaseId': typeof PlaygroundCompareTestCaseIdRoute
+  '/playground/chat': typeof PlaygroundChatIndexRoute
+  '/playground/compare': typeof PlaygroundCompareIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -141,8 +204,11 @@ export interface FileRoutesById {
   '/apps': typeof AppsRouteRouteWithChildren
   '/embeddings': typeof EmbeddingsRouteRouteWithChildren
   '/models': typeof ModelsRouteRouteWithChildren
+  '/playground': typeof PlaygroundRouteRouteWithChildren
   '/requests': typeof RequestsRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
+  '/playground/chat': typeof PlaygroundChatRouteRouteWithChildren
+  '/playground/compare': typeof PlaygroundCompareRouteRouteWithChildren
   '/models/providers': typeof ModelsProvidersRoute
   '/models/registry': typeof ModelsRegistryRoute
   '/settings/alerts': typeof SettingsAlertsRoute
@@ -151,8 +217,13 @@ export interface FileRoutesById {
   '/apps/': typeof AppsIndexRoute
   '/embeddings/': typeof EmbeddingsIndexRoute
   '/models/': typeof ModelsIndexRoute
+  '/playground/': typeof PlaygroundIndexRoute
   '/requests/': typeof RequestsIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/playground/chat/$conversationId': typeof PlaygroundChatConversationIdRoute
+  '/playground/compare/$testCaseId': typeof PlaygroundCompareTestCaseIdRoute
+  '/playground/chat/': typeof PlaygroundChatIndexRoute
+  '/playground/compare/': typeof PlaygroundCompareIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -160,8 +231,11 @@ export interface FileRouteTypes {
     | '/apps'
     | '/embeddings'
     | '/models'
+    | '/playground'
     | '/requests'
     | '/settings'
+    | '/playground/chat'
+    | '/playground/compare'
     | '/models/providers'
     | '/models/registry'
     | '/settings/alerts'
@@ -170,8 +244,13 @@ export interface FileRouteTypes {
     | '/apps/'
     | '/embeddings/'
     | '/models/'
+    | '/playground/'
     | '/requests/'
     | '/settings/'
+    | '/playground/chat/$conversationId'
+    | '/playground/compare/$testCaseId'
+    | '/playground/chat/'
+    | '/playground/compare/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/models/providers'
@@ -182,16 +261,24 @@ export interface FileRouteTypes {
     | '/apps'
     | '/embeddings'
     | '/models'
+    | '/playground'
     | '/requests'
     | '/settings'
+    | '/playground/chat/$conversationId'
+    | '/playground/compare/$testCaseId'
+    | '/playground/chat'
+    | '/playground/compare'
   id:
     | '__root__'
     | '/_dashboard'
     | '/apps'
     | '/embeddings'
     | '/models'
+    | '/playground'
     | '/requests'
     | '/settings'
+    | '/playground/chat'
+    | '/playground/compare'
     | '/models/providers'
     | '/models/registry'
     | '/settings/alerts'
@@ -200,8 +287,13 @@ export interface FileRouteTypes {
     | '/apps/'
     | '/embeddings/'
     | '/models/'
+    | '/playground/'
     | '/requests/'
     | '/settings/'
+    | '/playground/chat/$conversationId'
+    | '/playground/compare/$testCaseId'
+    | '/playground/chat/'
+    | '/playground/compare/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -209,6 +301,7 @@ export interface RootRouteChildren {
   AppsRouteRoute: typeof AppsRouteRouteWithChildren
   EmbeddingsRouteRoute: typeof EmbeddingsRouteRouteWithChildren
   ModelsRouteRoute: typeof ModelsRouteRouteWithChildren
+  PlaygroundRouteRoute: typeof PlaygroundRouteRouteWithChildren
   RequestsRouteRoute: typeof RequestsRouteRouteWithChildren
   SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
 }
@@ -227,6 +320,13 @@ declare module '@tanstack/react-router' {
       path: '/requests'
       fullPath: '/requests'
       preLoaderRoute: typeof RequestsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/models': {
@@ -270,6 +370,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/requests/'
       preLoaderRoute: typeof RequestsIndexRouteImport
       parentRoute: typeof RequestsRouteRoute
+    }
+    '/playground/': {
+      id: '/playground/'
+      path: '/'
+      fullPath: '/playground/'
+      preLoaderRoute: typeof PlaygroundIndexRouteImport
+      parentRoute: typeof PlaygroundRouteRoute
     }
     '/models/': {
       id: '/models/'
@@ -327,6 +434,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModelsProvidersRouteImport
       parentRoute: typeof ModelsRouteRoute
     }
+    '/playground/compare': {
+      id: '/playground/compare'
+      path: '/compare'
+      fullPath: '/playground/compare'
+      preLoaderRoute: typeof PlaygroundCompareRouteRouteImport
+      parentRoute: typeof PlaygroundRouteRoute
+    }
+    '/playground/chat': {
+      id: '/playground/chat'
+      path: '/chat'
+      fullPath: '/playground/chat'
+      preLoaderRoute: typeof PlaygroundChatRouteRouteImport
+      parentRoute: typeof PlaygroundRouteRoute
+    }
+    '/playground/compare/': {
+      id: '/playground/compare/'
+      path: '/'
+      fullPath: '/playground/compare/'
+      preLoaderRoute: typeof PlaygroundCompareIndexRouteImport
+      parentRoute: typeof PlaygroundCompareRouteRoute
+    }
+    '/playground/chat/': {
+      id: '/playground/chat/'
+      path: '/'
+      fullPath: '/playground/chat/'
+      preLoaderRoute: typeof PlaygroundChatIndexRouteImport
+      parentRoute: typeof PlaygroundChatRouteRoute
+    }
+    '/playground/compare/$testCaseId': {
+      id: '/playground/compare/$testCaseId'
+      path: '/$testCaseId'
+      fullPath: '/playground/compare/$testCaseId'
+      preLoaderRoute: typeof PlaygroundCompareTestCaseIdRouteImport
+      parentRoute: typeof PlaygroundCompareRouteRoute
+    }
+    '/playground/chat/$conversationId': {
+      id: '/playground/chat/$conversationId'
+      path: '/$conversationId'
+      fullPath: '/playground/chat/$conversationId'
+      preLoaderRoute: typeof PlaygroundChatConversationIdRouteImport
+      parentRoute: typeof PlaygroundChatRouteRoute
+    }
   }
 }
 
@@ -382,6 +531,51 @@ const ModelsRouteRouteWithChildren = ModelsRouteRoute._addFileChildren(
   ModelsRouteRouteChildren,
 )
 
+interface PlaygroundChatRouteRouteChildren {
+  PlaygroundChatConversationIdRoute: typeof PlaygroundChatConversationIdRoute
+  PlaygroundChatIndexRoute: typeof PlaygroundChatIndexRoute
+}
+
+const PlaygroundChatRouteRouteChildren: PlaygroundChatRouteRouteChildren = {
+  PlaygroundChatConversationIdRoute: PlaygroundChatConversationIdRoute,
+  PlaygroundChatIndexRoute: PlaygroundChatIndexRoute,
+}
+
+const PlaygroundChatRouteRouteWithChildren =
+  PlaygroundChatRouteRoute._addFileChildren(PlaygroundChatRouteRouteChildren)
+
+interface PlaygroundCompareRouteRouteChildren {
+  PlaygroundCompareTestCaseIdRoute: typeof PlaygroundCompareTestCaseIdRoute
+  PlaygroundCompareIndexRoute: typeof PlaygroundCompareIndexRoute
+}
+
+const PlaygroundCompareRouteRouteChildren: PlaygroundCompareRouteRouteChildren =
+  {
+    PlaygroundCompareTestCaseIdRoute: PlaygroundCompareTestCaseIdRoute,
+    PlaygroundCompareIndexRoute: PlaygroundCompareIndexRoute,
+  }
+
+const PlaygroundCompareRouteRouteWithChildren =
+  PlaygroundCompareRouteRoute._addFileChildren(
+    PlaygroundCompareRouteRouteChildren,
+  )
+
+interface PlaygroundRouteRouteChildren {
+  PlaygroundChatRouteRoute: typeof PlaygroundChatRouteRouteWithChildren
+  PlaygroundCompareRouteRoute: typeof PlaygroundCompareRouteRouteWithChildren
+  PlaygroundIndexRoute: typeof PlaygroundIndexRoute
+}
+
+const PlaygroundRouteRouteChildren: PlaygroundRouteRouteChildren = {
+  PlaygroundChatRouteRoute: PlaygroundChatRouteRouteWithChildren,
+  PlaygroundCompareRouteRoute: PlaygroundCompareRouteRouteWithChildren,
+  PlaygroundIndexRoute: PlaygroundIndexRoute,
+}
+
+const PlaygroundRouteRouteWithChildren = PlaygroundRouteRoute._addFileChildren(
+  PlaygroundRouteRouteChildren,
+)
+
 interface RequestsRouteRouteChildren {
   RequestsIndexRoute: typeof RequestsIndexRoute
 }
@@ -415,6 +609,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppsRouteRoute: AppsRouteRouteWithChildren,
   EmbeddingsRouteRoute: EmbeddingsRouteRouteWithChildren,
   ModelsRouteRoute: ModelsRouteRouteWithChildren,
+  PlaygroundRouteRoute: PlaygroundRouteRouteWithChildren,
   RequestsRouteRoute: RequestsRouteRouteWithChildren,
   SettingsRouteRoute: SettingsRouteRouteWithChildren,
 }

@@ -5,6 +5,7 @@ import {
   BoxIcon,
   ChartPieIcon,
   ExternalLinkIcon,
+  FlaskConicalIcon,
   LayoutGridIcon,
   SettingsIcon,
   WaypointsIcon,
@@ -54,6 +55,11 @@ const navItems = [
     icon: <SettingsIcon className="size-4" />,
     title: i18n.t('components.app.app-sidebar.Models'),
     href: '/models',
+  },
+  {
+    icon: <FlaskConicalIcon className="size-4" />,
+    title: i18n.t('components.app.app-sidebar.Playground'),
+    href: '/playground',
   },
   {
     icon: <WrenchIcon className="size-4" />,

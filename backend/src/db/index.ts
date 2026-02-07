@@ -1896,7 +1896,12 @@ export async function getCompletionLatencyPercentile(
   percentile: number,
   model?: string,
 ): Promise<number> {
-  logger.debug("getCompletionLatencyPercentile", windowMinutes, percentile, model);
+  logger.debug(
+    "getCompletionLatencyPercentile",
+    windowMinutes,
+    percentile,
+    model,
+  );
   const pValue = percentile / 100;
   const result = await db.execute(sql`
     SELECT COALESCE(
@@ -2101,7 +2106,11 @@ export async function searchCompletionsTimeSeries(
     failed: string;
   }[]
 > {
-  logger.debug("searchCompletionsTimeSeries", compiled.whereClause, bucketSeconds);
+  logger.debug(
+    "searchCompletionsTimeSeries",
+    compiled.whereClause,
+    bucketSeconds,
+  );
 
   const whereSql = buildDrizzleSql(compiled.whereClause, compiled.params);
 
@@ -2155,4 +2164,382 @@ export async function getDistinctFieldValues(
   `);
 
   return (result as unknown as { value: string }[]).map((r) => r.value);
+}
+
+// ============================================
+// Playground Types
+// ============================================
+
+export type PlaygroundConversation =
+  typeof schema.PlaygroundConversationsTable.$inferSelect;
+export type PlaygroundConversationInsert =
+  typeof schema.PlaygroundConversationsTable.$inferInsert;
+export type PlaygroundMessage =
+  typeof schema.PlaygroundMessagesTable.$inferSelect;
+export type PlaygroundMessageInsert =
+  typeof schema.PlaygroundMessagesTable.$inferInsert;
+export type PlaygroundTestCase =
+  typeof schema.PlaygroundTestCasesTable.$inferSelect;
+export type PlaygroundTestCaseInsert =
+  typeof schema.PlaygroundTestCasesTable.$inferInsert;
+export type PlaygroundTestRun =
+  typeof schema.PlaygroundTestRunsTable.$inferSelect;
+export type PlaygroundTestRunInsert =
+  typeof schema.PlaygroundTestRunsTable.$inferInsert;
+export type PlaygroundTestResult =
+  typeof schema.PlaygroundTestResultsTable.$inferSelect;
+export type PlaygroundTestResultInsert =
+  typeof schema.PlaygroundTestResultsTable.$inferInsert;
+
+// ============================================
+// Playground Conversation CRUD
+// ============================================
+
+export async function listPlaygroundConversations(
+  offset: number,
+  limit: number,
+): Promise<PartialList<PlaygroundConversation>> {
+  logger.debug("listPlaygroundConversations", offset, limit);
+  const r = await db
+    .select()
+    .from(schema.PlaygroundConversationsTable)
+    .where(not(schema.PlaygroundConversationsTable.deleted))
+    .orderBy(desc(schema.PlaygroundConversationsTable.updatedAt))
+    .offset(offset)
+    .limit(limit);
+  const [total] = await db
+    .select({ total: count(schema.PlaygroundConversationsTable.id) })
+    .from(schema.PlaygroundConversationsTable)
+    .where(not(schema.PlaygroundConversationsTable.deleted));
+  if (!total) throw new Error("total count failed");
+  return { data: r, total: total.total, from: offset };
+}
+
+export async function findPlaygroundConversation(
+  id: number,
+): Promise<PlaygroundConversation | null> {
+  logger.debug("findPlaygroundConversation", id);
+  const r = await db
+    .select()
+    .from(schema.PlaygroundConversationsTable)
+    .where(
+      and(
+        eq(schema.PlaygroundConversationsTable.id, id),
+        not(schema.PlaygroundConversationsTable.deleted),
+      ),
+    );
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function insertPlaygroundConversation(
+  c: PlaygroundConversationInsert,
+): Promise<PlaygroundConversation | null> {
+  logger.debug("insertPlaygroundConversation", c.title);
+  const r = await db
+    .insert(schema.PlaygroundConversationsTable)
+    .values(c)
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function updatePlaygroundConversation(
+  id: number,
+  c: Partial<PlaygroundConversationInsert>,
+): Promise<PlaygroundConversation | null> {
+  logger.debug("updatePlaygroundConversation", id);
+  const r = await db
+    .update(schema.PlaygroundConversationsTable)
+    .set({ ...c, updatedAt: new Date() })
+    .where(eq(schema.PlaygroundConversationsTable.id, id))
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function deletePlaygroundConversation(
+  id: number,
+): Promise<PlaygroundConversation | null> {
+  logger.debug("deletePlaygroundConversation", id);
+  const r = await db
+    .update(schema.PlaygroundConversationsTable)
+    .set({ deleted: true, updatedAt: new Date() })
+    .where(eq(schema.PlaygroundConversationsTable.id, id))
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+// ============================================
+// Playground Message CRUD
+// ============================================
+
+export async function listPlaygroundMessages(
+  conversationId: number,
+): Promise<PlaygroundMessage[]> {
+  logger.debug("listPlaygroundMessages", conversationId);
+  return await db
+    .select()
+    .from(schema.PlaygroundMessagesTable)
+    .where(eq(schema.PlaygroundMessagesTable.conversationId, conversationId))
+    .orderBy(asc(schema.PlaygroundMessagesTable.id));
+}
+
+export async function insertPlaygroundMessage(
+  m: PlaygroundMessageInsert,
+): Promise<PlaygroundMessage | null> {
+  logger.debug("insertPlaygroundMessage", m.conversationId, m.role);
+  const r = await db
+    .insert(schema.PlaygroundMessagesTable)
+    .values(m)
+    .returning();
+  const [first] = r;
+  // Touch conversation updatedAt
+  if (first) {
+    await db
+      .update(schema.PlaygroundConversationsTable)
+      .set({ updatedAt: new Date() })
+      .where(eq(schema.PlaygroundConversationsTable.id, m.conversationId));
+  }
+  return first ?? null;
+}
+
+export async function deletePlaygroundMessages(
+  conversationId: number,
+): Promise<void> {
+  logger.debug("deletePlaygroundMessages", conversationId);
+  await db
+    .delete(schema.PlaygroundMessagesTable)
+    .where(eq(schema.PlaygroundMessagesTable.conversationId, conversationId));
+}
+
+// ============================================
+// Playground Test Case CRUD
+// ============================================
+
+export async function listPlaygroundTestCases(
+  offset: number,
+  limit: number,
+): Promise<PartialList<PlaygroundTestCase>> {
+  logger.debug("listPlaygroundTestCases", offset, limit);
+  const r = await db
+    .select()
+    .from(schema.PlaygroundTestCasesTable)
+    .where(not(schema.PlaygroundTestCasesTable.deleted))
+    .orderBy(desc(schema.PlaygroundTestCasesTable.updatedAt))
+    .offset(offset)
+    .limit(limit);
+  const [total] = await db
+    .select({ total: count(schema.PlaygroundTestCasesTable.id) })
+    .from(schema.PlaygroundTestCasesTable)
+    .where(not(schema.PlaygroundTestCasesTable.deleted));
+  if (!total) throw new Error("total count failed");
+  return { data: r, total: total.total, from: offset };
+}
+
+export async function findPlaygroundTestCase(
+  id: number,
+): Promise<PlaygroundTestCase | null> {
+  logger.debug("findPlaygroundTestCase", id);
+  const r = await db
+    .select()
+    .from(schema.PlaygroundTestCasesTable)
+    .where(
+      and(
+        eq(schema.PlaygroundTestCasesTable.id, id),
+        not(schema.PlaygroundTestCasesTable.deleted),
+      ),
+    );
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function insertPlaygroundTestCase(
+  c: PlaygroundTestCaseInsert,
+): Promise<PlaygroundTestCase | null> {
+  logger.debug("insertPlaygroundTestCase", c.title);
+  const r = await db
+    .insert(schema.PlaygroundTestCasesTable)
+    .values(c)
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function updatePlaygroundTestCase(
+  id: number,
+  c: Partial<PlaygroundTestCaseInsert>,
+): Promise<PlaygroundTestCase | null> {
+  logger.debug("updatePlaygroundTestCase", id);
+  const r = await db
+    .update(schema.PlaygroundTestCasesTable)
+    .set({ ...c, updatedAt: new Date() })
+    .where(eq(schema.PlaygroundTestCasesTable.id, id))
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function deletePlaygroundTestCase(
+  id: number,
+): Promise<PlaygroundTestCase | null> {
+  logger.debug("deletePlaygroundTestCase", id);
+  const r = await db
+    .update(schema.PlaygroundTestCasesTable)
+    .set({ deleted: true, updatedAt: new Date() })
+    .where(eq(schema.PlaygroundTestCasesTable.id, id))
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+// ============================================
+// Playground Test Run CRUD
+// ============================================
+
+export async function listPlaygroundTestRuns(
+  offset: number,
+  limit: number,
+  testCaseId?: number,
+): Promise<PartialList<PlaygroundTestRun>> {
+  logger.debug("listPlaygroundTestRuns", offset, limit, testCaseId);
+  const r = await db
+    .select()
+    .from(schema.PlaygroundTestRunsTable)
+    .where(
+      and(
+        not(schema.PlaygroundTestRunsTable.deleted),
+        testCaseId !== undefined
+          ? eq(schema.PlaygroundTestRunsTable.testCaseId, testCaseId)
+          : undefined,
+      ),
+    )
+    .orderBy(desc(schema.PlaygroundTestRunsTable.createdAt))
+    .offset(offset)
+    .limit(limit);
+  const [total] = await db
+    .select({ total: count(schema.PlaygroundTestRunsTable.id) })
+    .from(schema.PlaygroundTestRunsTable)
+    .where(
+      and(
+        not(schema.PlaygroundTestRunsTable.deleted),
+        testCaseId !== undefined
+          ? eq(schema.PlaygroundTestRunsTable.testCaseId, testCaseId)
+          : undefined,
+      ),
+    );
+  if (!total) throw new Error("total count failed");
+  return { data: r, total: total.total, from: offset };
+}
+
+export async function findPlaygroundTestRun(
+  id: number,
+): Promise<PlaygroundTestRun | null> {
+  logger.debug("findPlaygroundTestRun", id);
+  const r = await db
+    .select()
+    .from(schema.PlaygroundTestRunsTable)
+    .where(
+      and(
+        eq(schema.PlaygroundTestRunsTable.id, id),
+        not(schema.PlaygroundTestRunsTable.deleted),
+      ),
+    );
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function insertPlaygroundTestRun(
+  c: PlaygroundTestRunInsert,
+): Promise<PlaygroundTestRun | null> {
+  logger.debug("insertPlaygroundTestRun", c.testCaseId);
+  const r = await db
+    .insert(schema.PlaygroundTestRunsTable)
+    .values(c)
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+export async function insertPlaygroundTestRunWithResults(
+  c: PlaygroundTestRunInsert,
+  models: string[],
+): Promise<{ run: PlaygroundTestRun; results: PlaygroundTestResult[] } | null> {
+  logger.debug("insertPlaygroundTestRunWithResults", c.testCaseId, models);
+  return await db.transaction(async (tx) => {
+    const [run] = await tx
+      .insert(schema.PlaygroundTestRunsTable)
+      .values(c)
+      .returning();
+    if (!run) return null;
+
+    const results: PlaygroundTestResult[] = [];
+    for (const model of models) {
+      const [result] = await tx
+        .insert(schema.PlaygroundTestResultsTable)
+        .values({ testRunId: run.id, model, status: "pending" })
+        .returning();
+      if (!result) {
+        throw new Error(`Failed to insert test result for model: ${model}`);
+      }
+      results.push(result);
+    }
+
+    return { run, results };
+  });
+}
+
+export async function deletePlaygroundTestRun(
+  id: number,
+): Promise<PlaygroundTestRun | null> {
+  logger.debug("deletePlaygroundTestRun", id);
+  const r = await db
+    .update(schema.PlaygroundTestRunsTable)
+    .set({ deleted: true })
+    .where(eq(schema.PlaygroundTestRunsTable.id, id))
+    .returning();
+  const [first] = r;
+  return first ?? null;
+}
+
+// ============================================
+// Playground Test Result CRUD
+// ============================================
+
+export async function listPlaygroundTestResults(
+  testRunId: number,
+): Promise<PlaygroundTestResult[]> {
+  logger.debug("listPlaygroundTestResults", testRunId);
+  return await db
+    .select()
+    .from(schema.PlaygroundTestResultsTable)
+    .where(eq(schema.PlaygroundTestResultsTable.testRunId, testRunId))
+    .orderBy(asc(schema.PlaygroundTestResultsTable.id));
+}
+
+export async function insertPlaygroundTestResult(
+  r: PlaygroundTestResultInsert,
+): Promise<PlaygroundTestResult | null> {
+  logger.debug("insertPlaygroundTestResult", r.testRunId, r.model);
+  const result = await db
+    .insert(schema.PlaygroundTestResultsTable)
+    .values(r)
+    .returning();
+  const [first] = result;
+  return first ?? null;
+}
+
+export async function updatePlaygroundTestResult(
+  id: number,
+  r: Partial<PlaygroundTestResultInsert>,
+): Promise<PlaygroundTestResult | null> {
+  logger.debug("updatePlaygroundTestResult", id);
+  const result = await db
+    .update(schema.PlaygroundTestResultsTable)
+    .set({ ...r, updatedAt: new Date() })
+    .where(eq(schema.PlaygroundTestResultsTable.id, id))
+    .returning();
+  const [first] = result;
+  return first ?? null;
 }

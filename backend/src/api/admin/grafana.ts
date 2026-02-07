@@ -6,12 +6,12 @@ import {
   listAlertRules,
   listAlertChannels,
 } from "@/db";
-import { createLogger } from "@/utils/logger";
 import {
   syncRulesToGrafana,
   syncChannelsToGrafana,
   syncAllToGrafana,
 } from "@/services/grafanaSync";
+import { createLogger } from "@/utils/logger";
 
 const logger = createLogger("adminGrafana");
 
@@ -208,8 +208,7 @@ export const adminGrafana = new Elysia({ prefix: "/grafana" })
     },
     {
       detail: {
-        description:
-          "Sync all alert rules and channels to Grafana.",
+        description: "Sync all alert rules and channels to Grafana.",
         tags: ["Admin - Grafana"],
       },
     },
@@ -283,8 +282,7 @@ export const adminGrafana = new Elysia({ prefix: "/grafana" })
     },
     {
       detail: {
-        description:
-          "Get Grafana sync status for all rules and channels.",
+        description: "Get Grafana sync status for all rules and channels.",
         tags: ["Admin - Grafana"],
       },
     },

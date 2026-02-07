@@ -5,9 +5,10 @@ import { adminAlerts } from "./alerts";
 import { adminApiKey } from "./apiKey";
 import { adminCompletions } from "./completions";
 import { adminDashboards } from "./dashboards";
-import { adminGrafana } from "./grafana";
 import { adminEmbeddings } from "./embeddings";
+import { adminGrafana } from "./grafana";
 import { adminModels } from "./models";
+import { adminPlayground } from "./playground";
 import { adminProviders } from "./providers";
 import { adminRateLimits } from "./rateLimits";
 import { adminSearch } from "./search";
@@ -39,6 +40,7 @@ export const routes = new Elysia({
         .use(adminSettings)
         .use(adminDashboards)
         .use(adminGrafana)
+        .use(adminPlayground)
         .get("/", () => true, {
           detail: { description: "Check whether the admin secret is valid." },
         })

@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia";
+import type { AlertChannelConfig, AlertCondition } from "@/db/schema";
 import {
   deleteAlertChannel,
   deleteAlertRule,
@@ -13,10 +14,6 @@ import {
   updateAlertRule,
 } from "@/db";
 import { sendTestNotification } from "@/services/alertDispatcher";
-import type {
-  AlertChannelConfig,
-  AlertCondition,
-} from "@/db/schema";
 
 export const adminAlerts = new Elysia({ prefix: "/alerts" })
   // ============================================
@@ -303,7 +300,8 @@ export const adminAlerts = new Elysia({ prefix: "/alerts" })
         ruleId: t.Optional(t.Numeric()),
       }),
       detail: {
-        description: "List alert history (paginated, optionally filtered by rule)",
+        description:
+          "List alert history (paginated, optionally filtered by rule)",
         tags: ["Admin - Alerts"],
       },
     },

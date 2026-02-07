@@ -297,7 +297,7 @@ describe("KQL Parser", () => {
 
     test("filter with aggregation", () => {
       const result = parseKql(
-        'status: completed AND duration >= 500 | stats avg(duration), p95(ttft), count() by model',
+        "status: completed AND duration >= 500 | stats avg(duration), p95(ttft), count() by model",
       );
       expect(result.success).toBe(true);
       if (result.success) {
@@ -376,7 +376,7 @@ describe("KQL Parser", () => {
   });
 
   describe("quoted strings with escapes", () => {
-    test('escaped quote in string', () => {
+    test("escaped quote in string", () => {
       const result = parseKql('model: "gpt-\\"4\\""');
       expect(result.success).toBe(true);
       if (result.success) {

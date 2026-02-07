@@ -119,7 +119,10 @@ export function tokenize(input: string): Token[] {
     }
 
     // Number (integer or decimal, optionally negative)
-    if (/\d/.test(ch) || (ch === "-" && pos + 1 < input.length && /\d/.test(charAt(pos + 1)))) {
+    if (
+      /\d/.test(ch) ||
+      (ch === "-" && pos + 1 < input.length && /\d/.test(charAt(pos + 1)))
+    ) {
       let num = ch;
       pos++;
       let hasDot = false;
@@ -182,11 +185,7 @@ export function tokenize(input: string): Token[] {
       continue;
     }
 
-    throw new LexerError(
-      `Unexpected character '${ch}'`,
-      pos,
-      1,
-    );
+    throw new LexerError(`Unexpected character '${ch}'`, pos, 1);
   }
 
   tokens.push({ type: "EOF", value: "", position: pos });

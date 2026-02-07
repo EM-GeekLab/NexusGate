@@ -1,7 +1,6 @@
 import { Elysia, t } from "elysia";
 import { OpenAI } from "openai";
 import type { ProviderTypeEnumType } from "@/db/schema";
-import { proxyFetch, getProviderProxy } from "@/utils/proxy-fetch";
 import {
   deleteProvider,
   findProvider,
@@ -10,6 +9,7 @@ import {
   updateProvider,
   listModelsByProvider,
 } from "@/db";
+import { proxyFetch, getProviderProxy } from "@/utils/proxy-fetch";
 
 // ============================================
 // Provider Test Strategy Pattern

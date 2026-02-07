@@ -33,14 +33,7 @@ export type KqlValue =
   | { type: "number"; value: number }
   | { type: "wildcard"; pattern: string };
 
-export type ComparisonOperator =
-  | ":"
-  | "="
-  | "!="
-  | ">"
-  | ">="
-  | "<"
-  | "<=";
+export type ComparisonOperator = ":" | "=" | "!=" | ">" | ">=" | "<" | "<=";
 
 export type KqlExpression =
   | {
@@ -112,12 +105,7 @@ export interface CompiledQuery {
 
 // --- Field metadata for autocomplete ---
 
-export type FieldType =
-  | "text"
-  | "number"
-  | "enum"
-  | "timestamp"
-  | "jsonb";
+export type FieldType = "text" | "number" | "enum" | "timestamp" | "jsonb";
 
 export interface FieldInfo {
   /** Field name as used in KQL queries (e.g., "model", "extraHeaders.x-experiment") */

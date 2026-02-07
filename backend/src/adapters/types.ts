@@ -234,7 +234,11 @@ export interface InternalStreamChunk {
   contentBlock?: InternalContentBlock;
   /** Delta content (for content_block_delta) */
   delta?: {
-    type: "text_delta" | "thinking_delta" | "signature_delta" | "input_json_delta";
+    type:
+      | "text_delta"
+      | "thinking_delta"
+      | "signature_delta"
+      | "input_json_delta";
     text?: string;
     thinking?: string;
     signature?: string;

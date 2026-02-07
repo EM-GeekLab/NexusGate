@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { parseKql } from "../parser";
 import { compileSearch } from "../compiler";
+import { parseKql } from "../parser";
 
-function compile(input: string, options?: { timeRange?: { from: Date; to: Date } }) {
+function compile(
+  input: string,
+  options?: { timeRange?: { from: Date; to: Date } },
+) {
   const result = parseKql(input);
   if (!result.success) {
     throw new Error(`Parse error: ${result.error.message}`);
@@ -34,9 +37,7 @@ describe("SQL Compiler", () => {
 
     test("status: completed validates enum value", () => {
       const compiled = compile("status: completed");
-      expect(compiled.whereClause).toBe(
-        "c.deleted = false AND c.status = $1",
-      );
+      expect(compiled.whereClause).toBe("c.deleted = false AND c.status = $1");
       expect(compiled.params).toEqual(["completed"]);
     });
 
@@ -63,9 +64,7 @@ describe("SQL Compiler", () => {
 
   describe("boolean operators", () => {
     test("AND combines with AND", () => {
-      const compiled = compile(
-        'model: "gpt-4" AND status: completed',
-      );
+      const compiled = compile('model: "gpt-4" AND status: completed');
       expect(compiled.whereClause).toBe(
         "c.deleted = false AND (c.model = $1 AND c.status = $2)",
       );
@@ -73,9 +72,7 @@ describe("SQL Compiler", () => {
     });
 
     test("OR combines with OR", () => {
-      const compiled = compile(
-        'status: failed OR status: aborted',
-      );
+      const compiled = compile("status: failed OR status: aborted");
       expect(compiled.whereClause).toBe(
         "c.deleted = false AND (c.status = $1 OR c.status = $2)",
       );
@@ -92,9 +89,11 @@ describe("SQL Compiler", () => {
 
     test("grouped expression", () => {
       const compiled = compile(
-        '(status: completed OR status: cache_hit) AND model: *gpt*',
+        "(status: completed OR status: cache_hit) AND model: *gpt*",
       );
-      expect(compiled.whereClause).toContain("(c.status = $1 OR c.status = $2)");
+      expect(compiled.whereClause).toContain(
+        "(c.status = $1 OR c.status = $2)",
+      );
       expect(compiled.whereClause).toContain("c.model ILIKE $3");
       expect(compiled.params).toEqual(["completed", "cache_hit", "%gpt%"]);
     });
@@ -111,10 +110,8 @@ describe("SQL Compiler", () => {
   });
 
   describe("JSONB fields", () => {
-    test('extraHeaders.x-experiment compiles to JSONB path', () => {
-      const compiled = compile(
-        'extraHeaders.x-experiment: "group_a"',
-      );
+    test("extraHeaders.x-experiment compiles to JSONB path", () => {
+      const compiled = compile('extraHeaders.x-experiment: "group_a"');
       expect(compiled.whereClause).toBe(
         "c.deleted = false AND (c.prompt #>> '{}')::jsonb->'extraHeaders'->>'x-experiment' = $1",
       );
@@ -208,9 +205,7 @@ describe("SQL Compiler", () => {
     });
 
     test("multiple aggregations", () => {
-      const compiled = compile(
-        "| stats avg(duration), count(), p95(ttft)",
-      );
+      const compiled = compile("| stats avg(duration), count(), p95(ttft)");
       expect(compiled.aggregation!.selectExpressions).toHaveLength(3);
     });
 
@@ -251,9 +246,7 @@ describe("SQL Compiler", () => {
   describe("provider field", () => {
     test("provider compiles to joined p.name", () => {
       const compiled = compile('provider: "openai"');
-      expect(compiled.whereClause).toBe(
-        "c.deleted = false AND p.name = $1",
-      );
+      expect(compiled.whereClause).toBe("c.deleted = false AND p.name = $1");
       expect(compiled.params).toEqual(["openai"]);
     });
   });
@@ -300,12 +293,8 @@ describe("SQL Compiler", () => {
     });
 
     test("EXISTS combined with other filters", () => {
-      const compiled = compile(
-        'toolCalls EXISTS AND model: "claude-haiku-*"',
-      );
-      expect(compiled.whereClause).toContain(
-        "jsonb_array_elements",
-      );
+      const compiled = compile('toolCalls EXISTS AND model: "claude-haiku-*"');
+      expect(compiled.whereClause).toContain("jsonb_array_elements");
       expect(compiled.whereClause).toContain("c.model");
     });
   });

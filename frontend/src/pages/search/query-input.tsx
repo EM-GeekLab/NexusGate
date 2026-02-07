@@ -193,9 +193,7 @@ export function QueryInput({ value, onChange, onSubmit, className }: QueryInputP
                 validationError && 'border-destructive focus-visible:ring-destructive',
               )}
             />
-            {validationError && (
-              <p className="text-destructive absolute -bottom-5 left-0 text-xs">{validationError}</p>
-            )}
+            {validationError && <p className="text-destructive absolute -bottom-5 left-0 text-xs">{validationError}</p>}
           </div>
         </PopoverTrigger>
         <PopoverContent

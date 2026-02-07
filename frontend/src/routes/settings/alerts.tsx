@@ -5,8 +5,8 @@ import { api } from '@/lib/api'
 import { formatError } from '@/lib/error'
 import { AppErrorComponent } from '@/components/app/app-error'
 import { queryClient } from '@/components/app/query-provider'
-import i18n from '@/i18n'
 import { grafanaConnectionQueryOptions, type GrafanaConnectionResponse } from '@/hooks/use-settings'
+import i18n from '@/i18n'
 import { AlertsSettingsPage } from '@/pages/settings/alerts-settings-page'
 
 const alertChannelsQueryOptions = () =>

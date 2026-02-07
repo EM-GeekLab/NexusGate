@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import { CheckCircle2Icon, PlusIcon, Trash2Icon, XCircleIcon, CircleDashedIcon } from 'lucide-react'
+import { CheckCircle2Icon, CircleDashedIcon, PlusIcon, Trash2Icon, XCircleIcon } from 'lucide-react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -152,15 +152,17 @@ function ConnectionCard({ connection }: { connection: GrafanaConnectionResponse 
       </CardHeader>
       <CardContent className="space-y-4">
         {connection.verified && (
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+          <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
             {connection.datasourceUid && (
               <span>
-                {t('pages.settings.grafana.DatasourceUid')}: <code className="text-foreground">{connection.datasourceUid}</code>
+                {t('pages.settings.grafana.DatasourceUid')}:{' '}
+                <code className="text-foreground">{connection.datasourceUid}</code>
               </span>
             )}
             {connection.verifiedAt && (
               <span>
-                {t('pages.settings.grafana.VerifiedAt')}: {formatDistanceToNow(new Date(connection.verifiedAt), { addSuffix: true })}
+                {t('pages.settings.grafana.VerifiedAt')}:{' '}
+                {formatDistanceToNow(new Date(connection.verifiedAt), { addSuffix: true })}
               </span>
             )}
           </div>
@@ -205,7 +207,12 @@ function ConnectionCard({ connection }: { connection: GrafanaConnectionResponse 
                   <Button type="button" variant="outline" disabled={isTesting} onClick={() => testMutation.mutate()}>
                     {isTesting ? t('pages.settings.grafana.Testing') : t('pages.settings.grafana.TestConnection')}
                   </Button>
-                  <Button type="button" variant="destructive" disabled={deleteMutation.isPending} onClick={() => deleteMutation.mutate()}>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={deleteMutation.isPending}
+                    onClick={() => deleteMutation.mutate()}
+                  >
                     {t('pages.settings.grafana.Delete')}
                   </Button>
                 </>
@@ -314,7 +321,7 @@ function DashboardsCard({ dashboards, envOverride }: { dashboards: GrafanaDashbo
         <Form {...form}>
           <form onSubmit={form.handleSubmit((v) => saveMutation.mutate(v))} className="space-y-4">
             {fields.length === 0 && (
-              <p className="text-sm text-muted-foreground">{t('pages.settings.grafana.NoDashboards')}</p>
+              <p className="text-muted-foreground text-sm">{t('pages.settings.grafana.NoDashboards')}</p>
             )}
 
             {fields.map((field, index) => (
@@ -326,7 +333,11 @@ function DashboardsCard({ dashboards, envOverride }: { dashboards: GrafanaDashbo
                     <FormItem className="flex-1">
                       {index === 0 && <FormLabel>{t('pages.settings.grafana.DashboardId')}</FormLabel>}
                       <FormControl>
-                        <Input placeholder={t('pages.settings.grafana.DashboardIdPlaceholder')} disabled={envOverride} {...f} />
+                        <Input
+                          placeholder={t('pages.settings.grafana.DashboardIdPlaceholder')}
+                          disabled={envOverride}
+                          {...f}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -338,7 +349,11 @@ function DashboardsCard({ dashboards, envOverride }: { dashboards: GrafanaDashbo
                     <FormItem className="flex-1">
                       {index === 0 && <FormLabel>{t('pages.settings.grafana.DashboardLabel')}</FormLabel>}
                       <FormControl>
-                        <Input placeholder={t('pages.settings.grafana.DashboardLabelPlaceholder')} disabled={envOverride} {...f} />
+                        <Input
+                          placeholder={t('pages.settings.grafana.DashboardLabelPlaceholder')}
+                          disabled={envOverride}
+                          {...f}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -350,7 +365,11 @@ function DashboardsCard({ dashboards, envOverride }: { dashboards: GrafanaDashbo
                     <FormItem className="flex-[2]">
                       {index === 0 && <FormLabel>{t('pages.settings.grafana.DashboardUrl')}</FormLabel>}
                       <FormControl>
-                        <Input placeholder={t('pages.settings.grafana.DashboardUrlPlaceholder')} disabled={envOverride} {...f} />
+                        <Input
+                          placeholder={t('pages.settings.grafana.DashboardUrlPlaceholder')}
+                          disabled={envOverride}
+                          {...f}
+                        />
                       </FormControl>
                     </FormItem>
                   )}

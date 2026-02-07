@@ -5,9 +5,9 @@ import { api } from '@/lib/api'
 import { formatError } from '@/lib/error'
 import { AppErrorComponent } from '@/components/app/app-error'
 import { queryClient } from '@/components/app/query-provider'
+import { grafanaConnectionQueryOptions, type DashboardsResponse } from '@/hooks/use-settings'
 import i18n from '@/i18n'
 import { GrafanaSettingsPage } from '@/pages/settings/grafana-settings-page'
-import { grafanaConnectionQueryOptions, type DashboardsResponse } from '@/hooks/use-settings'
 
 const dashboardsQueryOptions = () =>
   queryOptions({

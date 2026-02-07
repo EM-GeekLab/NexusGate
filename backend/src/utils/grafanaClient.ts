@@ -116,41 +116,32 @@ export class GrafanaClient {
   // ============================================
 
   async listAlertRules(): Promise<GrafanaAlertRule[]> {
-    return this.request<GrafanaAlertRule[]>(
-      "/api/v1/provisioning/alert-rules",
-    );
+    return this.request<GrafanaAlertRule[]>("/api/v1/provisioning/alert-rules");
   }
 
   async createAlertRule(
     rule: GrafanaAlertRulePayload,
   ): Promise<GrafanaAlertRule> {
-    return this.request<GrafanaAlertRule>(
-      "/api/v1/provisioning/alert-rules",
-      {
-        method: "POST",
-        body: JSON.stringify(rule),
-      },
-    );
+    return this.request<GrafanaAlertRule>("/api/v1/provisioning/alert-rules", {
+      method: "POST",
+      body: JSON.stringify(rule),
+    });
   }
 
   async updateAlertRule(
     uid: string,
     rule: GrafanaAlertRulePayload,
   ): Promise<void> {
-    await this.request<void>(
-      `/api/v1/provisioning/alert-rules/${uid}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(rule),
-      },
-    );
+    await this.request<void>(`/api/v1/provisioning/alert-rules/${uid}`, {
+      method: "PUT",
+      body: JSON.stringify(rule),
+    });
   }
 
   async deleteAlertRule(uid: string): Promise<void> {
-    await this.request<void>(
-      `/api/v1/provisioning/alert-rules/${uid}`,
-      { method: "DELETE" },
-    );
+    await this.request<void>(`/api/v1/provisioning/alert-rules/${uid}`, {
+      method: "DELETE",
+    });
   }
 
   // ============================================
@@ -179,20 +170,16 @@ export class GrafanaClient {
     uid: string,
     cp: GrafanaContactPointPayload,
   ): Promise<void> {
-    await this.request<void>(
-      `/api/v1/provisioning/contact-points/${uid}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(cp),
-      },
-    );
+    await this.request<void>(`/api/v1/provisioning/contact-points/${uid}`, {
+      method: "PUT",
+      body: JSON.stringify(cp),
+    });
   }
 
   async deleteContactPoint(uid: string): Promise<void> {
-    await this.request<void>(
-      `/api/v1/provisioning/contact-points/${uid}`,
-      { method: "DELETE" },
-    );
+    await this.request<void>(`/api/v1/provisioning/contact-points/${uid}`, {
+      method: "DELETE",
+    });
   }
 
   // ============================================

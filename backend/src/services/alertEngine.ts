@@ -1,5 +1,10 @@
-import { createLogger } from "@/utils/logger";
-import { redisClient } from "@/utils/redisClient";
+import type {
+  AlertPayload,
+  BudgetCondition,
+  ErrorRateCondition,
+  LatencyCondition,
+  QuotaCondition,
+} from "@/db/schema";
 import {
   listAlertRules,
   listAlertChannels,
@@ -11,14 +16,9 @@ import {
   type AlertRule,
   type AlertChannel,
 } from "@/db";
-import type {
-  AlertPayload,
-  BudgetCondition,
-  ErrorRateCondition,
-  LatencyCondition,
-  QuotaCondition,
-} from "@/db/schema";
 import { getRateLimitStatus } from "@/utils/apiKeyRateLimit";
+import { createLogger } from "@/utils/logger";
+import { redisClient } from "@/utils/redisClient";
 import { dispatchToChannel } from "./alertDispatcher";
 import { isGrafanaConnected } from "./grafanaSync";
 
@@ -194,10 +194,7 @@ async function evaluateQuota(
 /**
  * Build alert payload based on rule type and evaluation result
  */
-function buildPayload(
-  rule: AlertRule,
-  currentValue: number,
-): AlertPayload {
+function buildPayload(rule: AlertRule, currentValue: number): AlertPayload {
   const condition = rule.condition;
   let threshold: number;
   let message: string;
@@ -249,9 +246,7 @@ async function dispatchAlert(
   channels: AlertChannel[],
   payload: AlertPayload,
 ): Promise<void> {
-  const ruleChannels = channels.filter((ch) =>
-    rule.channelIds.includes(ch.id),
-  );
+  const ruleChannels = channels.filter((ch) => rule.channelIds.includes(ch.id));
 
   for (const channel of ruleChannels) {
     if (!channel.enabled) {
@@ -356,9 +351,7 @@ export function startAlertEngine(): void {
     return;
   }
 
-  logger.info(
-    `Starting alert engine (interval: ${ALERT_CHECK_INTERVAL_MS}ms)`,
-  );
+  logger.info(`Starting alert engine (interval: ${ALERT_CHECK_INTERVAL_MS}ms)`);
   intervalId = setInterval(() => {
     void evaluateAlerts();
   }, ALERT_CHECK_INTERVAL_MS);

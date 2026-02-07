@@ -134,12 +134,8 @@
           "name": "alert_history_rule_id_alert_rules_id_fk",
           "tableFrom": "alert_history",
           "tableTo": "alert_rules",
-          "columnsFrom": [
-            "rule_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rule_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -335,16 +331,12 @@
         "api_keys_key_unique": {
           "name": "api_keys_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         },
         "api_keys_external_id_unique": {
           "name": "api_keys_external_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "external_id"
-          ]
+          "columns": ["external_id"]
         }
       },
       "policies": {},
@@ -498,12 +490,8 @@
           "name": "completions_api_key_id_api_keys_id_fk",
           "tableFrom": "completions",
           "tableTo": "api_keys",
-          "columnsFrom": [
-            "api_key_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["api_key_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -511,12 +499,8 @@
           "name": "completions_upstream_id_upstreams_id_fk",
           "tableFrom": "completions",
           "tableTo": "upstreams",
-          "columnsFrom": [
-            "upstream_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["upstream_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -524,12 +508,8 @@
           "name": "completions_source_completion_id_completions_id_fk",
           "tableFrom": "completions",
           "tableTo": "completions",
-          "columnsFrom": [
-            "source_completion_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_completion_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -539,9 +519,7 @@
         "completions_id_unique": {
           "name": "completions_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {},
@@ -653,12 +631,8 @@
           "name": "embeddings_api_key_id_api_keys_id_fk",
           "tableFrom": "embeddings",
           "tableTo": "api_keys",
-          "columnsFrom": [
-            "api_key_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["api_key_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -666,12 +640,8 @@
           "name": "embeddings_model_id_models_id_fk",
           "tableFrom": "embeddings",
           "tableTo": "models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["model_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -681,9 +651,7 @@
         "embeddings_id_unique": {
           "name": "embeddings_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {},
@@ -796,12 +764,8 @@
           "name": "models_provider_id_providers_id_fk",
           "tableFrom": "models",
           "tableTo": "providers",
-          "columnsFrom": [
-            "provider_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["provider_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -811,10 +775,7 @@
         "models_provider_system_name_unique": {
           "name": "models_provider_system_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "provider_id",
-            "system_name"
-          ]
+          "columns": ["provider_id", "system_name"]
         }
       },
       "policies": {},
@@ -958,9 +919,7 @@
         "settings_key_unique": {
           "name": "settings_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "policies": {},
@@ -1052,12 +1011,8 @@
           "name": "srv_logs_related_api_key_id_api_keys_id_fk",
           "tableFrom": "srv_logs",
           "tableTo": "api_keys",
-          "columnsFrom": [
-            "related_api_key_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["related_api_key_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1065,12 +1020,8 @@
           "name": "srv_logs_related_upstream_id_upstreams_id_fk",
           "tableFrom": "srv_logs",
           "tableTo": "upstreams",
-          "columnsFrom": [
-            "related_upstream_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["related_upstream_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1078,12 +1029,8 @@
           "name": "srv_logs_related_completion_id_completions_id_fk",
           "tableFrom": "srv_logs",
           "tableTo": "completions",
-          "columnsFrom": [
-            "related_completion_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["related_completion_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1093,9 +1040,7 @@
         "srv_logs_id_unique": {
           "name": "srv_logs_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "policies": {},
@@ -1201,79 +1146,42 @@
     "public.alert_channel_type": {
       "name": "alert_channel_type",
       "schema": "public",
-      "values": [
-        "webhook",
-        "email",
-        "feishu"
-      ]
+      "values": ["webhook", "email", "feishu"]
     },
     "public.alert_history_status": {
       "name": "alert_history_status",
       "schema": "public",
-      "values": [
-        "sent",
-        "failed",
-        "suppressed"
-      ]
+      "values": ["sent", "failed", "suppressed"]
     },
     "public.alert_rule_type": {
       "name": "alert_rule_type",
       "schema": "public",
-      "values": [
-        "budget",
-        "error_rate",
-        "latency",
-        "quota"
-      ]
+      "values": ["budget", "error_rate", "latency", "quota"]
     },
     "public.api_key_source": {
       "name": "api_key_source",
       "schema": "public",
-      "values": [
-        "manual",
-        "operator",
-        "init"
-      ]
+      "values": ["manual", "operator", "init"]
     },
     "public.completions_status": {
       "name": "completions_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "completed",
-        "failed",
-        "aborted",
-        "cache_hit"
-      ]
+      "values": ["pending", "completed", "failed", "aborted", "cache_hit"]
     },
     "public.model_type": {
       "name": "model_type",
       "schema": "public",
-      "values": [
-        "chat",
-        "embedding"
-      ]
+      "values": ["chat", "embedding"]
     },
     "public.provider_type": {
       "name": "provider_type",
       "schema": "public",
-      "values": [
-        "openai",
-        "openai-responses",
-        "anthropic",
-        "azure",
-        "ollama"
-      ]
+      "values": ["openai", "openai-responses", "anthropic", "azure", "ollama"]
     },
     "public.srv_logs_level": {
       "name": "srv_logs_level",
       "schema": "public",
-      "values": [
-        "unspecific",
-        "info",
-        "warn",
-        "error"
-      ]
+      "values": ["unspecific", "info", "warn", "error"]
     }
   },
   "schemas": {},

@@ -75,11 +75,7 @@ function RouteComponent() {
   return (
     <main className="flex h-[calc(100svh-3rem)] flex-col">
       <SearchBar />
-      {isSearching ? (
-        <SearchResults />
-      ) : (
-        <DefaultResults />
-      )}
+      {isSearching ? <SearchResults /> : <DefaultResults />}
     </main>
   )
 }
@@ -127,9 +123,7 @@ function SearchResults() {
   })
 
   if (isLoading) {
-    return (
-      <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm">Searching...</div>
-    )
+    return <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm">Searching...</div>
   }
 
   if (error) {
@@ -152,7 +146,7 @@ function SearchResults() {
   }
 
   // Document results — normalize snake_case raw SQL rows to ChatRequest format
-  const rawRows = (data as { data: Record<string, unknown>[]; total: number })
+  const rawRows = data as { data: Record<string, unknown>[]; total: number }
   const normalized = rawRows.data.map((row: Record<string, unknown>) => ({
     id: row.id,
     apiKeyId: row.api_key_id,

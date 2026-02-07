@@ -484,3 +484,117 @@ export const AlertHistoryTable = pgTable("alert_history", {
   payload: jsonb("payload").notNull().$type<AlertPayload>(),
   status: AlertHistoryStatusEnum("status").notNull(),
 });
+
+// ============================================
+// Playground Tables
+// ============================================
+
+/**
+ * Playground model parameters (shared JSONB type for conversations and test cases)
+ */
+export type PlaygroundParamsType = {
+  systemPrompt?: string;
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  maxTokens?: number;
+  stopSequences?: string[];
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+};
+
+export const PlaygroundMessageRoleEnum = pgEnum("playground_message_role", [
+  "system",
+  "user",
+  "assistant",
+]);
+
+export const PlaygroundTestResultStatusEnum = pgEnum(
+  "playground_test_result_status",
+  ["pending", "running", "completed", "failed"],
+);
+
+export const PlaygroundConversationsTable = pgTable(
+  "playground_conversations",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    title: varchar("title", { length: 255 }).notNull(),
+    model: varchar("model", { length: 63 }).notNull(),
+    apiKeyId: integer("api_key_id").references(
+      (): AnyPgColumn => ApiKeysTable.id,
+      { onDelete: "set null" },
+    ),
+    params: jsonb("params").$type<PlaygroundParamsType>(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    deleted: boolean("deleted").notNull().default(false),
+  },
+);
+
+export const PlaygroundMessagesTable = pgTable("playground_messages", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  conversationId: integer("conversation_id")
+    .notNull()
+    .references((): AnyPgColumn => PlaygroundConversationsTable.id, {
+      onDelete: "cascade",
+    }),
+  role: PlaygroundMessageRoleEnum("role").notNull(),
+  content: varchar("content").notNull(),
+  completionId: integer("completion_id").references(
+    (): AnyPgColumn => CompletionsTable.id,
+    { onDelete: "set null" },
+  ),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const PlaygroundTestCasesTable = pgTable("playground_test_cases", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: varchar("description"),
+  messages: jsonb("messages")
+    .notNull()
+    .$type<{ role: string; content: string }[]>(),
+  params: jsonb("params").$type<PlaygroundParamsType>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deleted: boolean("deleted").notNull().default(false),
+});
+
+export const PlaygroundTestRunsTable = pgTable("playground_test_runs", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  testCaseId: integer("test_case_id")
+    .notNull()
+    .references((): AnyPgColumn => PlaygroundTestCasesTable.id, {
+      onDelete: "cascade",
+    }),
+  apiKeyId: integer("api_key_id").references(
+    (): AnyPgColumn => ApiKeysTable.id,
+    { onDelete: "set null" },
+  ),
+  models: jsonb("models").notNull().$type<string[]>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  deleted: boolean("deleted").notNull().default(false),
+});
+
+export const PlaygroundTestResultsTable = pgTable("playground_test_results", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  testRunId: integer("test_run_id")
+    .notNull()
+    .references((): AnyPgColumn => PlaygroundTestRunsTable.id, {
+      onDelete: "cascade",
+    }),
+  model: varchar("model", { length: 63 }).notNull(),
+  status: PlaygroundTestResultStatusEnum("status").notNull().default("pending"),
+  response: varchar("response"),
+  promptTokens: integer("prompt_tokens"),
+  completionTokens: integer("completion_tokens"),
+  ttft: integer("ttft"),
+  duration: integer("duration"),
+  errorMessage: varchar("error_message"),
+  completionId: integer("completion_id").references(
+    (): AnyPgColumn => CompletionsTable.id,
+    { onDelete: "set null" },
+  ),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});

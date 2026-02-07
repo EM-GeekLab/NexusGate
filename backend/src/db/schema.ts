@@ -522,6 +522,7 @@ export const PlaygroundConversationsTable = pgTable(
     model: varchar("model", { length: 63 }).notNull(),
     apiKeyId: integer("api_key_id").references(
       (): AnyPgColumn => ApiKeysTable.id,
+      { onDelete: "set null" },
     ),
     params: jsonb("params").$type<PlaygroundParamsType>(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -534,11 +535,14 @@ export const PlaygroundMessagesTable = pgTable("playground_messages", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   conversationId: integer("conversation_id")
     .notNull()
-    .references((): AnyPgColumn => PlaygroundConversationsTable.id),
+    .references((): AnyPgColumn => PlaygroundConversationsTable.id, {
+      onDelete: "cascade",
+    }),
   role: PlaygroundMessageRoleEnum("role").notNull(),
   content: varchar("content").notNull(),
   completionId: integer("completion_id").references(
     (): AnyPgColumn => CompletionsTable.id,
+    { onDelete: "set null" },
   ),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -560,9 +564,12 @@ export const PlaygroundTestRunsTable = pgTable("playground_test_runs", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   testCaseId: integer("test_case_id")
     .notNull()
-    .references((): AnyPgColumn => PlaygroundTestCasesTable.id),
+    .references((): AnyPgColumn => PlaygroundTestCasesTable.id, {
+      onDelete: "cascade",
+    }),
   apiKeyId: integer("api_key_id").references(
     (): AnyPgColumn => ApiKeysTable.id,
+    { onDelete: "set null" },
   ),
   models: jsonb("models").notNull().$type<string[]>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -573,7 +580,9 @@ export const PlaygroundTestResultsTable = pgTable("playground_test_results", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   testRunId: integer("test_run_id")
     .notNull()
-    .references((): AnyPgColumn => PlaygroundTestRunsTable.id),
+    .references((): AnyPgColumn => PlaygroundTestRunsTable.id, {
+      onDelete: "cascade",
+    }),
   model: varchar("model", { length: 63 }).notNull(),
   status: PlaygroundTestResultStatusEnum("status").notNull().default("pending"),
   response: varchar("response"),
@@ -584,6 +593,7 @@ export const PlaygroundTestResultsTable = pgTable("playground_test_results", {
   errorMessage: varchar("error_message"),
   completionId: integer("completion_id").references(
     (): AnyPgColumn => CompletionsTable.id,
+    { onDelete: "set null" },
   ),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

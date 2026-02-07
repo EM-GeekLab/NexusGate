@@ -2462,6 +2462,31 @@ export async function insertPlaygroundTestRun(
   return first ?? null;
 }
 
+export async function insertPlaygroundTestRunWithResults(
+  c: PlaygroundTestRunInsert,
+  models: string[],
+): Promise<{ run: PlaygroundTestRun; results: PlaygroundTestResult[] } | null> {
+  logger.debug("insertPlaygroundTestRunWithResults", c.testCaseId, models);
+  return await db.transaction(async (tx) => {
+    const [run] = await tx
+      .insert(schema.PlaygroundTestRunsTable)
+      .values(c)
+      .returning();
+    if (!run) return null;
+
+    const results: PlaygroundTestResult[] = [];
+    for (const model of models) {
+      const [result] = await tx
+        .insert(schema.PlaygroundTestResultsTable)
+        .values({ testRunId: run.id, model, status: "pending" })
+        .returning();
+      if (result) results.push(result);
+    }
+
+    return { run, results };
+  });
+}
+
 export async function deletePlaygroundTestRun(
   id: number,
 ): Promise<PlaygroundTestRun | null> {

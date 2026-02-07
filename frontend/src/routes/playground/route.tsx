@@ -79,9 +79,7 @@ function RouteComponent() {
                     <SheetTitle>Playground Navigation</SheetTitle>
                     <SheetDescription>Navigate between playground pages</SheetDescription>
                   </SheetHeader>
-                  <div className="px-3 pt-8 pb-4">
-                    {renderNav()}
-                  </div>
+                  <div className="px-3 pt-8 pb-4">{renderNav()}</div>
                 </SheetContent>
               </Sheet>
               <AppSidebarSeparator />
@@ -93,9 +91,7 @@ function RouteComponent() {
       </AppHeader>
 
       <main className="flex min-h-0 flex-1 border-t">
-        <div className="hidden w-48 shrink-0 border-r px-3 py-8 md:block lg:w-56">
-          {renderNav()}
-        </div>
+        <div className="hidden w-48 shrink-0 border-r px-3 py-8 md:block lg:w-56">{renderNav()}</div>
 
         <div className="min-w-0 flex-1 overflow-hidden">
           <Outlet />

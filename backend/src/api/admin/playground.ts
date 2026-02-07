@@ -15,10 +15,9 @@ import {
   deletePlaygroundTestCase,
   listPlaygroundTestRuns,
   findPlaygroundTestRun,
-  insertPlaygroundTestRun,
+  insertPlaygroundTestRunWithResults,
   deletePlaygroundTestRun,
   listPlaygroundTestResults,
-  insertPlaygroundTestResult,
   updatePlaygroundTestResult,
 } from "@/db";
 
@@ -348,20 +347,14 @@ const testRunRoutes = new Elysia({ prefix: "/test-runs" })
   .post(
     "/",
     async ({ body, status }) => {
-      const run = await insertPlaygroundTestRun(body);
-      if (!run) {
+      const result = await insertPlaygroundTestRunWithResults(
+        body,
+        body.models,
+      );
+      if (!result) {
         return status(500, { error: "Failed to create test run" });
       }
-      // Create pending results for each model
-      for (const model of body.models) {
-        await insertPlaygroundTestResult({
-          testRunId: run.id,
-          model,
-          status: "pending",
-        });
-      }
-      const results = await listPlaygroundTestResults(run.id);
-      return { ...run, results };
+      return { ...result.run, results: result.results };
     },
     {
       body: t.Object({

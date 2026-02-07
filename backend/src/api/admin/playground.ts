@@ -150,10 +150,14 @@ const conversationRoutes = new Elysia({ prefix: "/conversations" })
       if (!conv) {
         return status(404, { error: "Conversation not found" });
       }
-      return await insertPlaygroundMessage({
+      const msg = await insertPlaygroundMessage({
         conversationId: id,
         ...body,
       });
+      if (!msg) {
+        return status(500, { error: "Failed to create message" });
+      }
+      return msg;
     },
     {
       params: t.Object({ id: t.Numeric() }),

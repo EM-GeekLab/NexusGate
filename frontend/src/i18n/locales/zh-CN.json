@@ -580,7 +580,7 @@
   "pages.playground.compare.Pending": "等待中",
   "pages.playground.compare.PromptTokens": "请求 Token",
   "pages.playground.compare.CompletionTokens": "响应 Token",
-  "pages.playground.compare.TTFT": "首字时间",
+  "pages.playground.compare.TTFT": "首 Token 返回时间",
   "pages.playground.compare.Duration": "总耗时",
   "pages.playground.compare.Error": "错误",
   "pages.playground.compare.NoRuns": "暂无测试运行",
@@ -595,5 +595,6 @@
   "pages.playground.compare.Edit": "编辑",
   "pages.playground.compare.AddModel": "+ 添加模型",
   "pages.playground.compare.DeleteFailed": "删除测试用例失败",
-  "pages.playground.compare.RunCreationFailed": "创建测试运行失败"
+  "pages.playground.compare.RunCreationFailed": "创建测试运行失败",
+  "pages.playground.compare.RunFailed": "对比运行失败"
 }

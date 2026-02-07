@@ -192,6 +192,12 @@ export function TestCaseDetailPage() {
       )
 
       refetchRuns()
+    } catch (err) {
+      console.error(err)
+      toast.error(t('pages.playground.compare.RunFailed'), {
+        description: (err as Error).message,
+      })
+      refetchRuns()
     } finally {
       setIsRunning(false)
     }

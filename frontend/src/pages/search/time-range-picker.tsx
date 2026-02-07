@@ -59,13 +59,13 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
  */
 export function getBucketSeconds(preset: TimeRangePreset): number {
   const buckets: Record<TimeRangePreset, number> = {
-    '15m': 15,      // 15s buckets → ~60 bars
-    '1h': 60,       // 1min buckets → 60 bars
-    '4h': 240,      // 4min buckets → 60 bars
-    '12h': 720,     // 12min buckets → 60 bars
-    '24h': 1800,    // 30min buckets → 48 bars
-    '7d': 10800,    // 3h buckets → 56 bars
-    '30d': 43200,   // 12h buckets → 60 bars
+    '15m': 15, // 15s buckets → ~60 bars
+    '1h': 60, // 1min buckets → 60 bars
+    '4h': 240, // 4min buckets → 60 bars
+    '12h': 720, // 12min buckets → 60 bars
+    '24h': 1800, // 30min buckets → 48 bars
+    '7d': 10800, // 3h buckets → 56 bars
+    '30d': 43200, // 12h buckets → 60 bars
   }
   return buckets[preset]
 }

@@ -55,7 +55,14 @@ export const grafanaConnectionQueryOptions = queryOptions({
   queryFn: async (): Promise<GrafanaConnectionResponse> => {
     const { data, error } = await api.admin.grafana.connection.get()
     if (error) {
-      return { configured: false, apiUrl: null, hasToken: false, verified: false, verifiedAt: null, datasourceUid: null }
+      return {
+        configured: false,
+        apiUrl: null,
+        hasToken: false,
+        verified: false,
+        verifiedAt: null,
+        datasourceUid: null,
+      }
     }
     return data as GrafanaConnectionResponse
   },

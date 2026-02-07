@@ -1,5 +1,4 @@
 import { createTransport } from "nodemailer";
-import { createLogger } from "@/utils/logger";
 import type {
   AlertChannelConfig,
   AlertPayload,
@@ -8,6 +7,7 @@ import type {
   WebhookChannelConfig,
   AlertChannelTypeEnumType,
 } from "@/db/schema";
+import { createLogger } from "@/utils/logger";
 
 const logger = createLogger("alertDispatcher");
 

@@ -1,18 +1,3 @@
-import { createLogger } from "@/utils/logger";
-import {
-  GrafanaClient,
-  type GrafanaAlertRulePayload,
-  type GrafanaContactPointPayload,
-} from "@/utils/grafanaClient";
-import {
-  listAlertRules,
-  listAlertChannels,
-  getSetting,
-  updateAlertRuleGrafanaSync,
-  updateAlertChannelGrafanaSync,
-  type AlertRule,
-  type AlertChannel,
-} from "@/db";
 import type {
   BudgetCondition,
   ErrorRateCondition,
@@ -22,6 +7,21 @@ import type {
   EmailChannelConfig,
   FeishuChannelConfig,
 } from "@/db/schema";
+import {
+  listAlertRules,
+  listAlertChannels,
+  getSetting,
+  updateAlertRuleGrafanaSync,
+  updateAlertChannelGrafanaSync,
+  type AlertRule,
+  type AlertChannel,
+} from "@/db";
+import {
+  GrafanaClient,
+  type GrafanaAlertRulePayload,
+  type GrafanaContactPointPayload,
+} from "@/utils/grafanaClient";
+import { createLogger } from "@/utils/logger";
 
 const logger = createLogger("grafanaSync");
 
@@ -200,9 +200,7 @@ function buildGrafanaAlertRule(
 // Channel to Contact Point Mapping
 // ============================================
 
-function buildContactPoint(
-  channel: AlertChannel,
-): GrafanaContactPointPayload {
+function buildContactPoint(channel: AlertChannel): GrafanaContactPointPayload {
   switch (channel.type) {
     case "webhook": {
       const c = channel.config as WebhookChannelConfig;
@@ -284,8 +282,7 @@ export async function syncRulesToGrafana(): Promise<SyncResult> {
 
       result.synced++;
     } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : String(error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
       await updateAlertRuleGrafanaSync(rule.id, {
         grafanaSyncError: errorMsg.slice(0, 500),
       });
@@ -334,8 +331,7 @@ export async function syncChannelsToGrafana(): Promise<SyncResult> {
 
       result.synced++;
     } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : String(error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
       await updateAlertChannelGrafanaSync(channel.id, {
         grafanaSyncError: errorMsg.slice(0, 500),
       });

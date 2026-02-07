@@ -5,7 +5,6 @@
 
 import { Elysia, t } from "elysia";
 import type { ModelWithProvider } from "@/adapters/types";
-import { getProviderProxy } from "@/utils/proxy-fetch";
 import type {
   CompletionsMessageType,
   ToolDefinitionType,
@@ -40,6 +39,7 @@ import {
 } from "@/utils/api-helpers";
 import { addCompletions, type Completion } from "@/utils/completions";
 import { createLogger } from "@/utils/logger";
+import { getProviderProxy } from "@/utils/proxy-fetch";
 import {
   checkReqId,
   finalizeReqId,

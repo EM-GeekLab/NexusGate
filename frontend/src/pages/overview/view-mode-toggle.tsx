@@ -23,7 +23,11 @@ export function ViewModeToggle({ value, onChange, dashboards, showBuiltin }: Vie
   }
 
   return (
-    <div className="inline-flex items-center rounded-md border p-0.5" role="group" aria-label={t('pages.overview.viewMode.label')}>
+    <div
+      className="inline-flex items-center rounded-md border p-0.5"
+      role="group"
+      aria-label={t('pages.overview.viewMode.label')}
+    >
       {shouldShowBuiltin && (
         <Button
           variant="ghost"

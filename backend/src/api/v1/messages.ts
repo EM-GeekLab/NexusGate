@@ -6,7 +6,6 @@
 import type { TProperties } from "@sinclair/typebox";
 import { Elysia, t } from "elysia";
 import type { ModelWithProvider } from "@/adapters/types";
-import { getProviderProxy } from "@/utils/proxy-fetch";
 import type { CachedResponseType } from "@/db/schema";
 import {
   getRequestAdapter,
@@ -36,6 +35,7 @@ import {
 import { addCompletions, type Completion } from "@/utils/completions";
 import { safeParseToolArgs } from "@/utils/json";
 import { createLogger } from "@/utils/logger";
+import { getProviderProxy } from "@/utils/proxy-fetch";
 import {
   checkReqId,
   finalizeReqId,

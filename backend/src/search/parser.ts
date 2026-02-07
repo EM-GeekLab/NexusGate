@@ -1,4 +1,3 @@
-import { tokenize, LexerError } from "./lexer";
 import type {
   Token,
   TokenType,
@@ -10,6 +9,7 @@ import type {
   AggregateFunction,
   ParseResult,
 } from "./types";
+import { tokenize, LexerError } from "./lexer";
 
 const AGGREGATE_FUNCTIONS = new Set<AggregateFunction>([
   "count",

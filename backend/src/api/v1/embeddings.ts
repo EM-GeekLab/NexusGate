@@ -123,7 +123,11 @@ export const embeddingsApi = new Elysia({
 
       // Make request to upstream
       const proxy = getProviderProxy(provider);
-      const [resp, fetchError] = await proxyFetch(upstreamEndpoint, reqInit, proxy)
+      const [resp, fetchError] = await proxyFetch(
+        upstreamEndpoint,
+        reqInit,
+        proxy,
+      )
         .then((r) => [r, null] as [Response, null])
         .catch((err: unknown) => {
           logger.error("fetch error", err);

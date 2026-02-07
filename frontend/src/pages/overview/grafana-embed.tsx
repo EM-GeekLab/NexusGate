@@ -33,7 +33,7 @@ export function GrafanaEmbed({ url }: { url: string }) {
           <CardTitle>{t('pages.overview.grafana.title')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[200px] items-center justify-center text-muted-foreground">
+          <div className="text-muted-foreground flex h-[200px] items-center justify-center">
             {t('pages.overview.grafana.invalidUrl')}
           </div>
         </CardContent>

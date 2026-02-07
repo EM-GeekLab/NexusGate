@@ -236,7 +236,12 @@ export async function executeWithFailover(
           url,
         });
 
-        const response = await fetchWithTimeout(url, init, cfg.timeoutMs, proxy);
+        const response = await fetchWithTimeout(
+          url,
+          init,
+          cfg.timeoutMs,
+          proxy,
+        );
 
         // Success - return immediately
         if (response.ok) {

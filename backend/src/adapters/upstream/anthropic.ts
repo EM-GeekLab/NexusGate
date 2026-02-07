@@ -461,7 +461,8 @@ export const anthropicUpstreamAdapter: UpstreamAdapter = {
       ...(request.stopSequences && { stop_sequences: request.stopSequences }),
       ...(request.tools && { tools: convertTools(request.tools) }),
       ...(request.toolChoice && {
-        tool_choice: convertToolChoice(request.toolChoice),      }),
+        tool_choice: convertToolChoice(request.toolChoice),
+      }),
       ...request.extraParams,
     };
 

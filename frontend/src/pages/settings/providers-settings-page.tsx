@@ -314,10 +314,21 @@ function ProviderCard({ provider, onTest, onDelete, isTestPending, isDeletePendi
             <Button variant="outline" size="sm" onClick={onTest} disabled={isTestPending}>
               Test
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setShowEditDialog(true)} aria-label={t('pages.settings.providers.EditProvider')}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowEditDialog(true)}
+              aria-label={t('pages.settings.providers.EditProvider')}
+            >
               <PencilIcon className="size-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={onDelete} disabled={isDeletePending} aria-label={t('routes.settings.providers.Delete')}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              disabled={isDeletePending}
+              aria-label={t('routes.settings.providers.Delete')}
+            >
               <XIcon className="size-4" />
             </Button>
           </div>

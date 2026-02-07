@@ -1,301 +1,272 @@
-import { tokenize, LexerError } from "./lexer";
+import { LexerError, tokenize } from './lexer'
 import type {
-  Token,
-  TokenType,
-  KqlQuery,
-  KqlExpression,
-  KqlValue,
-  ComparisonOperator,
   AggregateExpression,
   AggregateFunction,
+  ComparisonOperator,
+  KqlExpression,
+  KqlQuery,
+  KqlValue,
   ParseResult,
-} from "./types";
+  Token,
+  TokenType,
+} from './types'
 
-const AGGREGATE_FUNCTIONS = new Set<AggregateFunction>([
-  "count",
-  "avg",
-  "sum",
-  "min",
-  "max",
-  "p50",
-  "p95",
-  "p99",
-]);
+const AGGREGATE_FUNCTIONS = new Set<AggregateFunction>(['count', 'avg', 'sum', 'min', 'max', 'p50', 'p95', 'p99'])
 
 class Parser {
-  private tokens: Token[];
-  private pos: number;
+  private tokens: Token[]
+  private pos: number
 
   constructor(tokens: Token[]) {
-    this.tokens = tokens;
-    this.pos = 0;
+    this.tokens = tokens
+    this.pos = 0
   }
 
   private current(): Token {
     // pos is always valid (lexer ends with EOF token)
-    const token = this.tokens[this.pos];
+    const token = this.tokens[this.pos]
     if (!token) {
-      throw new Error("Unexpected end of token stream");
+      throw new Error('Unexpected end of token stream')
     }
-    return token;
+    return token
   }
 
   private peek(type: TokenType): boolean {
-    return this.current().type === type;
+    return this.current().type === type
   }
 
   private advance(): Token {
-    const token = this.current();
-    if (token.type !== "EOF") {
-      this.pos++;
+    const token = this.current()
+    if (token.type !== 'EOF') {
+      this.pos++
     }
-    return token;
+    return token
   }
 
   private expect(type: TokenType): Token {
-    const token = this.current();
+    const token = this.current()
     if (token.type !== type) {
       throw new ParserError(
-        `Expected ${type} but found ${token.type}${token.value ? ` '${token.value}'` : ""}`,
+        `Expected ${type} but found ${token.type}${token.value ? ` '${token.value}'` : ''}`,
         token.position,
         token.value.length || 1,
-      );
+      )
     }
-    return this.advance();
+    return this.advance()
   }
 
   // query = filter_expr (PIPE "stats" agg_list ("by" field_list)?)?
   parse(): KqlQuery {
-    const query: KqlQuery = {};
+    const query: KqlQuery = {}
 
     // Parse filter expression if present (not starting with pipe or at EOF)
-    if (!this.peek("EOF") && !this.peek("PIPE")) {
-      query.filter = this.parseOrExpr();
+    if (!this.peek('EOF') && !this.peek('PIPE')) {
+      query.filter = this.parseOrExpr()
     }
 
     // Parse aggregation pipeline if present
-    if (this.peek("PIPE")) {
-      this.advance(); // consume PIPE
-      this.expect("STATS");
+    if (this.peek('PIPE')) {
+      this.advance() // consume PIPE
+      this.expect('STATS')
 
-      const functions = this.parseAggList();
-      let groupBy: string[] | undefined;
+      const functions = this.parseAggList()
+      let groupBy: string[] | undefined
 
-      if (this.peek("BY")) {
-        this.advance(); // consume BY
-        groupBy = this.parseFieldList();
+      if (this.peek('BY')) {
+        this.advance() // consume BY
+        groupBy = this.parseFieldList()
       }
 
-      query.aggregation = { functions, groupBy };
+      query.aggregation = { functions, groupBy }
     }
 
-    if (!this.peek("EOF")) {
-      const token = this.current();
-      throw new ParserError(
-        `Unexpected token '${token.value}'`,
-        token.position,
-        token.value.length || 1,
-      );
+    if (!this.peek('EOF')) {
+      const token = this.current()
+      throw new ParserError(`Unexpected token '${token.value}'`, token.position, token.value.length || 1)
     }
 
-    return query;
+    return query
   }
 
   // or_expr = and_expr ("OR" and_expr)*
   private parseOrExpr(): KqlExpression {
-    let left = this.parseAndExpr();
+    let left = this.parseAndExpr()
 
-    while (this.peek("OR")) {
-      this.advance(); // consume OR
-      const right = this.parseAndExpr();
-      left = { type: "or", left, right };
+    while (this.peek('OR')) {
+      this.advance() // consume OR
+      const right = this.parseAndExpr()
+      left = { type: 'or', left, right }
     }
 
-    return left;
+    return left
   }
 
   // and_expr = not_expr ("AND" not_expr)*
   private parseAndExpr(): KqlExpression {
-    let left = this.parseNotExpr();
+    let left = this.parseNotExpr()
 
-    while (this.peek("AND")) {
-      this.advance(); // consume AND
-      const right = this.parseNotExpr();
-      left = { type: "and", left, right };
+    while (this.peek('AND')) {
+      this.advance() // consume AND
+      const right = this.parseNotExpr()
+      left = { type: 'and', left, right }
     }
 
-    return left;
+    return left
   }
 
   // not_expr = "NOT" not_expr | primary
   private parseNotExpr(): KqlExpression {
-    if (this.peek("NOT")) {
-      this.advance(); // consume NOT
-      const expression = this.parseNotExpr();
-      return { type: "not", expression };
+    if (this.peek('NOT')) {
+      this.advance() // consume NOT
+      const expression = this.parseNotExpr()
+      return { type: 'not', expression }
     }
 
-    return this.parsePrimary();
+    return this.parsePrimary()
   }
 
   // primary = LPAREN or_expr RPAREN | comparison
   private parsePrimary(): KqlExpression {
-    if (this.peek("LPAREN")) {
-      this.advance(); // consume LPAREN
-      const expression = this.parseOrExpr();
-      this.expect("RPAREN");
-      return { type: "group", expression };
+    if (this.peek('LPAREN')) {
+      this.advance() // consume LPAREN
+      const expression = this.parseOrExpr()
+      this.expect('RPAREN')
+      return { type: 'group', expression }
     }
 
-    return this.parseComparison();
+    return this.parseComparison()
   }
 
   // comparison = FIELD (operator value | "EXISTS")
   private parseComparison(): KqlExpression {
-    const fieldToken = this.current();
+    const fieldToken = this.current()
 
-    if (fieldToken.type !== "FIELD") {
+    if (fieldToken.type !== 'FIELD') {
       throw new ParserError(
-        `Expected field name but found ${fieldToken.type}${fieldToken.value ? ` '${fieldToken.value}'` : ""}`,
+        `Expected field name but found ${fieldToken.type}${fieldToken.value ? ` '${fieldToken.value}'` : ''}`,
         fieldToken.position,
         fieldToken.value.length || 1,
-      );
+      )
     }
-    this.advance(); // consume FIELD
+    this.advance() // consume FIELD
 
     // Check for EXISTS keyword (e.g., "extraBody EXISTS")
-    if (this.peek("EXISTS")) {
-      this.advance(); // consume EXISTS
-      return { type: "exists", field: fieldToken.value };
+    if (this.peek('EXISTS')) {
+      this.advance() // consume EXISTS
+      return { type: 'exists', field: fieldToken.value }
     }
 
-    const opToken = this.current();
-    if (opToken.type !== "OPERATOR") {
+    const opToken = this.current()
+    if (opToken.type !== 'OPERATOR') {
       throw new ParserError(
         `Expected operator after field '${fieldToken.value}'`,
         opToken.position,
         opToken.value.length || 1,
-      );
+      )
     }
-    const operator = opToken.value as ComparisonOperator;
-    this.advance(); // consume OPERATOR
+    const operator = opToken.value as ComparisonOperator
+    this.advance() // consume OPERATOR
 
-    const value = this.parseValue();
+    const value = this.parseValue()
 
     return {
-      type: "comparison",
+      type: 'comparison',
       field: fieldToken.value,
       operator,
       value,
-    };
+    }
   }
 
   // value = STRING | NUMBER | WILDCARD | FIELD (unquoted string treated as string value)
   private parseValue(): KqlValue {
-    const token = this.current();
+    const token = this.current()
 
-    if (token.type === "STRING") {
-      this.advance();
-      return { type: "string", value: token.value };
+    if (token.type === 'STRING') {
+      this.advance()
+      return { type: 'string', value: token.value }
     }
 
-    if (token.type === "NUMBER") {
-      this.advance();
-      return { type: "number", value: Number(token.value) };
+    if (token.type === 'NUMBER') {
+      this.advance()
+      return { type: 'number', value: Number(token.value) }
     }
 
-    if (token.type === "WILDCARD") {
-      this.advance();
-      return { type: "wildcard", pattern: token.value };
+    if (token.type === 'WILDCARD') {
+      this.advance()
+      return { type: 'wildcard', pattern: token.value }
     }
 
     // Allow unquoted identifiers as string values (e.g., `status: completed`)
-    if (token.type === "FIELD") {
-      this.advance();
-      return { type: "string", value: token.value };
+    if (token.type === 'FIELD') {
+      this.advance()
+      return { type: 'string', value: token.value }
     }
 
-    throw new ParserError(
-      `Expected value after operator`,
-      token.position,
-      token.value.length || 1,
-    );
+    throw new ParserError(`Expected value after operator`, token.position, token.value.length || 1)
   }
 
   // agg_list = agg_fn ("," agg_fn)*
   private parseAggList(): AggregateExpression[] {
-    const functions: AggregateExpression[] = [];
-    functions.push(this.parseAggFn());
+    const functions: AggregateExpression[] = []
+    functions.push(this.parseAggFn())
 
-    while (this.peek("COMMA")) {
-      this.advance(); // consume COMMA
-      functions.push(this.parseAggFn());
+    while (this.peek('COMMA')) {
+      this.advance() // consume COMMA
+      functions.push(this.parseAggFn())
     }
 
-    return functions;
+    return functions
   }
 
   // agg_fn = FIELD "(" FIELD? ")"
   private parseAggFn(): AggregateExpression {
-    const fnToken = this.current();
-    if (fnToken.type !== "FIELD") {
-      throw new ParserError(
-        `Expected aggregate function name`,
-        fnToken.position,
-        fnToken.value.length || 1,
-      );
+    const fnToken = this.current()
+    if (fnToken.type !== 'FIELD') {
+      throw new ParserError(`Expected aggregate function name`, fnToken.position, fnToken.value.length || 1)
     }
 
-    const fnName = fnToken.value.toLowerCase();
+    const fnName = fnToken.value.toLowerCase()
     if (!AGGREGATE_FUNCTIONS.has(fnName as AggregateFunction)) {
       throw new ParserError(
-        `Unknown aggregate function '${fnToken.value}'. Supported: ${[...AGGREGATE_FUNCTIONS].join(", ")}`,
+        `Unknown aggregate function '${fnToken.value}'. Supported: ${[...AGGREGATE_FUNCTIONS].join(', ')}`,
         fnToken.position,
         fnToken.value.length,
-      );
+      )
     }
-    this.advance(); // consume function name
+    this.advance() // consume function name
 
-    this.expect("LPAREN");
+    this.expect('LPAREN')
 
-    let field: string | undefined;
-    if (!this.peek("RPAREN")) {
-      const fieldToken = this.expect("FIELD");
-      field = fieldToken.value;
+    let field: string | undefined
+    if (!this.peek('RPAREN')) {
+      const fieldToken = this.expect('FIELD')
+      field = fieldToken.value
     }
 
-    this.expect("RPAREN");
+    this.expect('RPAREN')
 
     // Validate count() has no field, others require a field
-    if (fnName === "count" && field) {
-      throw new ParserError(
-        `count() does not take a field argument`,
-        fnToken.position,
-        fnToken.value.length,
-      );
+    if (fnName === 'count' && field) {
+      throw new ParserError(`count() does not take a field argument`, fnToken.position, fnToken.value.length)
     }
-    if (fnName !== "count" && !field) {
-      throw new ParserError(
-        `${fnName}() requires a field argument`,
-        fnToken.position,
-        fnToken.value.length,
-      );
+    if (fnName !== 'count' && !field) {
+      throw new ParserError(`${fnName}() requires a field argument`, fnToken.position, fnToken.value.length)
     }
 
-    return { fn: fnName as AggregateFunction, field };
+    return { fn: fnName as AggregateFunction, field }
   }
 
   // field_list = FIELD ("," FIELD)*
   private parseFieldList(): string[] {
-    const fields: string[] = [];
-    fields.push(this.expect("FIELD").value);
+    const fields: string[] = []
+    fields.push(this.expect('FIELD').value)
 
-    while (this.peek("COMMA")) {
-      this.advance(); // consume COMMA
-      fields.push(this.expect("FIELD").value);
+    while (this.peek('COMMA')) {
+      this.advance() // consume COMMA
+      fields.push(this.expect('FIELD').value)
     }
 
-    return fields;
+    return fields
   }
 }
 
@@ -305,22 +276,22 @@ class ParserError extends Error {
     public position: number,
     public length: number,
   ) {
-    super(message);
-    this.name = "ParserError";
+    super(message)
+    this.name = 'ParserError'
   }
 }
 
 export function parseKql(input: string): ParseResult {
   try {
-    const trimmed = input.trim();
-    if (trimmed === "") {
-      return { success: true, query: {} };
+    const trimmed = input.trim()
+    if (trimmed === '') {
+      return { success: true, query: {} }
     }
 
-    const tokens = tokenize(trimmed);
-    const parser = new Parser(tokens);
-    const query = parser.parse();
-    return { success: true, query };
+    const tokens = tokenize(trimmed)
+    const parser = new Parser(tokens)
+    const query = parser.parse()
+    return { success: true, query }
   } catch (err) {
     if (err instanceof ParserError || err instanceof LexerError) {
       return {
@@ -330,8 +301,8 @@ export function parseKql(input: string): ParseResult {
           position: err.position,
           length: err.length,
         },
-      };
+      }
     }
-    throw err;
+    throw err
   }
 }

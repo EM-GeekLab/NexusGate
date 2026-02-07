@@ -264,7 +264,11 @@ class SqlCompiler {
     }
 
     // For JSONB root fields (e.g., "extraBody EXISTS")
-    if (mapping.type === "jsonb" && mapping.jsonbColumn && mapping.jsonbRootKey) {
+    if (
+      mapping.type === "jsonb" &&
+      mapping.jsonbColumn &&
+      mapping.jsonbRootKey
+    ) {
       const unwrapped = unwrapJsonb(mapping.jsonbColumn);
 
       // Array-rooted JSONB (e.g., toolCalls — completion is an array of messages)
@@ -335,7 +339,9 @@ class SqlCompiler {
       comparison = `${pathSql} ILIKE ${param}`;
     } else {
       const strValue =
-        expr.value.type === "string" ? expr.value.value : String(expr.value.value);
+        expr.value.type === "string"
+          ? expr.value.value
+          : String(expr.value.value);
       const param = this.addParam(strValue);
       if (expr.operator === ":" || expr.operator === "=") {
         comparison = `${pathSql} = ${param}`;
@@ -360,13 +366,19 @@ class SqlCompiler {
     if (rootField) {
       const rootMapping = FIELD_REGISTRY[rootField];
       if (rootMapping?.jsonbRootIsArray) {
-        return this.compileArrayJsonbComparison(expr, rootMapping, parts.slice(1));
+        return this.compileArrayJsonbComparison(
+          expr,
+          rootMapping,
+          parts.slice(1),
+        );
       }
     }
 
-    const { sql: fieldSql, mapping, isJsonbPath } = this.resolveField(
-      expr.field,
-    );
+    const {
+      sql: fieldSql,
+      mapping,
+      isJsonbPath,
+    } = this.resolveField(expr.field);
 
     // For JSONB paths, values are always text (extracted with ->>)
     if (isJsonbPath) {
@@ -415,7 +427,8 @@ class SqlCompiler {
       return `${fieldSql} ILIKE ${param}`;
     }
 
-    const strValue = value.type === "string" ? value.value : String(value.value);
+    const strValue =
+      value.type === "string" ? value.value : String(value.value);
     const param = this.addParam(strValue);
 
     if (operator === ":" || operator === "=") {
@@ -445,9 +458,7 @@ class SqlCompiler {
         );
       }
     } else {
-      throw new CompilerError(
-        `Wildcards are not supported for numeric fields`,
-      );
+      throw new CompilerError(`Wildcards are not supported for numeric fields`);
     }
 
     const param = this.addParam(numValue);
@@ -468,7 +479,8 @@ class SqlCompiler {
       return `${fieldSql}::text ILIKE ${param}`;
     }
 
-    const strValue = value.type === "string" ? value.value : String(value.value);
+    const strValue =
+      value.type === "string" ? value.value : String(value.value);
 
     if (validValues.length > 0 && !validValues.includes(strValue)) {
       throw new CompilerError(
@@ -495,10 +507,13 @@ class SqlCompiler {
     value: KqlValue,
   ): string {
     if (value.type === "wildcard") {
-      throw new CompilerError(`Wildcards are not supported for timestamp fields`);
+      throw new CompilerError(
+        `Wildcards are not supported for timestamp fields`,
+      );
     }
 
-    const strValue = value.type === "string" ? value.value : String(value.value);
+    const strValue =
+      value.type === "string" ? value.value : String(value.value);
     const param = this.addParam(strValue);
     const sqlOp = operator === ":" ? "=" : operator;
     return `${fieldSql} ${sqlOp} ${param}::timestamp`;
@@ -516,7 +531,8 @@ class SqlCompiler {
       return `${fieldSql} ILIKE ${param}`;
     }
 
-    const strValue = value.type === "string" ? value.value : String(value.value);
+    const strValue =
+      value.type === "string" ? value.value : String(value.value);
     const param = this.addParam(strValue);
 
     if (operator === ":" || operator === "=") {
@@ -719,4 +735,3 @@ export function getSearchableFields(): FieldInfo[] {
     nested: mapping.nested,
   }));
 }
-

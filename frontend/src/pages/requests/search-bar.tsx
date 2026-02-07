@@ -3,9 +3,9 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import { XIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { QueryInput } from '@/pages/search/query-input'
-import { TimeRangePicker, getTimeRangeISO, type TimeRangePreset } from '@/pages/search/time-range-picker'
 import { ExportButton } from '@/pages/search/export-button'
+import { QueryInput } from '@/pages/search/query-input'
+import { getTimeRangeISO, TimeRangePicker, type TimeRangePreset } from '@/pages/search/time-range-picker'
 
 export function SearchBar() {
   const { q, range, ...rest } = useSearch({ from: '/requests/' })
@@ -57,9 +57,7 @@ export function SearchBar() {
 
   const isSearching = !!q?.trim()
 
-  const timeRange = isSearching
-    ? getTimeRangeISO((range as TimeRangePreset) ?? '24h')
-    : undefined
+  const timeRange = isSearching ? getTimeRangeISO((range as TimeRangePreset) ?? '24h') : undefined
 
   return (
     <div className="flex items-center gap-2 border-b px-4 py-2">

@@ -1,15 +1,11 @@
 import { Elysia, t } from "elysia";
 import {
-  parseKql,
-  compileSearch,
-  getSearchableFields,
-} from "@/search";
-import {
   searchCompletions,
   aggregateCompletions,
   searchCompletionsTimeSeries,
   getDistinctFieldValues,
 } from "@/db";
+import { parseKql, compileSearch, getSearchableFields } from "@/search";
 import { createLogger } from "@/utils/logger";
 
 const logger = createLogger("search");
@@ -36,8 +32,16 @@ function escapeCsvField(value: unknown): string {
   if (value == null) {
     return "";
   }
-  const str = typeof value === "object" ? JSON.stringify(value) : String(value as string | number | boolean);
-  if (str.includes(",") || str.includes("\n") || str.includes("\r") || str.includes('"')) {
+  const str =
+    typeof value === "object"
+      ? JSON.stringify(value)
+      : String(value as string | number | boolean);
+  if (
+    str.includes(",") ||
+    str.includes("\n") ||
+    str.includes("\r") ||
+    str.includes('"')
+  ) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
@@ -60,7 +64,9 @@ export const adminSearch = new Elysia()
       try {
         timeRange = parseTimeRange(body.timeRange?.from, body.timeRange?.to);
       } catch (err) {
-        return status(400, { error: err instanceof Error ? err.message : "Invalid timeRange" });
+        return status(400, {
+          error: err instanceof Error ? err.message : "Invalid timeRange",
+        });
       }
       let compiled;
       try {
@@ -136,7 +142,9 @@ export const adminSearch = new Elysia()
       try {
         timeRange = parseTimeRange(body.timeRange?.from, body.timeRange?.to);
       } catch (err) {
-        return status(400, { error: err instanceof Error ? err.message : "Invalid timeRange" });
+        return status(400, {
+          error: err instanceof Error ? err.message : "Invalid timeRange",
+        });
       }
       let compiled;
       try {
@@ -206,7 +214,9 @@ export const adminSearch = new Elysia()
       try {
         timeRange = parseTimeRange(body.timeRange?.from, body.timeRange?.to);
       } catch (err) {
-        return status(400, { error: err instanceof Error ? err.message : "Invalid timeRange" });
+        return status(400, {
+          error: err instanceof Error ? err.message : "Invalid timeRange",
+        });
       }
       let compiled;
       try {

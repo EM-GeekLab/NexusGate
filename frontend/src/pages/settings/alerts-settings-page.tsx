@@ -245,7 +245,13 @@ function SyncBadge({ syncStatus }: { syncStatus?: SyncStatusItem }) {
 // Main Page Component
 // ============================================
 
-export function AlertsSettingsPage({ channels, rules, history, grafanaConnected, grafanaApiUrl }: AlertsSettingsPageProps) {
+export function AlertsSettingsPage({
+  channels,
+  rules,
+  history,
+  grafanaConnected,
+  grafanaApiUrl,
+}: AlertsSettingsPageProps) {
   const { t } = useTranslation()
 
   return (
@@ -253,9 +259,7 @@ export function AlertsSettingsPage({ channels, rules, history, grafanaConnected,
       {grafanaConnected && (
         <Alert>
           <InfoIcon className="size-4" />
-          <AlertDescription>
-            {t('pages.settings.alerts.grafana.HistoryBanner')}
-          </AlertDescription>
+          <AlertDescription>{t('pages.settings.alerts.grafana.HistoryBanner')}</AlertDescription>
         </Alert>
       )}
 
@@ -275,7 +279,12 @@ export function AlertsSettingsPage({ channels, rules, history, grafanaConnected,
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
-          <HistoryTab history={history} rules={rules} grafanaConnected={grafanaConnected} grafanaApiUrl={grafanaApiUrl} />
+          <HistoryTab
+            history={history}
+            rules={rules}
+            grafanaConnected={grafanaConnected}
+            grafanaApiUrl={grafanaApiUrl}
+          />
         </TabsContent>
       </Tabs>
     </div>
@@ -490,7 +499,11 @@ function ChannelsTab({ channels, grafanaConnected }: { channels: AlertChannel[];
                       <FormItem>
                         <FormLabel>{t('pages.settings.alerts.Secret')}</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder={t('pages.settings.alerts.SecretPlaceholder')} {...field} />
+                          <Input
+                            type="password"
+                            placeholder={t('pages.settings.alerts.SecretPlaceholder')}
+                            {...field}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -600,7 +613,11 @@ function ChannelsTab({ channels, grafanaConnected }: { channels: AlertChannel[];
                       <FormItem>
                         <FormLabel>{t('pages.settings.alerts.Secret')}</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder={t('pages.settings.alerts.SecretPlaceholder')} {...field} />
+                          <Input
+                            type="password"
+                            placeholder={t('pages.settings.alerts.SecretPlaceholder')}
+                            {...field}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -633,9 +650,7 @@ function ChannelsTab({ channels, grafanaConnected }: { channels: AlertChannel[];
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-3">
                       <span className="truncate text-base font-medium">{channel.name}</span>
-                      <Badge variant={channel.enabled ? 'default' : 'secondary'}>
-                        {channel.type}
-                      </Badge>
+                      <Badge variant={channel.enabled ? 'default' : 'secondary'}>{channel.type}</Badge>
                       {grafanaConnected && <SyncBadge syncStatus={getChannelSyncStatus(channel.id)} />}
                     </div>
                     <div className="text-muted-foreground mt-1 truncate text-sm">
@@ -722,7 +737,10 @@ function RulesTab({
   const createMutation = useMutation({
     mutationFn: async (values: RuleFormValues) => {
       const condition = buildRuleCondition(values)
-      const channelIds = values.channelIds.split(',').map((s) => Number(s.trim())).filter(Boolean)
+      const channelIds = values.channelIds
+        .split(',')
+        .map((s) => Number(s.trim()))
+        .filter(Boolean)
       const { data, error } = await api.admin.alerts.rules.post({
         name: values.name,
         type: values.type,
@@ -799,11 +817,7 @@ function RulesTab({
     <div className="space-y-8">
       {grafanaConnected && (
         <div className="flex justify-end">
-          <Button
-            variant="outline"
-            onClick={() => syncRulesMutation.mutate()}
-            disabled={syncRulesMutation.isPending}
-          >
+          <Button variant="outline" onClick={() => syncRulesMutation.mutate()} disabled={syncRulesMutation.isPending}>
             {syncRulesMutation.isPending ? (
               <Loader2Icon className="mr-2 size-4 animate-spin" />
             ) : (
@@ -1051,9 +1065,7 @@ function RulesTab({
       </Card>
 
       <div>
-        <h3 className="text-muted-foreground mb-5 text-sm font-medium">
-          {t('pages.settings.alerts.ConfiguredRules')}
-        </h3>
+        <h3 className="text-muted-foreground mb-5 text-sm font-medium">{t('pages.settings.alerts.ConfiguredRules')}</h3>
         <div className="space-y-4">
           {rules.map((rule) => (
             <Card key={rule.id}>
@@ -1099,9 +1111,7 @@ function RulesTab({
             </Card>
           ))}
           {rules.length === 0 && (
-            <div className="text-muted-foreground py-12 text-center text-sm">
-              {t('pages.settings.alerts.NoRules')}
-            </div>
+            <div className="text-muted-foreground py-12 text-center text-sm">{t('pages.settings.alerts.NoRules')}</div>
           )}
         </div>
       </div>
@@ -1164,9 +1174,7 @@ function HistoryTab({
         {t('pages.settings.alerts.AlertHistory')} ({history.total})
       </h3>
       {history.data.length === 0 ? (
-        <div className="text-muted-foreground py-12 text-center text-sm">
-          {t('pages.settings.alerts.NoHistory')}
-        </div>
+        <div className="text-muted-foreground py-12 text-center text-sm">{t('pages.settings.alerts.NoHistory')}</div>
       ) : (
         <div className="space-y-3">
           {history.data.map((item) => (

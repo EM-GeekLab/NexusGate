@@ -112,30 +112,22 @@ interface OpenAIChatRequest {
 }
 
 // =============================================================================
-// Known Fields (for extracting extra body)
+// Mapped Fields (fields explicitly extracted by parse(), excluded from extraParams)
+// All other fields (e.g. response_format, presence_penalty, seed, etc.)
+// are passed through via extraParams to the upstream provider.
 // =============================================================================
 
-const KNOWN_FIELDS = new Set([
+const MAPPED_FIELDS = new Set([
   "model",
   "messages",
   "max_tokens",
   "max_completion_tokens",
   "temperature",
   "top_p",
-  "n",
   "stream",
-  "stream_options",
   "stop",
   "tools",
   "tool_choice",
-  "presence_penalty",
-  "frequency_penalty",
-  "logit_bias",
-  "logprobs",
-  "top_logprobs",
-  "user",
-  "seed",
-  "response_format",
 ]);
 
 // =============================================================================
@@ -340,7 +332,7 @@ export const openaiChatRequestAdapter: RequestAdapter<OpenAIChatRequest> = {
     let hasExtra = false;
 
     for (const [key, value] of Object.entries(body)) {
-      if (!KNOWN_FIELDS.has(key)) {
+      if (!MAPPED_FIELDS.has(key)) {
         extra[key] = value;
         hasExtra = true;
       }

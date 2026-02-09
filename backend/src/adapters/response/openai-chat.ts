@@ -35,6 +35,7 @@ interface OpenAIChatChoice {
 interface OpenAIChatMessage {
   role: "assistant";
   content: string | null;
+  reasoning_content?: string | null;
   tool_calls?: OpenAIToolCall[];
   refusal?: string | null;
 }
@@ -113,28 +114,35 @@ function convertStopReason(stopReason: StopReason): string | null {
 }
 
 /**
- * Extract text content from internal content blocks
+ * Extract text content from internal content blocks (excludes thinking)
  */
 function extractTextContent(content: InternalContentBlock[]): string {
   const textParts: string[] = [];
-  const thinkingParts: string[] = [];
 
   for (const block of content) {
     if (block.type === "text") {
       textParts.push(block.text);
-    } else if (block.type === "thinking") {
+    }
+  }
+
+  return textParts.join("");
+}
+
+/**
+ * Extract reasoning/thinking content from internal content blocks
+ */
+function extractReasoningContent(
+  content: InternalContentBlock[],
+): string | undefined {
+  const thinkingParts: string[] = [];
+
+  for (const block of content) {
+    if (block.type === "thinking") {
       thinkingParts.push(block.thinking);
     }
   }
 
-  // Prepend thinking content wrapped in <think> tags if present
-  let result = "";
-  if (thinkingParts.length > 0) {
-    result += `<think>${thinkingParts.join("")}</think>\n`;
-  }
-  result += textParts.join("");
-
-  return result;
+  return thinkingParts.length > 0 ? thinkingParts.join("") : undefined;
 }
 
 /**
@@ -169,6 +177,7 @@ export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> =
 
     serialize(response: InternalResponse): OpenAIChatCompletion {
       const content = extractTextContent(response.content);
+      const reasoningContent = extractReasoningContent(response.content);
       const toolCalls = convertToolCalls(response.content);
 
       return {
@@ -182,6 +191,7 @@ export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> =
             message: {
               role: "assistant",
               content: content || null,
+              ...(reasoningContent !== undefined && { reasoning_content: reasoningContent }),
               tool_calls: toolCalls,
             },
             finish_reason: convertStopReason(response.stopReason),

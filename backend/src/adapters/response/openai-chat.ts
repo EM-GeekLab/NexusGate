@@ -35,6 +35,7 @@ interface OpenAIChatChoice {
 interface OpenAIChatMessage {
   role: "assistant";
   content: string | null;
+  reasoning_content?: string | null;
   tool_calls?: OpenAIToolCall[];
   refusal?: string | null;
 }
@@ -113,9 +114,11 @@ function convertStopReason(stopReason: StopReason): string | null {
 }
 
 /**
- * Extract text content from internal content blocks
+ * Extract text and reasoning content from internal content blocks
  */
-function extractTextContent(content: InternalContentBlock[]): string {
+function extractContent(
+  content: InternalContentBlock[],
+): { text: string; reasoning?: string } {
   const textParts: string[] = [];
   const thinkingParts: string[] = [];
 
@@ -127,14 +130,10 @@ function extractTextContent(content: InternalContentBlock[]): string {
     }
   }
 
-  // Prepend thinking content wrapped in <think> tags if present
-  let result = "";
-  if (thinkingParts.length > 0) {
-    result += `<think>${thinkingParts.join("")}</think>\n`;
-  }
-  result += textParts.join("");
-
-  return result;
+  return {
+    text: textParts.join(""),
+    reasoning: thinkingParts.length > 0 ? thinkingParts.join("") : undefined,
+  };
 }
 
 /**
@@ -168,7 +167,8 @@ export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> =
     format: "openai-chat",
 
     serialize(response: InternalResponse): OpenAIChatCompletion {
-      const content = extractTextContent(response.content);
+      const { text: content, reasoning: reasoningContent } =
+        extractContent(response.content);
       const toolCalls = convertToolCalls(response.content);
 
       return {
@@ -182,6 +182,7 @@ export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> =
             message: {
               role: "assistant",
               content: content || null,
+              ...(reasoningContent !== undefined && { reasoning_content: reasoningContent }),
               tool_calls: toolCalls,
             },
             finish_reason: convertStopReason(response.stopReason),

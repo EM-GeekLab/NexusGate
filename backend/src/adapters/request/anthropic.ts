@@ -70,10 +70,12 @@ interface AnthropicRequest {
 }
 
 // =============================================================================
-// Known Fields (for extracting extra body)
+// Mapped Fields (fields explicitly extracted by parse(), excluded from extraParams)
+// All other fields (e.g. metadata) are passed through via extraParams
+// to the upstream provider.
 // =============================================================================
 
-const KNOWN_FIELDS = new Set([
+const MAPPED_FIELDS = new Set([
   "model",
   "messages",
   "system",
@@ -85,7 +87,6 @@ const KNOWN_FIELDS = new Set([
   "stop_sequences",
   "tools",
   "tool_choice",
-  "metadata",
 ]);
 
 // =============================================================================
@@ -343,7 +344,7 @@ export const anthropicRequestAdapter: RequestAdapter<AnthropicRequest> = {
     let hasExtra = false;
 
     for (const [key, value] of Object.entries(body)) {
-      if (!KNOWN_FIELDS.has(key)) {
+      if (!MAPPED_FIELDS.has(key)) {
         extra[key] = value;
         hasExtra = true;
       }

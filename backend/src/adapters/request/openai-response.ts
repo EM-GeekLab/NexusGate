@@ -109,24 +109,21 @@ interface ResponseApiRequest {
 }
 
 // =============================================================================
-// Known Fields (for extracting extra body)
+// Mapped Fields (fields explicitly extracted by parse(), excluded from extraParams)
+// All other fields (e.g. modalities, parallel_tool_calls, store, metadata, etc.)
+// are passed through via extraParams to the upstream provider.
 // =============================================================================
 
-const KNOWN_FIELDS = new Set([
+const MAPPED_FIELDS = new Set([
   "model",
   "input",
   "instructions",
-  "modalities",
   "max_output_tokens",
   "temperature",
   "top_p",
   "stream",
   "tools",
   "tool_choice",
-  "parallel_tool_calls",
-  "previous_response_id",
-  "store",
-  "metadata",
 ]);
 
 // =============================================================================
@@ -298,7 +295,7 @@ export const openaiResponseRequestAdapter: RequestAdapter<ResponseApiRequest> =
       let hasExtra = false;
 
       for (const [key, value] of Object.entries(body)) {
-        if (!KNOWN_FIELDS.has(key)) {
+        if (!MAPPED_FIELDS.has(key)) {
           extra[key] = value;
           hasExtra = true;
         }

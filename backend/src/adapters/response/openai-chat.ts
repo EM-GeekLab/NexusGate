@@ -114,35 +114,26 @@ function convertStopReason(stopReason: StopReason): string | null {
 }
 
 /**
- * Extract text content from internal content blocks (excludes thinking)
+ * Extract text and reasoning content from internal content blocks
  */
-function extractTextContent(content: InternalContentBlock[]): string {
+function extractContent(
+  content: InternalContentBlock[],
+): { text: string; reasoning?: string } {
   const textParts: string[] = [];
+  const thinkingParts: string[] = [];
 
   for (const block of content) {
     if (block.type === "text") {
       textParts.push(block.text);
-    }
-  }
-
-  return textParts.join("");
-}
-
-/**
- * Extract reasoning/thinking content from internal content blocks
- */
-function extractReasoningContent(
-  content: InternalContentBlock[],
-): string | undefined {
-  const thinkingParts: string[] = [];
-
-  for (const block of content) {
-    if (block.type === "thinking") {
+    } else if (block.type === "thinking") {
       thinkingParts.push(block.thinking);
     }
   }
 
-  return thinkingParts.length > 0 ? thinkingParts.join("") : undefined;
+  return {
+    text: textParts.join(""),
+    reasoning: thinkingParts.length > 0 ? thinkingParts.join("") : undefined,
+  };
 }
 
 /**
@@ -176,8 +167,8 @@ export const openaiChatResponseAdapter: ResponseAdapter<OpenAIChatCompletion> =
     format: "openai-chat",
 
     serialize(response: InternalResponse): OpenAIChatCompletion {
-      const content = extractTextContent(response.content);
-      const reasoningContent = extractReasoningContent(response.content);
+      const { text: content, reasoning: reasoningContent } =
+        extractContent(response.content);
       const toolCalls = convertToolCalls(response.content);
 
       return {

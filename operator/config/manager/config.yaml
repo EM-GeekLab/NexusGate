@@ -1,0 +1,22 @@
+# ConfigMap for NexusGate Operator configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexusgate-operator-config
+  namespace: system
+  labels:
+    app.kubernetes.io/name: nexusgate-operator
+    app.kubernetes.io/component: config
+data:
+  # NexusGate API URL
+  # For in-cluster deployment, use K8s DNS format:
+  #   http://<service-name>.<namespace>.svc.cluster.local:<port>
+  # Examples:
+  #   http://nexusgate.nexusgate.svc.cluster.local:3000
+  #   http://nexusgate-server.default.svc:3000
+  nexusgate-url: "http://nexusgate.nexusgate.svc.cluster.local:3000"
+
+  # Cluster name for external ID generation
+  # This is used to create unique external IDs: k8s/{cluster}/{namespace}/{appName}
+  # Useful when multiple K8s clusters connect to the same NexusGate instance
+  cluster-name: "default"

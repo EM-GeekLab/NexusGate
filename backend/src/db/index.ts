@@ -955,9 +955,14 @@ export async function listUniqueSystemNames(
   const r = await db
     .selectDistinct({ systemName: schema.ModelsTable.systemName })
     .from(schema.ModelsTable)
+    .innerJoin(
+      schema.ProvidersTable,
+      eq(schema.ModelsTable.providerId, schema.ProvidersTable.id),
+    )
     .where(
       and(
         not(schema.ModelsTable.deleted),
+        not(schema.ProvidersTable.deleted),
         modelType ? eq(schema.ModelsTable.modelType, modelType) : undefined,
       ),
     )

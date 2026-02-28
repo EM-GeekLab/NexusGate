@@ -11,8 +11,7 @@ import type {
   InternalResponse,
   InternalStreamChunk,
   InternalToolDefinition,
-  InternalUsage,
-  ProviderConfig,
+ProviderConfig,
   StopReason,
   TextContentBlock,
   ThinkingContentBlock,
@@ -387,7 +386,7 @@ export const openaiUpstreamAdapter: UpstreamAdapter = {
 
   buildRequest(
     request: InternalRequest,
-    provider: ProviderConfig,
+    provider:  ProviderConfig,
   ): { url: string; init: RequestInit } {
     // Build messages array with system prompt
     const messages: OpenAIMessage[] = [];
@@ -510,6 +509,18 @@ export const openaiUpstreamAdapter: UpstreamAdapter = {
 
       const choice = data.choices[0];
       if (!choice) {
+        // Usage-only chunk (choices=[]) — some providers send usage separately
+        // after the finish_reason chunk when stream_options.include_usage=true
+        if (data.usage) {
+          yield {
+            type: "message_delta",
+            messageDelta: { stopReason: null },
+            usage: {
+              inputTokens: data.usage.prompt_tokens,
+              outputTokens: data.usage.completion_tokens,
+            },
+          };
+        }
         continue;
       }
 
@@ -581,18 +592,20 @@ export const openaiUpstreamAdapter: UpstreamAdapter = {
       // Handle finish reason
       if (choice.finish_reason) {
         yield { type: "content_block_stop", index: blockIndex };
-        const usage: InternalUsage = data.usage
-          ? {
-              inputTokens: data.usage.prompt_tokens,
-              outputTokens: data.usage.completion_tokens,
-            }
-          : { inputTokens: -1, outputTokens: -1 };
+        // Include usage only if upstream provided it in this chunk.
+        // Some providers bundle usage with finish_reason; others send a
+        // separate usage-only chunk (choices=[]) immediately after.
         yield {
           type: "message_delta",
           messageDelta: {
             stopReason: convertFinishReason(choice.finish_reason),
           },
-          usage,
+          ...(data.usage && {
+            usage: {
+              inputTokens: data.usage.prompt_tokens,
+              outputTokens: data.usage.completion_tokens,
+            },
+          }),
         };
       }
     }

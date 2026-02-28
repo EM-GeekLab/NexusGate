@@ -514,7 +514,6 @@ export const openaiUpstreamAdapter: UpstreamAdapter = {
         if (data.usage) {
           yield {
             type: "message_delta",
-            messageDelta: { stopReason: null },
             usage: {
               inputTokens: data.usage.prompt_tokens,
               outputTokens: data.usage.completion_tokens,

@@ -332,6 +332,8 @@
   "pages.models.registry.WeightConfiguration": "权重配置",
   "pages.models.registry.History": "历史",
   "pages.models.registry.ViewHistory": "查看请求历史",
+  "pages.models.registry.Archived": "已归档",
+  "pages.models.registry.ArchivedTooltip": "该模型已删除但存在历史请求记录",
   "routes.models.Title": "模型",
   "routes.models.Description": "配置模型供应商和全局模型。",
   "routes.models.nav.Providers": "模型供应商",

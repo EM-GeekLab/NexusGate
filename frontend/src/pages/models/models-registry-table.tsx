@@ -120,7 +120,7 @@ function ModelsBySystemNameTable({ systemName }: { systemName: string }) {
   const { data: models = [], isLoading } = useQuery({
     queryKey: ['models', 'by-system-name', systemName],
     queryFn: async () => {
-      const { data, error } = await api.admin.models['by-system-name'][systemName].get()
+      const { data, error } = await api.admin.models['by-system-name'][encodeURIComponent(systemName)].get()
       if (error) throw error
       return data as ModelWithProvider[]
     },
@@ -128,7 +128,7 @@ function ModelsBySystemNameTable({ systemName }: { systemName: string }) {
 
   const updateWeightsMutation = useMutation({
     mutationFn: async (weights: { modelId: number; weight: number }[]) => {
-      const { error } = await api.admin.models['by-system-name'][systemName].weights.put({
+      const { error } = await api.admin.models['by-system-name'][encodeURIComponent(systemName)].weights.put({
         weights,
       })
       if (error) throw error

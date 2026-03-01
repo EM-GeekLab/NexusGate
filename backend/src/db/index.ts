@@ -947,11 +947,17 @@ export async function getModelsWithProviderBySystemName(
 
 /**
  * list unique system names (for global model registry)
+ * Returns active model names and archived names (deleted but referenced by historical requests)
  */
 export async function listUniqueSystemNames(
   modelType?: ModelTypeEnumType,
-): Promise<string[]> {
+): Promise<{
+  active: string[];
+  archived: { systemName: string; modelType: "chat" | "embedding" }[];
+}> {
   logger.debug("listUniqueSystemNames", modelType);
+
+  // Get active model names (non-deleted models with non-deleted providers)
   const r = await db
     .selectDistinct({ systemName: schema.ModelsTable.systemName })
     .from(schema.ModelsTable)
@@ -967,7 +973,40 @@ export async function listUniqueSystemNames(
       ),
     )
     .orderBy(asc(schema.ModelsTable.systemName));
-  return r.map((x) => x.systemName);
+  const active = r.map((x) => x.systemName);
+  const activeSet = new Set(active);
+
+  // Get archived model names: exist in completions/embeddings but not in active models
+  // Each model tagged with its type based on which table it comes from
+  const historicalResult = await db.execute(sql`
+    SELECT model AS name, 'chat' AS model_type FROM completions WHERE deleted = false
+    UNION
+    SELECT model AS name, 'embedding' AS model_type FROM embeddings WHERE deleted = false
+  `);
+  const historicalRows = historicalResult as unknown as {
+    name: string;
+    model_type: "chat" | "embedding";
+  }[];
+
+  // Filter out active models and respect modelType filter
+  const archivedMap = new Map<
+    string,
+    "chat" | "embedding"
+  >();
+  for (const row of historicalRows) {
+    if (activeSet.has(row.name)) continue;
+    if (modelType && row.model_type !== modelType) continue;
+    // If a name appears in both tables, prefer 'chat' (it's the more common case)
+    if (!archivedMap.has(row.name)) {
+      archivedMap.set(row.name, row.model_type);
+    }
+  }
+
+  const archived = Array.from(archivedMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([systemName, mt]) => ({ systemName, modelType: mt }));
+
+  return { active, archived };
 }
 
 /**

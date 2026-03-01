@@ -27,5 +27,5 @@ export const Route = createFileRoute('/models/registry')({
 function RouteComponent() {
   const { data } = useSuspenseQuery(systemNamesQueryOptions())
 
-  return <ModelsSettingsPage systemNames={data} />
+  return <ModelsSettingsPage activeSystemNames={data.active} archivedSystemNames={data.archived} />
 }

@@ -25,9 +25,14 @@ interface ModelWithProvider {
   }
 }
 
+interface ArchivedModel {
+  systemName: string
+  modelType: 'chat' | 'embedding'
+}
+
 interface ModelsSettingsPageProps {
   activeSystemNames: string[]
-  archivedSystemNames: string[]
+  archivedSystemNames: ArchivedModel[]
 }
 
 export function ModelsSettingsPage({ activeSystemNames, archivedSystemNames }: ModelsSettingsPageProps) {
@@ -56,8 +61,8 @@ export function ModelsSettingsPage({ activeSystemNames, archivedSystemNames }: M
                 {activeSystemNames.map((systemName) => (
                   <ModelRow key={systemName} systemName={systemName} />
                 ))}
-                {archivedSystemNames.map((systemName) => (
-                  <ArchivedModelRow key={systemName} systemName={systemName} />
+                {archivedSystemNames.map((item) => (
+                  <ArchivedModelRow key={item.systemName} systemName={item.systemName} modelType={item.modelType} />
                 ))}
               </TableBody>
             </Table>
@@ -166,13 +171,17 @@ function ModelRow({ systemName }: { systemName: string }) {
   )
 }
 
-function ArchivedModelRow({ systemName }: { systemName: string }) {
+function ArchivedModelRow({ systemName, modelType }: { systemName: string; modelType: 'chat' | 'embedding' }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
   const handleHistoryClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    navigate({ to: '/requests', search: { model: systemName } })
+    if (modelType === 'embedding') {
+      navigate({ to: '/embeddings', search: { model: systemName } })
+    } else {
+      navigate({ to: '/requests', search: { model: systemName } })
+    }
   }
 
   return (

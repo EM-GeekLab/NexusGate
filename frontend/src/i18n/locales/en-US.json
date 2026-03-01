@@ -331,6 +331,8 @@
   "pages.models.registry.WeightConfiguration": "Weight Configuration",
   "pages.models.registry.History": "History",
   "pages.models.registry.ViewHistory": "View request history",
+  "pages.models.registry.Archived": "Archived",
+  "pages.models.registry.ArchivedTooltip": "This model has been deleted but has historical requests",
   "routes.models.Title": "Models",
   "routes.models.Description": "Configure model providers and global models.",
   "routes.models.nav.Providers": "Model Providers",

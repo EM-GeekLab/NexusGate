@@ -947,11 +947,14 @@ export async function getModelsWithProviderBySystemName(
 
 /**
  * list unique system names (for global model registry)
+ * Returns active model names and archived names (deleted but referenced by historical requests)
  */
 export async function listUniqueSystemNames(
   modelType?: ModelTypeEnumType,
-): Promise<string[]> {
+): Promise<{ active: string[]; archived: string[] }> {
   logger.debug("listUniqueSystemNames", modelType);
+
+  // Get active model names (non-deleted models with non-deleted providers)
   const r = await db
     .selectDistinct({ systemName: schema.ModelsTable.systemName })
     .from(schema.ModelsTable)
@@ -967,7 +970,28 @@ export async function listUniqueSystemNames(
       ),
     )
     .orderBy(asc(schema.ModelsTable.systemName));
-  return r.map((x) => x.systemName);
+  const active = r.map((x) => x.systemName);
+
+  // Get archived model names: exist in completions/embeddings but not in active models
+  const archivedResult = await db.execute(sql`
+    SELECT DISTINCT model AS name FROM (
+      SELECT DISTINCT model FROM completions WHERE deleted = false
+      UNION
+      SELECT DISTINCT model FROM embeddings WHERE deleted = false
+    ) AS all_models
+    WHERE model NOT IN (
+      SELECT DISTINCT m.system_name
+      FROM models m
+      INNER JOIN providers p ON m.provider_id = p.id
+      WHERE m.deleted = false AND p.deleted = false
+    )
+    ORDER BY name ASC
+  `);
+  const archived = (archivedResult as unknown as { name: string }[]).map(
+    (x) => x.name,
+  );
+
+  return { active, archived };
 }
 
 /**

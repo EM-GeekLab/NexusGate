@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { CpuIcon, HistoryIcon } from 'lucide-react'
+import { ArchiveIcon, CpuIcon, HistoryIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -25,8 +25,14 @@ interface ModelWithProvider {
   }
 }
 
-export function ModelsSettingsPage({ systemNames }: { systemNames: string[] }) {
+interface ModelsSettingsPageProps {
+  activeSystemNames: string[]
+  archivedSystemNames: string[]
+}
+
+export function ModelsSettingsPage({ activeSystemNames, archivedSystemNames }: ModelsSettingsPageProps) {
   const { t } = useTranslation()
+  const hasAny = activeSystemNames.length > 0 || archivedSystemNames.length > 0
 
   return (
     <div className="space-y-8">
@@ -36,7 +42,7 @@ export function ModelsSettingsPage({ systemNames }: { systemNames: string[] }) {
           <CardDescription className="text-sm">{t('pages.models.registry.Description')}</CardDescription>
         </CardHeader>
         <CardContent>
-          {systemNames.length > 0 ? (
+          {hasAny ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -47,8 +53,11 @@ export function ModelsSettingsPage({ systemNames }: { systemNames: string[] }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {systemNames.map((systemName) => (
+                {activeSystemNames.map((systemName) => (
                   <ModelRow key={systemName} systemName={systemName} />
+                ))}
+                {archivedSystemNames.map((systemName) => (
+                  <ArchivedModelRow key={systemName} systemName={systemName} />
                 ))}
               </TableBody>
             </Table>
@@ -69,7 +78,7 @@ function ModelRow({ systemName }: { systemName: string }) {
   const { data: models = [], isLoading } = useQuery({
     queryKey: ['models', 'by-system-name', systemName],
     queryFn: async () => {
-      const { data, error } = await api.admin.models['by-system-name'][systemName].get()
+      const { data, error } = await api.admin.models['by-system-name'][encodeURIComponent(systemName)].get()
       if (error) throw error
       return data as ModelWithProvider[]
     },
@@ -157,6 +166,46 @@ function ModelRow({ systemName }: { systemName: string }) {
   )
 }
 
+function ArchivedModelRow({ systemName }: { systemName: string }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+
+  const handleHistoryClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigate({ to: '/requests', search: { model: systemName } })
+  }
+
+  return (
+    <TableRow className="opacity-50">
+      <TableCell>
+        <div className="flex items-center gap-3">
+          <ArchiveIcon className="text-muted-foreground/50 size-5" />
+          <span className="text-muted-foreground font-mono text-sm font-medium line-through">{systemName}</span>
+        </div>
+      </TableCell>
+      <TableCell>
+        <span className="text-muted-foreground text-sm">-</span>
+      </TableCell>
+      <TableCell>
+        <span className="text-muted-foreground text-sm italic" title={t('pages.models.registry.ArchivedTooltip')}>
+          {t('pages.models.registry.Archived')}
+        </span>
+      </TableCell>
+      <TableCell className="text-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="size-8 p-0"
+          onClick={handleHistoryClick}
+          title={t('pages.models.registry.ViewHistory')}
+        >
+          <HistoryIcon className="size-4" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  )
+}
+
 interface LoadBalancingDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -182,7 +231,7 @@ function LoadBalancingDialog({ open, onOpenChange, systemName, models }: LoadBal
 
   const updateWeightsMutation = useMutation({
     mutationFn: async (weights: { modelId: number; weight: number }[]) => {
-      const { error } = await api.admin.models['by-system-name'][systemName].weights.put({
+      const { error } = await api.admin.models['by-system-name'][encodeURIComponent(systemName)].weights.put({
         weights,
       })
       if (error) throw error

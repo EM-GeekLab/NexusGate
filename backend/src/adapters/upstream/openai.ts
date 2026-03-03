@@ -93,6 +93,7 @@ interface OpenAIChoice {
     content: string | null;
     tool_calls?: OpenAIToolCall[];
     reasoning_content?: string;
+    reasoning?: string;
   };
   finish_reason: string | null;
 }
@@ -117,6 +118,7 @@ interface OpenAIStreamChoice {
     content?: string | null;
     tool_calls?: OpenAIToolCallDelta[];
     reasoning_content?: string;
+    reasoning?: string;
   };
   finish_reason: string | null;
 }
@@ -291,6 +293,24 @@ function convertFinishReason(finishReason: string | null): StopReason {
   }
 }
 
+function extractReasoningText(
+  payload?: {
+    reasoning_content?: string;
+    reasoning?: string;
+  },
+): string | undefined {
+  if (!payload) {
+    return undefined;
+  }
+  if (payload.reasoning_content && payload.reasoning_content.length > 0) {
+    return payload.reasoning_content;
+  }
+  if (payload.reasoning && payload.reasoning.length > 0) {
+    return payload.reasoning;
+  }
+  return undefined;
+}
+
 /**
  * Convert OpenAI response to internal format
  */
@@ -298,11 +318,12 @@ function convertResponse(resp: OpenAIChatResponse): InternalResponse {
   const choice = resp.choices[0];
   const content: InternalContentBlock[] = [];
 
-  // Handle reasoning content (for o1/deepseek models)
-  if (choice?.message.reasoning_content) {
+  // Handle reasoning content (reasoning_content or reasoning)
+  const reasoningText = extractReasoningText(choice?.message);
+  if (reasoningText) {
     content.push({
       type: "thinking",
-      thinking: choice.message.reasoning_content,
+      thinking: reasoningText,
     } as ThinkingContentBlock);
   }
 
@@ -524,13 +545,14 @@ export const openaiUpstreamAdapter: UpstreamAdapter = {
       }
 
       // Handle reasoning content (thinking)
-      if (choice.delta.reasoning_content) {
+      const reasoningDelta = extractReasoningText(choice.delta);
+      if (reasoningDelta) {
         yield {
           type: "content_block_delta",
           index: blockIndex,
           delta: {
             type: "thinking_delta",
-            thinking: choice.delta.reasoning_content,
+            thinking: reasoningDelta,
           },
         };
       }

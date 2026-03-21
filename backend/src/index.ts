@@ -27,6 +27,7 @@ import {
   PRODUCTION,
 } from "@/utils/config";
 import { initConfig } from "./utils/init";
+import { resolveStaticPath } from "@/utils/staticFile";
 
 await initConfig();
 
@@ -62,7 +63,12 @@ function getMimeType(filePath: string): string {
   return mimeTypes[ext || ""] || "application/octet-stream";
 }
 
-async function serveStaticFile(filePath: string) {
+async function serveStaticFile(rootDir: string, requestPath: string) {
+  const filePath = resolveStaticPath(rootDir, requestPath);
+  if (!filePath) {
+    return null;
+  }
+
   try {
     const fileStat = await stat(filePath);
     if (fileStat.isFile()) {
@@ -91,7 +97,7 @@ async function docsPlugin(dir: string) {
       // Handle TanStack Start's __tsr static server function cache requests
       // These are requested from root path, not /docs/
       .get("/__tsr/*", async ({ path, status }) => {
-        const response = await serveStaticFile(join(dir, path));
+        const response = await serveStaticFile(dir, path);
         return response || status(404);
       })
       .get("/docs", ({ status }) => {
@@ -107,17 +113,15 @@ async function docsPlugin(dir: string) {
           return status(404);
         }
         const subPath = path.replace("/docs", "");
-        const exactPath = join(dir, subPath);
-
         // Try to serve as static file
-        const staticResponse = await serveStaticFile(exactPath);
+        const staticResponse = await serveStaticFile(dir, subPath);
         if (staticResponse) {
           return staticResponse;
         }
 
         // Check if there's a specific HTML file for this path (directory with index.html)
-        const specificHtmlPath = join(dir, subPath, "index.html");
-        if (await exists(specificHtmlPath)) {
+        const specificHtmlPath = resolveStaticPath(dir, `${subPath}/index.html`);
+        if (specificHtmlPath && (await exists(specificHtmlPath))) {
           const html = await readFile(specificHtmlPath, "utf-8");
           return new Response(html, {
             headers: { "Content-Type": "text/html" },
@@ -166,7 +170,7 @@ async function spaPlugin(dir: string) {
       }
 
       // Try to serve as static file first
-      const staticResponse = await serveStaticFile(join(dir, path));
+      const staticResponse = await serveStaticFile(dir, path);
       if (staticResponse) {
         return staticResponse;
       }

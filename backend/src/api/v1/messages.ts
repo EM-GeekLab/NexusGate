@@ -25,6 +25,7 @@ import {
   type FailoverConfig,
 } from "@/services/failover";
 import {
+  acceptsEventStream,
   extractUpstreamHeaders,
   filterCandidates,
   extractContentText,
@@ -570,6 +571,12 @@ export const messagesApi = new Elysia({
       // Extract extra headers for passthrough
       const extraHeaders = extractUpstreamHeaders(reqHeaders);
 
+      // Determine streaming mode. Body wins when explicit; otherwise honor
+      // the client's Accept: text/event-stream negotiation hint.
+      if (body.stream === undefined && acceptsEventStream(reqHeaders)) {
+        body.stream = true;
+      }
+
       // Check ReqId for deduplication (if provided)
       const isStream = body.stream === true;
       const reqIdResult = await checkReqId(reqId, {
@@ -722,30 +729,51 @@ export const messagesApi = new Elysia({
           extraHeaders,
         );
 
-        // Return an async generator for streaming
+        // Return a native Response with proper SSE headers. Wrapping the
+        // pre-formatted SSE generator in a ReadableStream ensures Elysia
+        // skips its auto SSE-wrapping (which would double-prefix `data:`)
+        // and lets us set Content-Type: text/event-stream explicitly.
         const streamResponse = result.response;
         const streamSignal = request.signal;
-        return (async function* () {
-          try {
-            yield* processStreamingResponse(
-              streamResponse,
-              completion,
-              bearer,
-              providerType,
-              apiKeyRecord ?? null,
-              begin,
-              streamSignal,
-              reqIdContext ?? undefined,
-            );
-          } catch (error) {
-            // Don't log error if it's due to client abort
-            if (!streamSignal.aborted) {
-              logger.error("Stream processing error", error);
-              // Note: HTTP status cannot be changed after streaming has started
-              yield `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "server_error", message: "Stream processing error" } })}\n\n`;
+        const sseStream = new ReadableStream<Uint8Array>({
+          async start(controller) {
+            const encoder = new TextEncoder();
+            try {
+              for await (const chunk of processStreamingResponse(
+                streamResponse,
+                completion,
+                bearer,
+                providerType,
+                apiKeyRecord ?? null,
+                begin,
+                streamSignal,
+                reqIdContext ?? undefined,
+              )) {
+                controller.enqueue(encoder.encode(chunk));
+              }
+            } catch (error) {
+              if (!streamSignal.aborted) {
+                logger.error("Stream processing error", error);
+                controller.enqueue(
+                  encoder.encode(
+                    `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "server_error", message: "Stream processing error" } })}\n\n`,
+                  ),
+                );
+              }
+            } finally {
+              controller.close();
             }
-          }
-        })();
+          },
+        });
+
+        return new Response(sseStream, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
       } else {
         // Non-streaming request - return JSON response directly
         const result = await executeWithFailover(

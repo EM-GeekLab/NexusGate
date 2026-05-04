@@ -47,6 +47,41 @@ export const EXCLUDED_HEADERS = new Set([
 // =============================================================================
 
 /**
+ * Whether the client is requesting an SSE stream via the Accept header.
+ * Matches `text/event-stream` exactly (no structured-suffix matches like
+ * `text/event-stream+json`) and respects the RFC 7231 §5.3.1 quality
+ * factor — `q=0` means "do not accept" and is filtered out.
+ */
+export function acceptsEventStream(headers: Headers): boolean {
+  const accept = headers.get("accept");
+  if (!accept) {
+    return false;
+  }
+  return accept.split(",").some((part) => {
+    const [mediaType, ...params] = part
+      .split(";")
+      .map((segment) => segment.trim().toLowerCase());
+    if (mediaType !== "text/event-stream") {
+      return false;
+    }
+    for (const param of params) {
+      const eq = param.indexOf("=");
+      if (eq === -1) {
+        continue;
+      }
+      const name = param.slice(0, eq).trim();
+      if (name !== "q") {
+        continue;
+      }
+      const value = param.slice(eq + 1).trim();
+      const q = Number(value);
+      return Number.isFinite(q) && q > 0;
+    }
+    return true;
+  });
+}
+
+/**
  * Extract headers to be forwarded to upstream
  * All headers are forwarded EXCEPT:
  * - Headers starting with "x-nexusgate-" (NexusGate-specific headers)

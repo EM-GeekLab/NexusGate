@@ -48,17 +48,29 @@ export const EXCLUDED_HEADERS = new Set([
 
 /**
  * Whether the client is requesting an SSE stream via the Accept header.
- * Returns true for any Accept value that lists `text/event-stream`, including
- * weighted lists like `text/event-stream;q=1, application/json;q=0.5`.
+ * Matches `text/event-stream` exactly (no structured-suffix matches like
+ * `text/event-stream+json`) and respects the RFC 7231 §5.3.1 quality
+ * factor — `q=0` means "do not accept" and is filtered out.
  */
 export function acceptsEventStream(headers: Headers): boolean {
   const accept = headers.get("accept");
   if (!accept) {
     return false;
   }
-  return accept
-    .split(",")
-    .some((part) => part.trim().toLowerCase().startsWith("text/event-stream"));
+  return accept.split(",").some((part) => {
+    const [mediaType, ...params] = part
+      .split(";")
+      .map((segment) => segment.trim().toLowerCase());
+    if (mediaType !== "text/event-stream") {
+      return false;
+    }
+    const qParam = params.find((p) => p.startsWith("q="));
+    if (qParam === undefined) {
+      return true;
+    }
+    const q = Number(qParam.slice(2));
+    return Number.isFinite(q) && q > 0;
+  });
 }
 
 /**

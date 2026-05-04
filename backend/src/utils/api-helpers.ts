@@ -64,12 +64,20 @@ export function acceptsEventStream(headers: Headers): boolean {
     if (mediaType !== "text/event-stream") {
       return false;
     }
-    const qParam = params.find((p) => p.startsWith("q="));
-    if (qParam === undefined) {
-      return true;
+    for (const param of params) {
+      const eq = param.indexOf("=");
+      if (eq === -1) {
+        continue;
+      }
+      const name = param.slice(0, eq).trim();
+      if (name !== "q") {
+        continue;
+      }
+      const value = param.slice(eq + 1).trim();
+      const q = Number(value);
+      return Number.isFinite(q) && q > 0;
     }
-    const q = Number(qParam.slice(2));
-    return Number.isFinite(q) && q > 0;
+    return true;
   });
 }
 

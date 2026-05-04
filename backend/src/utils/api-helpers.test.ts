@@ -46,6 +46,18 @@ describe("acceptsEventStream", () => {
     expect(acceptsEventStream(h("text/event-stream;q=0.0"))).toBe(false);
   });
 
+  test("q = 0 with whitespace around = rejects SSE", () => {
+    expect(acceptsEventStream(h("text/event-stream ; q = 0"))).toBe(false);
+  });
+
+  test("q = 0.5 with whitespace around = is accepted", () => {
+    expect(acceptsEventStream(h("text/event-stream ; q = 0.5"))).toBe(true);
+  });
+
+  test("malformed empty q value is treated as not acceptable", () => {
+    expect(acceptsEventStream(h("text/event-stream;q="))).toBe(false);
+  });
+
   test("q=0 in a weighted list rejects SSE", () => {
     expect(
       acceptsEventStream(h("text/event-stream;q=0, application/json")),

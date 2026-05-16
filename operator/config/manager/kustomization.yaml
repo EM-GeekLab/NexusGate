@@ -1,0 +1,4 @@
+resources:
+- manager.yaml
+- config.yaml
+- secret.yaml

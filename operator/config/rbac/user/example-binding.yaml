@@ -1,0 +1,32 @@
+# Example: Bind nexusgate-app-admin role to a specific group
+# Uncomment and modify according to your organization's needs
+#
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: ai-team-nexusgate-admin
+# subjects:
+#   - kind: Group
+#     name: ai-platform-admins  # Your LDAP/AD group name
+#     apiGroup: rbac.authorization.k8s.io
+# roleRef:
+#   kind: ClusterRole
+#   name: nexusgate-app-admin
+#   apiGroup: rbac.authorization.k8s.io
+# ---
+# Example: Namespace-scoped binding (RoleBinding)
+# This limits the user to only create NexusGateApps in a specific namespace
+#
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: dev-team-nexusgate-admin
+#   namespace: dev-apps
+# subjects:
+#   - kind: Group
+#     name: dev-team
+#     apiGroup: rbac.authorization.k8s.io
+# roleRef:
+#   kind: ClusterRole
+#   name: nexusgate-app-admin
+#   apiGroup: rbac.authorization.k8s.io

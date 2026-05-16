@@ -1,0 +1,25 @@
+# Example NexusGateApp resource
+# This will automatically create an API key in NexusGate and sync it to a Secret
+apiVersion: gateway.nexusgate.io/v1alpha1
+kind: NexusGateApp
+metadata:
+  labels:
+    app.kubernetes.io/name: operator
+    app.kubernetes.io/managed-by: kustomize
+  name: nexusgateapp-sample
+  namespace: default
+spec:
+  # Application name - used as identifier in NexusGate
+  # The external ID will be: k8s/{cluster}/{namespace}/{appName}
+  appName: "my-chatbot"
+
+  # Reference to the Secret where the API key will be stored
+  secretRef:
+    name: my-chatbot-api-key
+    # namespace: default  # Optional: defaults to same namespace as the NexusGateApp
+    key: OPENAI_API_KEY   # Optional: defaults to NEXUSGATE_API_KEY
+
+  # What happens when this resource is deleted
+  # Revoke: The API key will be revoked in NexusGate (default)
+  # Retain: The API key will be kept in NexusGate
+  deletionPolicy: Revoke

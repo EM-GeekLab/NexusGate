@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import type { OverviewStats } from '../use-overview-stats'
-import { tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from './chart-styles'
+import { formatTooltipTimestamp, tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from './chart-styles'
 
 interface SuccessRateChartProps {
   data: OverviewStats['timeSeries']
@@ -38,7 +38,7 @@ export const SuccessRateChart = memo(function SuccessRateChart({ data }: Success
         <XAxis dataKey="timestamp" tickFormatter={(value) => format(new Date(value), 'HH:mm')} className="text-xs" />
         <YAxis domain={[0, 100]} unit="%" className="text-xs" />
         <Tooltip
-          labelFormatter={(value) => format(new Date(value), 'yyyy-MM-dd HH:mm:ss')}
+          labelFormatter={formatTooltipTimestamp}
           formatter={(value) => [`${(value as number).toFixed(1)}%`, '']}
           contentStyle={tooltipContentStyle}
           labelStyle={tooltipLabelStyle}

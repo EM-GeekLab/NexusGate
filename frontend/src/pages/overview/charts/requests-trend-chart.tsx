@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import type { OverviewStats } from '../use-overview-stats'
-import { tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from './chart-styles'
+import { formatTooltipTimestamp, tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from './chart-styles'
 
 interface RequestsTrendChartProps {
   data: OverviewStats['timeSeries']
@@ -26,7 +26,7 @@ export const RequestsTrendChart = memo(function RequestsTrendChart({ data }: Req
         <XAxis dataKey="timestamp" tickFormatter={(value) => format(new Date(value), 'HH:mm')} className="text-xs" />
         <YAxis className="text-xs" />
         <Tooltip
-          labelFormatter={(value) => format(new Date(value), 'yyyy-MM-dd HH:mm:ss')}
+          labelFormatter={formatTooltipTimestamp}
           contentStyle={tooltipContentStyle}
           labelStyle={tooltipLabelStyle}
           itemStyle={tooltipItemStyle}

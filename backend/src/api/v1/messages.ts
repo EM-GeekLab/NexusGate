@@ -20,7 +20,10 @@ import {
 } from "@/plugins/apiKeyRateLimitPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
 import {
+  DEFAULT_FAILOVER_CONFIG,
   executeWithFailover,
+  fetchWithTimeout,
+  isRetriableNetworkError,
   selectMultipleCandidates,
   type FailoverConfig,
 } from "@/services/failover";
@@ -34,7 +37,7 @@ import {
   PROVIDER_HEADER,
 } from "@/utils/api-helpers";
 import { addCompletions, type Completion } from "@/utils/completions";
-import { safeParseToolArgs } from "@/utils/json";
+import { parseJsonResponse, safeParseToolArgs } from "@/utils/json";
 import { createLogger } from "@/utils/logger";
 import { getProviderProxy } from "@/utils/proxy-fetch";
 import {
@@ -140,6 +143,22 @@ const tAnthropicMessageCreate = tLooseObject({
   tools: t.Optional(t.Array(tAnthropicTool)),
   tool_choice: t.Optional(tAnthropicToolChoice),
   metadata: t.Optional(tAnthropicMetadata),
+});
+
+// Anthropic count_tokens API request schema. Keep this route intentionally loose
+// so we can transparently forward newer content block shapes upstream.
+const tAnthropicMessageCountTokens = tLooseObject({
+  model: t.String(),
+  messages: t.Array(
+    tLooseObject({
+      role: t.String(),
+      content: t.Union([t.String(), t.Array(t.Unknown())]),
+    }),
+  ),
+  system: t.Optional(t.Union([t.String(), t.Array(t.Unknown())])),
+  tools: t.Optional(t.Array(t.Unknown())),
+  tool_choice: t.Optional(t.Unknown()),
+  thinking: t.Optional(t.Unknown()),
 });
 
 /**
@@ -490,6 +509,96 @@ const MESSAGES_FAILOVER_CONFIG: Partial<FailoverConfig> = {
   timeoutMs: 120000, // 2 minutes for messages
 };
 
+const COUNT_TOKENS_FAILOVER_CONFIG: FailoverConfig = {
+  ...DEFAULT_FAILOVER_CONFIG,
+  maxProviderAttempts: 3,
+  sameProviderRetries: 0,
+  retriableStatusCodes: [404, 405, 429, 500, 502, 503, 504],
+  timeoutMs: 30000,
+};
+
+function normalizeAnthropicBaseUrl(baseUrl: string): string {
+  let normalized = baseUrl.replace(/\/+$/, "");
+  if (normalized.endsWith("/v1")) {
+    normalized = normalized.slice(0, -3);
+  }
+  return normalized;
+}
+
+function buildAnthropicCountTokensRequest(
+  body: Record<string, unknown>,
+  provider: ModelWithProvider,
+  extraHeaders?: Record<string, string>,
+): {
+  url: string;
+  init: RequestInit;
+  proxy?: string;
+} {
+  const baseUrl = normalizeAnthropicBaseUrl(provider.provider.baseUrl);
+  const url = `${baseUrl}/v1/messages/count_tokens`;
+  const remoteModel = provider.model.remoteId ?? provider.model.systemName;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "anthropic-version": provider.provider.apiVersion || "2023-06-01",
+  };
+
+  if (provider.provider.apiKey) {
+    headers["x-api-key"] = provider.provider.apiKey;
+  }
+  if (extraHeaders) {
+    Object.assign(headers, extraHeaders);
+  }
+
+  return {
+    url,
+    init: {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        ...body,
+        model: remoteModel,
+      }),
+    },
+    proxy: getProviderProxy(provider.provider),
+  };
+}
+
+async function parseUpstreamJsonBody(
+  response: Response,
+  context: string,
+): Promise<Record<string, unknown>> {
+  const text = await response.text();
+  return parseJsonResponse<Record<string, unknown>>(text, context);
+}
+
+async function parseUpstreamErrorBody(response: Response): Promise<
+  Record<string, unknown>
+> {
+  const text = await response.text();
+  if (!text) {
+    return {
+      type: "error",
+      error: {
+        type: "api_error",
+        message: `Upstream returned HTTP ${response.status}`,
+      },
+    };
+  }
+
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return {
+      type: "error",
+      error: {
+        type: "api_error",
+        message: text,
+        code: "unparseable_error",
+      },
+    };
+  }
+}
+
 export const messagesApi = new Elysia({
   detail: {
     security: [{ apiKey: [] }],
@@ -498,6 +607,162 @@ export const messagesApi = new Elysia({
   .use(apiKeyPlugin)
   .use(apiKeyRateLimitPlugin)
   .use(rateLimitPlugin)
+  .post(
+    "/messages/count_tokens",
+    async function ({ body, set, request }) {
+      try {
+        const reqHeaders = request.headers;
+
+        const { systemName, targetProvider } = parseModelProvider(
+          body.model,
+          reqHeaders.get(PROVIDER_HEADER),
+        );
+
+        const modelsWithProviders = await getModelsWithProviderBySystemName(
+          systemName,
+          "chat",
+        );
+
+        if (modelsWithProviders.length === 0) {
+          set.status = 404;
+          return {
+            type: "error",
+            error: {
+              type: "not_found_error",
+              message: `Model '${systemName}' not found`,
+            },
+          };
+        }
+
+        const filteredCandidates = filterCandidates(
+          modelsWithProviders as ModelWithProvider[],
+          targetProvider,
+        );
+
+        if (filteredCandidates.length === 0) {
+          set.status = 404;
+          return {
+            type: "error",
+            error: {
+              type: "not_found_error",
+              message: `No available provider for model '${systemName}'`,
+            },
+          };
+        }
+
+        const candidates = selectMultipleCandidates(
+          filteredCandidates,
+          COUNT_TOKENS_FAILOVER_CONFIG.maxProviderAttempts,
+        );
+        const extraHeaders = extractUpstreamHeaders(reqHeaders);
+        const upstreamBody = body as Record<string, unknown>;
+
+        let lastResponse: Response | undefined;
+        let lastError: Error | undefined;
+
+        for (const candidate of candidates) {
+          const { url, init, proxy } = buildAnthropicCountTokensRequest(
+            upstreamBody,
+            candidate,
+            extraHeaders,
+          );
+
+          try {
+            const response = await fetchWithTimeout(
+              url,
+              init,
+              COUNT_TOKENS_FAILOVER_CONFIG.timeoutMs,
+              proxy,
+            );
+
+            if (response.ok) {
+              return await parseUpstreamJsonBody(
+                response,
+                "Anthropic count_tokens",
+              );
+            }
+
+            lastResponse = response;
+            const shouldTryNext =
+              COUNT_TOKENS_FAILOVER_CONFIG.retriableStatusCodes.includes(
+                response.status,
+              ) && candidate !== candidates[candidates.length - 1];
+
+            logger.warn("count_tokens upstream request failed", {
+              provider: candidate.provider.name,
+              providerType: candidate.provider.type,
+              status: response.status,
+              shouldTryNext,
+            });
+
+            if (!shouldTryNext) {
+              set.status = response.status;
+              return await parseUpstreamErrorBody(response);
+            }
+          } catch (error) {
+            const err =
+              error instanceof Error ? error : new Error(String(error));
+            lastError = err;
+            const shouldTryNext =
+              isRetriableNetworkError(err, COUNT_TOKENS_FAILOVER_CONFIG) &&
+              candidate !== candidates[candidates.length - 1];
+
+            logger.warn("count_tokens upstream network error", {
+              provider: candidate.provider.name,
+              providerType: candidate.provider.type,
+              error: err.message,
+              shouldTryNext,
+            });
+
+            if (!shouldTryNext) {
+              set.status = 502;
+              return {
+                type: "error",
+                error: {
+                  type: "api_error",
+                  message: `Count tokens request failed: ${err.message}`,
+                },
+              };
+            }
+          }
+        }
+
+        if (lastResponse) {
+          set.status = lastResponse.status;
+          return await parseUpstreamErrorBody(lastResponse);
+        }
+
+        set.status = 502;
+        return {
+          type: "error",
+          error: {
+            type: "api_error",
+            message:
+              lastError?.message ||
+              "All upstream providers failed for token counting",
+          },
+        };
+      } catch (error) {
+        logger.error("count_tokens handler failed", error);
+        set.status = 502;
+        return {
+          type: "error",
+          error: {
+            type: "api_error",
+            message: "Failed to process count_tokens response",
+          },
+        };
+      }
+    },
+    {
+      body: tAnthropicMessageCountTokens,
+      checkApiKey: true,
+      apiKeyRateLimit: true,
+      rateLimit: {
+        identifier: (body: unknown) => (body as { model: string }).model,
+      },
+    },
+  )
   .post(
     "/messages",
     async function ({ body, set, bearer, request, apiKeyRecord }) {

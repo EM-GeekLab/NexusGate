@@ -43,10 +43,8 @@ export async function initConfig(): Promise<void> {
           `Upstream already exists: ${upstream.name} (${upstream.model})(${upstream.url})`,
         );
       }
-    } catch (error) {
-      logger.error(
-        `Failed to create upstream ${upstream.name}: ${(error as Error).message}`,
-      );
+    } catch {
+      logger.error(`Failed to create upstream ${upstream.name}`);
     }
   }
 
@@ -59,14 +57,12 @@ export async function initConfig(): Promise<void> {
       try {
         const result = await db.upsertApiKey({ key });
         if (result) {
-          logger.info(`Created API key: ${key}`);
+          logger.info(`Created API key ID ${result.id}`);
         } else {
-          logger.warn(`Failed to insert API key: ${key}`);
+          logger.warn("Failed to insert preset API key");
         }
-      } catch (error) {
-        logger.error(
-          `Failed to create API key ${key}: ${(error as Error).message}`,
-        );
+      } catch {
+        logger.error("Failed to create preset API key");
       }
     }
   }
@@ -96,11 +92,8 @@ async function loadInitConfig(): Promise<InitConfigJson | null> {
         `Invalid initialization configuration: ${JSON.stringify(parsed.error)}`,
       );
       return null;
-    } catch (error) {
-      logger.error(
-        `Failed to load initialization configuration from file ${INIT_CONFIG_PATH}:`,
-        error,
-      );
+    } catch {
+      logger.error("Failed to read or parse initialization configuration");
       return null;
     }
   }

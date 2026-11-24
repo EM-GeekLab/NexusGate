@@ -11,11 +11,6 @@ function env<TSchema extends z.ZodSchema, TValue = z.infer<TSchema>>(
   const envValue = process.env[envName] ?? defaultValue;
   const parsed = schema.safeParse(envValue);
   if (parsed.success) {
-    if (!PRODUCTION) {
-      console.log(
-        `Environment variable ${envName} = ${JSON.stringify(parsed.data)}`,
-      );
-    }
     return parsed.data as TValue;
   }
   throw new Error(
@@ -67,8 +62,8 @@ function zObject<TSchema extends z.ZodSchema>(
         if (v) {
           return JSON.parse(v); // oxlint-disable-line no-unsafe-return
         }
-      } catch (e) {
-        console.error("Failed to parse init config json", e);
+      } catch {
+        console.error("Failed to parse init config json");
       }
     })
     .pipe(schema);

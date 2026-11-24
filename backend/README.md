@@ -42,6 +42,13 @@ Alternatively, you can bundle `index.js` with `bun` into single executable (`lin
 NODE_ENV=production bun build src/index.ts --target bun-linux-x64-musl --outfile out/backend --compile
 ```
 
+### Static files
+
+`FRONTEND_DIR` and `DOCS_DIR` must point to trusted deployment trees. Keep
+these trees read-only to untrusted users while the server is running. Symlinks
+to files inside the same canonical root are supported; paths outside that root
+return 404 rather than falling back to an HTML shell.
+
 ## Managing API keys by ID
 
 Keep the numeric `id` returned by `POST /api/admin/apiKey` or

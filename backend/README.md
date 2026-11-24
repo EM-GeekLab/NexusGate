@@ -42,6 +42,43 @@ Alternatively, you can bundle `index.js` with `bun` into single executable (`lin
 NODE_ENV=production bun build src/index.ts --target bun-linux-x64-musl --outfile out/backend --compile
 ```
 
+## Managing API keys by ID
+
+Keep the numeric `id` returned by `POST /api/admin/apiKey` or
+`PUT /api/admin/apiKey/by-external-id/:externalId`. The following routes require
+the admin bearer credential, but never take or return the managed key's plaintext:
+
+- `DELETE /api/admin/apiKey/by-id/:id` returns `{ "id": 42, "revoked": true, "alreadyRevoked": false }`
+  on first revocation and `alreadyRevoked: true` on repeats. An unknown ID
+  returns `404`. New inference requests using the revoked key return `401`;
+  requests already admitted can finish. The external-ID ensure operation still
+  explicitly reactivates a revoked key.
+- `GET /api/admin/apiKey/by-id/:id/usage` returns all-time token totals for the
+  given ID, including revoked and expired keys. An unknown ID returns `404`.
+
+```json
+{
+  "id": 42,
+  "generation": {
+    "total_prompt_tokens": "120",
+    "total_completion_tokens": "34"
+  },
+  "embeddings": {
+    "total_input_tokens": "56"
+  }
+}
+```
+
+Generation covers Chat Completions, Messages and Responses. Embeddings are counted
+separately. Totals are decimal strings, include retained soft-deleted usage
+records, exclude unavailable (negative) counts, and return `"0"` for a field
+with no known usage. This endpoint is not a live RPM/TPM bucket or a billing report.
+The legacy `/api/admin/apiKey/:key/usage` route reports live RPM/TPM buckets.
+
+Gateway access logs record the method, matched route template and status, not the
+raw URL or credentials. Use the ID endpoints to keep keys out of URLs sent to
+clients, proxies and other infrastructure as well.
+
 ## Initialization Configuration
 
 NexusGate supports automatic initialization of upstreams through configuration files. This is especially useful for Docker deployments where you want to pre-configure the system.

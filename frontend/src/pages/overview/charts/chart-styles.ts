@@ -1,5 +1,10 @@
 import type { CSSProperties } from 'react'
+import { format } from 'date-fns'
 
+export function formatTooltipTimestamp(value: unknown): string {
+  if (typeof value !== 'string' && typeof value !== 'number') return ''
+  return format(new Date(value), 'yyyy-MM-dd HH:mm:ss')
+}
 /**
  * Common tooltip content style for all charts.
  * Ensures proper background color, border, and shadow for readability.

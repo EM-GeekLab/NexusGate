@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { findApiKey, sumCompletionTokenUsage } from "@/db";
+import { sumCompletionTokenUsage } from "@/db";
 import { apiKeyPlugin } from "@/plugins/apiKeyPlugin";
 import { createLogger } from "@/utils/logger";
 
@@ -13,17 +13,13 @@ export const usageQueryApi = new Elysia({
   .use(apiKeyPlugin)
   .get(
     "/usage",
-    async ({ status, bearer }) => {
-      if (bearer === undefined) {
+    async ({ status, apiKeyRecord }) => {
+      if (apiKeyRecord === null) {
         return status(500);
       }
 
-      logger.debug("queryUsage", bearer);
-      const key = await findApiKey(bearer);
-      if (key === null) {
-        return null;
-      }
-      return sumCompletionTokenUsage(key.id);
+      logger.debug("queryUsage", { apiKeyId: apiKeyRecord.id });
+      return sumCompletionTokenUsage(apiKeyRecord.id);
     },
     {
       checkApiKey: true,

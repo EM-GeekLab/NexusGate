@@ -2,13 +2,19 @@ import { Elysia, t } from "elysia";
 import {
   findApiKey,
   findApiKeyByExternalId,
+  getApiKeyUsageHistory,
   listApiKeys,
   listApiKeysBySource,
+  revokeApiKeyById,
   upsertApiKey,
   updateApiKey,
 } from "@/db";
 import { generateApiKey } from "@/utils/apiKey";
 import { getRateLimitStatus } from "@/utils/apiKeyRateLimit";
+
+const apiKeyIdParams = () =>
+  t.Object({ id: t.String({ pattern: "^[1-9][0-9]{0,9}$" }) });
+const maxApiKeyId = 2_147_483_647;
 
 export const adminApiKey = new Elysia()
   .get(
@@ -53,6 +59,7 @@ export const adminApiKey = new Elysia()
         return status(500, "Failed to create key");
       }
       return {
+        id: r.id,
         key: r.key,
         rpmLimit: r.rpmLimit,
         tpmLimit: r.tpmLimit,
@@ -146,6 +153,40 @@ export const adminApiKey = new Elysia()
       params: t.Object({
         key: t.String(),
       }),
+    },
+  )
+  .delete(
+    "/apiKey/by-id/:id",
+    async ({ params, status }) => {
+      const id = Number(params.id);
+      if (id > maxApiKeyId) return status(422, "Invalid key ID");
+      const result = await revokeApiKeyById(id);
+      return result ?? status(404, "Key not found");
+    },
+    {
+      params: apiKeyIdParams(),
+      detail: {
+        summary: "Revoke an API key by its non-secret ID",
+        description:
+          "Returns alreadyRevoked on repeat requests. Unknown IDs return 404. Historical usage remains available.",
+      },
+    },
+  )
+  .get(
+    "/apiKey/by-id/:id/usage",
+    async ({ params, status }) => {
+      const id = Number(params.id);
+      if (id > maxApiKeyId) return status(422, "Invalid key ID");
+      const history = await getApiKeyUsageHistory(id);
+      return history ?? status(404, "Key not found");
+    },
+    {
+      params: apiKeyIdParams(),
+      detail: {
+        summary: "Read historical token usage by API key ID",
+        description:
+          "All-time recorded generation prompt/output tokens and Embeddings input tokens, reported separately as decimal strings. Includes revoked keys, excludes unavailable token counts, and does not read live RPM/TPM buckets. Unknown IDs return 404.",
+      },
     },
   )
   // ============================================

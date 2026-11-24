@@ -9,54 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SettingsRouteRouteImport } from './routes/settings/route'
-import { Route as RequestsRouteRouteImport } from './routes/requests/route'
-import { Route as PlaygroundRouteRouteImport } from './routes/playground/route'
-import { Route as ModelsRouteRouteImport } from './routes/models/route'
-import { Route as EmbeddingsRouteRouteImport } from './routes/embeddings/route'
-import { Route as AppsRouteRouteImport } from './routes/apps/route'
 import { Route as DashboardRouteRouteImport } from './routes/_dashboard/route'
-import { Route as SettingsIndexRouteImport } from './routes/settings/index'
-import { Route as RequestsIndexRouteImport } from './routes/requests/index'
-import { Route as PlaygroundIndexRouteImport } from './routes/playground/index'
-import { Route as ModelsIndexRouteImport } from './routes/models/index'
-import { Route as EmbeddingsIndexRouteImport } from './routes/embeddings/index'
-import { Route as AppsIndexRouteImport } from './routes/apps/index'
+import { Route as AppsRouteRouteImport } from './routes/apps/route'
+import { Route as EmbeddingsRouteRouteImport } from './routes/embeddings/route'
+import { Route as ModelsRouteRouteImport } from './routes/models/route'
+import { Route as PlaygroundRouteRouteImport } from './routes/playground/route'
+import { Route as RequestsRouteRouteImport } from './routes/requests/route'
+import { Route as SettingsRouteRouteImport } from './routes/settings/route'
 import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
-import { Route as SettingsGrafanaRouteImport } from './routes/settings/grafana'
-import { Route as SettingsAlertsRouteImport } from './routes/settings/alerts'
-import { Route as ModelsRegistryRouteImport } from './routes/models/registry'
+import { Route as AppsIndexRouteImport } from './routes/apps/index'
+import { Route as EmbeddingsIndexRouteImport } from './routes/embeddings/index'
+import { Route as ModelsIndexRouteImport } from './routes/models/index'
 import { Route as ModelsProvidersRouteImport } from './routes/models/providers'
-import { Route as PlaygroundCompareRouteRouteImport } from './routes/playground/compare/route'
+import { Route as ModelsRegistryRouteImport } from './routes/models/registry'
+import { Route as PlaygroundIndexRouteImport } from './routes/playground/index'
 import { Route as PlaygroundChatRouteRouteImport } from './routes/playground/chat/route'
-import { Route as PlaygroundCompareIndexRouteImport } from './routes/playground/compare/index'
+import { Route as PlaygroundCompareRouteRouteImport } from './routes/playground/compare/route'
+import { Route as RequestsIndexRouteImport } from './routes/requests/index'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
+import { Route as SettingsAlertsRouteImport } from './routes/settings/alerts'
+import { Route as SettingsGrafanaRouteImport } from './routes/settings/grafana'
 import { Route as PlaygroundChatIndexRouteImport } from './routes/playground/chat/index'
-import { Route as PlaygroundCompareTestCaseIdRouteImport } from './routes/playground/compare/$testCaseId'
 import { Route as PlaygroundChatConversationIdRouteImport } from './routes/playground/chat/$conversationId'
+import { Route as PlaygroundCompareIndexRouteImport } from './routes/playground/compare/index'
+import { Route as PlaygroundCompareTestCaseIdRouteImport } from './routes/playground/compare/$testCaseId'
 
-const SettingsRouteRoute = SettingsRouteRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RequestsRouteRoute = RequestsRouteRouteImport.update({
-  id: '/requests',
-  path: '/requests',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlaygroundRouteRoute = PlaygroundRouteRouteImport.update({
-  id: '/playground',
-  path: '/playground',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ModelsRouteRoute = ModelsRouteRouteImport.update({
-  id: '/models',
-  path: '/models',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EmbeddingsRouteRoute = EmbeddingsRouteRouteImport.update({
-  id: '/embeddings',
-  path: '/embeddings',
+const DashboardRouteRoute = DashboardRouteRouteImport.update({
+  id: '/_dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppsRouteRoute = AppsRouteRouteImport.update({
@@ -64,58 +43,49 @@ const AppsRouteRoute = AppsRouteRouteImport.update({
   path: '/apps',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRouteRoute = DashboardRouteRouteImport.update({
-  id: '/_dashboard',
+const EmbeddingsRouteRoute = EmbeddingsRouteRouteImport.update({
+  id: '/embeddings',
+  path: '/embeddings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsIndexRoute = SettingsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => SettingsRouteRoute,
+const ModelsRouteRoute = ModelsRouteRouteImport.update({
+  id: '/models',
+  path: '/models',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const RequestsIndexRoute = RequestsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => RequestsRouteRoute,
+const PlaygroundRouteRoute = PlaygroundRouteRouteImport.update({
+  id: '/playground',
+  path: '/playground',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const PlaygroundIndexRoute = PlaygroundIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PlaygroundRouteRoute,
+const RequestsRouteRoute = RequestsRouteRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ModelsIndexRoute = ModelsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ModelsRouteRoute,
-} as any)
-const EmbeddingsIndexRoute = EmbeddingsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => EmbeddingsRouteRoute,
-} as any)
-const AppsIndexRoute = AppsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppsRouteRoute,
+const SettingsRouteRoute = SettingsRouteRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const SettingsGrafanaRoute = SettingsGrafanaRouteImport.update({
-  id: '/grafana',
-  path: '/grafana',
-  getParentRoute: () => SettingsRouteRoute,
+const AppsIndexRoute = AppsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppsRouteRoute,
 } as any)
-const SettingsAlertsRoute = SettingsAlertsRouteImport.update({
-  id: '/alerts',
-  path: '/alerts',
-  getParentRoute: () => SettingsRouteRoute,
+const EmbeddingsIndexRoute = EmbeddingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EmbeddingsRouteRoute,
 } as any)
-const ModelsRegistryRoute = ModelsRegistryRouteImport.update({
-  id: '/registry',
-  path: '/registry',
+const ModelsIndexRoute = ModelsIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => ModelsRouteRoute,
 } as any)
 const ModelsProvidersRoute = ModelsProvidersRouteImport.update({
@@ -123,9 +93,14 @@ const ModelsProvidersRoute = ModelsProvidersRouteImport.update({
   path: '/providers',
   getParentRoute: () => ModelsRouteRoute,
 } as any)
-const PlaygroundCompareRouteRoute = PlaygroundCompareRouteRouteImport.update({
-  id: '/compare',
-  path: '/compare',
+const ModelsRegistryRoute = ModelsRegistryRouteImport.update({
+  id: '/registry',
+  path: '/registry',
+  getParentRoute: () => ModelsRouteRoute,
+} as any)
+const PlaygroundIndexRoute = PlaygroundIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => PlaygroundRouteRoute,
 } as any)
 const PlaygroundChatRouteRoute = PlaygroundChatRouteRouteImport.update({
@@ -133,15 +108,46 @@ const PlaygroundChatRouteRoute = PlaygroundChatRouteRouteImport.update({
   path: '/chat',
   getParentRoute: () => PlaygroundRouteRoute,
 } as any)
-const PlaygroundCompareIndexRoute = PlaygroundCompareIndexRouteImport.update({
+const PlaygroundCompareRouteRoute = PlaygroundCompareRouteRouteImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => PlaygroundRouteRoute,
+} as any)
+const RequestsIndexRoute = RequestsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => PlaygroundCompareRouteRoute,
+  getParentRoute: () => RequestsRouteRoute,
+} as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsAlertsRoute = SettingsAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsGrafanaRoute = SettingsGrafanaRouteImport.update({
+  id: '/grafana',
+  path: '/grafana',
+  getParentRoute: () => SettingsRouteRoute,
 } as any)
 const PlaygroundChatIndexRoute = PlaygroundChatIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => PlaygroundChatRouteRoute,
+} as any)
+const PlaygroundChatConversationIdRoute =
+  PlaygroundChatConversationIdRouteImport.update({
+    id: '/$conversationId',
+    path: '/$conversationId',
+    getParentRoute: () => PlaygroundChatRouteRoute,
+  } as any)
+const PlaygroundCompareIndexRoute = PlaygroundCompareIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PlaygroundCompareRouteRoute,
 } as any)
 const PlaygroundCompareTestCaseIdRoute =
   PlaygroundCompareTestCaseIdRouteImport.update({
@@ -149,14 +155,9 @@ const PlaygroundCompareTestCaseIdRoute =
     path: '/$testCaseId',
     getParentRoute: () => PlaygroundCompareRouteRoute,
   } as any)
-const PlaygroundChatConversationIdRoute =
-  PlaygroundChatConversationIdRouteImport.update({
-    id: '/$conversationId',
-    path: '/$conversationId',
-    getParentRoute: () => PlaygroundChatRouteRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof DashboardIndexRoute
   '/apps': typeof AppsRouteRouteWithChildren
   '/embeddings': typeof EmbeddingsRouteRouteWithChildren
   '/models': typeof ModelsRouteRouteWithChildren
@@ -169,7 +170,6 @@ export interface FileRoutesByFullPath {
   '/models/registry': typeof ModelsRegistryRoute
   '/settings/alerts': typeof SettingsAlertsRoute
   '/settings/grafana': typeof SettingsGrafanaRoute
-  '/': typeof DashboardIndexRoute
   '/apps/': typeof AppsIndexRoute
   '/embeddings/': typeof EmbeddingsIndexRoute
   '/models/': typeof ModelsIndexRoute
@@ -228,6 +228,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/apps'
     | '/embeddings'
     | '/models'
@@ -240,7 +241,6 @@ export interface FileRouteTypes {
     | '/models/registry'
     | '/settings/alerts'
     | '/settings/grafana'
-    | '/'
     | '/apps/'
     | '/embeddings/'
     | '/models/'
@@ -308,39 +308,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/requests': {
-      id: '/requests'
-      path: '/requests'
-      fullPath: '/requests'
-      preLoaderRoute: typeof RequestsRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/playground': {
-      id: '/playground'
-      path: '/playground'
-      fullPath: '/playground'
-      preLoaderRoute: typeof PlaygroundRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/models': {
-      id: '/models'
-      path: '/models'
-      fullPath: '/models'
-      preLoaderRoute: typeof ModelsRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/embeddings': {
-      id: '/embeddings'
-      path: '/embeddings'
-      fullPath: '/embeddings'
-      preLoaderRoute: typeof EmbeddingsRouteRouteImport
+    '/_dashboard': {
+      id: '/_dashboard'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof DashboardRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/apps': {
@@ -350,54 +322,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_dashboard': {
-      id: '/_dashboard'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof DashboardRouteRouteImport
+    '/embeddings': {
+      id: '/embeddings'
+      path: '/embeddings'
+      fullPath: '/embeddings'
+      preLoaderRoute: typeof EmbeddingsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/': {
-      id: '/settings/'
-      path: '/'
-      fullPath: '/settings/'
-      preLoaderRoute: typeof SettingsIndexRouteImport
-      parentRoute: typeof SettingsRouteRoute
+    '/models': {
+      id: '/models'
+      path: '/models'
+      fullPath: '/models'
+      preLoaderRoute: typeof ModelsRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/requests/': {
-      id: '/requests/'
-      path: '/'
-      fullPath: '/requests/'
-      preLoaderRoute: typeof RequestsIndexRouteImport
-      parentRoute: typeof RequestsRouteRoute
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/playground/': {
-      id: '/playground/'
-      path: '/'
-      fullPath: '/playground/'
-      preLoaderRoute: typeof PlaygroundIndexRouteImport
-      parentRoute: typeof PlaygroundRouteRoute
+    '/requests': {
+      id: '/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof RequestsRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/models/': {
-      id: '/models/'
-      path: '/'
-      fullPath: '/models/'
-      preLoaderRoute: typeof ModelsIndexRouteImport
-      parentRoute: typeof ModelsRouteRoute
-    }
-    '/embeddings/': {
-      id: '/embeddings/'
-      path: '/'
-      fullPath: '/embeddings/'
-      preLoaderRoute: typeof EmbeddingsIndexRouteImport
-      parentRoute: typeof EmbeddingsRouteRoute
-    }
-    '/apps/': {
-      id: '/apps/'
-      path: '/'
-      fullPath: '/apps/'
-      preLoaderRoute: typeof AppsIndexRouteImport
-      parentRoute: typeof AppsRouteRoute
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_dashboard/': {
       id: '/_dashboard/'
@@ -406,25 +364,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/settings/grafana': {
-      id: '/settings/grafana'
-      path: '/grafana'
-      fullPath: '/settings/grafana'
-      preLoaderRoute: typeof SettingsGrafanaRouteImport
-      parentRoute: typeof SettingsRouteRoute
+    '/apps/': {
+      id: '/apps/'
+      path: '/'
+      fullPath: '/apps/'
+      preLoaderRoute: typeof AppsIndexRouteImport
+      parentRoute: typeof AppsRouteRoute
     }
-    '/settings/alerts': {
-      id: '/settings/alerts'
-      path: '/alerts'
-      fullPath: '/settings/alerts'
-      preLoaderRoute: typeof SettingsAlertsRouteImport
-      parentRoute: typeof SettingsRouteRoute
+    '/embeddings/': {
+      id: '/embeddings/'
+      path: '/'
+      fullPath: '/embeddings/'
+      preLoaderRoute: typeof EmbeddingsIndexRouteImport
+      parentRoute: typeof EmbeddingsRouteRoute
     }
-    '/models/registry': {
-      id: '/models/registry'
-      path: '/registry'
-      fullPath: '/models/registry'
-      preLoaderRoute: typeof ModelsRegistryRouteImport
+    '/models/': {
+      id: '/models/'
+      path: '/'
+      fullPath: '/models/'
+      preLoaderRoute: typeof ModelsIndexRouteImport
       parentRoute: typeof ModelsRouteRoute
     }
     '/models/providers': {
@@ -434,11 +392,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModelsProvidersRouteImport
       parentRoute: typeof ModelsRouteRoute
     }
-    '/playground/compare': {
-      id: '/playground/compare'
-      path: '/compare'
-      fullPath: '/playground/compare'
-      preLoaderRoute: typeof PlaygroundCompareRouteRouteImport
+    '/models/registry': {
+      id: '/models/registry'
+      path: '/registry'
+      fullPath: '/models/registry'
+      preLoaderRoute: typeof ModelsRegistryRouteImport
+      parentRoute: typeof ModelsRouteRoute
+    }
+    '/playground/': {
+      id: '/playground/'
+      path: '/'
+      fullPath: '/playground/'
+      preLoaderRoute: typeof PlaygroundIndexRouteImport
       parentRoute: typeof PlaygroundRouteRoute
     }
     '/playground/chat': {
@@ -448,12 +413,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaygroundChatRouteRouteImport
       parentRoute: typeof PlaygroundRouteRoute
     }
-    '/playground/compare/': {
-      id: '/playground/compare/'
+    '/playground/compare': {
+      id: '/playground/compare'
+      path: '/compare'
+      fullPath: '/playground/compare'
+      preLoaderRoute: typeof PlaygroundCompareRouteRouteImport
+      parentRoute: typeof PlaygroundRouteRoute
+    }
+    '/requests/': {
+      id: '/requests/'
       path: '/'
-      fullPath: '/playground/compare/'
-      preLoaderRoute: typeof PlaygroundCompareIndexRouteImport
-      parentRoute: typeof PlaygroundCompareRouteRoute
+      fullPath: '/requests/'
+      preLoaderRoute: typeof RequestsIndexRouteImport
+      parentRoute: typeof RequestsRouteRoute
+    }
+    '/settings/': {
+      id: '/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/alerts': {
+      id: '/settings/alerts'
+      path: '/alerts'
+      fullPath: '/settings/alerts'
+      preLoaderRoute: typeof SettingsAlertsRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/grafana': {
+      id: '/settings/grafana'
+      path: '/grafana'
+      fullPath: '/settings/grafana'
+      preLoaderRoute: typeof SettingsGrafanaRouteImport
+      parentRoute: typeof SettingsRouteRoute
     }
     '/playground/chat/': {
       id: '/playground/chat/'
@@ -462,19 +455,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaygroundChatIndexRouteImport
       parentRoute: typeof PlaygroundChatRouteRoute
     }
-    '/playground/compare/$testCaseId': {
-      id: '/playground/compare/$testCaseId'
-      path: '/$testCaseId'
-      fullPath: '/playground/compare/$testCaseId'
-      preLoaderRoute: typeof PlaygroundCompareTestCaseIdRouteImport
-      parentRoute: typeof PlaygroundCompareRouteRoute
-    }
     '/playground/chat/$conversationId': {
       id: '/playground/chat/$conversationId'
       path: '/$conversationId'
       fullPath: '/playground/chat/$conversationId'
       preLoaderRoute: typeof PlaygroundChatConversationIdRouteImport
       parentRoute: typeof PlaygroundChatRouteRoute
+    }
+    '/playground/compare/': {
+      id: '/playground/compare/'
+      path: '/'
+      fullPath: '/playground/compare/'
+      preLoaderRoute: typeof PlaygroundCompareIndexRouteImport
+      parentRoute: typeof PlaygroundCompareRouteRoute
+    }
+    '/playground/compare/$testCaseId': {
+      id: '/playground/compare/$testCaseId'
+      path: '/$testCaseId'
+      fullPath: '/playground/compare/$testCaseId'
+      preLoaderRoute: typeof PlaygroundCompareTestCaseIdRouteImport
+      parentRoute: typeof PlaygroundCompareRouteRoute
     }
   }
 }

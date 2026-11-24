@@ -71,7 +71,7 @@ export type PartialList<T> = {
  * @returns db record of api key, null if not found
  */
 export async function findApiKey(key: string): Promise<ApiKey | null> {
-  logger.debug("findApiKey", key);
+  logger.debug("findApiKey");
   const r = await db
     .select()
     .from(schema.ApiKeysTable)
@@ -81,7 +81,7 @@ export async function findApiKey(key: string): Promise<ApiKey | null> {
 }
 
 export async function updateApiKey(c: ApiKeyInsert) {
-  logger.debug("updateApiKey", c);
+  logger.debug("updateApiKey");
   const r = await db
     .update(schema.ApiKeysTable)
     .set(c)
@@ -89,6 +89,25 @@ export async function updateApiKey(c: ApiKeyInsert) {
     .returning();
   const [first] = r;
   return first ?? null;
+}
+
+export async function revokeApiKeyById(id: number) {
+  const [changed] = await db
+    .update(schema.ApiKeysTable)
+    .set({ revoked: true, updatedAt: new Date() })
+    .where(
+      and(eq(schema.ApiKeysTable.id, id), not(schema.ApiKeysTable.revoked)),
+    )
+    .returning({ id: schema.ApiKeysTable.id });
+  if (changed) {
+    return { id, revoked: true as const, alreadyRevoked: false };
+  }
+
+  const [existing] = await db
+    .select({ id: schema.ApiKeysTable.id })
+    .from(schema.ApiKeysTable)
+    .where(eq(schema.ApiKeysTable.id, id));
+  return existing ? { id, revoked: true as const, alreadyRevoked: true } : null;
 }
 
 /**
@@ -112,7 +131,7 @@ export async function listApiKeys(all = false): Promise<ApiKey[]> {
 export async function findApiKeyByExternalId(
   externalId: string,
 ): Promise<ApiKey | null> {
-  logger.debug("findApiKeyByExternalId", externalId);
+  logger.debug("findApiKeyByExternalId");
   const r = await db
     .select()
     .from(schema.ApiKeysTable)
@@ -150,7 +169,7 @@ export async function listApiKeysBySource(
  * @returns db record of api key
  */
 export async function upsertApiKey(c: ApiKeyInsert): Promise<ApiKey | null> {
-  logger.debug("upsertApiKey", c);
+  logger.debug("upsertApiKey");
   const r = await db
     .insert(schema.ApiKeysTable)
     .values(c)
@@ -240,7 +259,7 @@ export async function listUpstreamModels() {
 export async function insertUpstream(
   c: UpstreamInsert,
 ): Promise<Upstream | null> {
-  logger.debug("insertUpstream", c);
+  logger.debug("insertUpstream");
   const r = await db
     .insert(schema.UpstreamTable)
     .values(c)
@@ -348,6 +367,54 @@ export async function sumCompletionTokenUsage(apiKeyId?: number) {
     );
   const [first] = r;
   return first ?? null;
+}
+
+export async function getApiKeyUsageHistory(id: number) {
+  const { ApiKeysTable, CompletionsTable, EmbeddingsTable } = schema;
+  // Negative values mark unavailable usage. Keep sums as decimal strings.
+  const tokenTotal = (
+    tokens:
+      | typeof CompletionsTable.promptTokens
+      | typeof CompletionsTable.completionTokens
+      | typeof EmbeddingsTable.inputTokens,
+  ) =>
+    sql<string>`coalesce(sum(${tokens}) filter (where ${tokens} >= 0), 0)::text`;
+  const generation = db
+    .select({
+      total_prompt_tokens: tokenTotal(CompletionsTable.promptTokens).as(
+        "total_prompt_tokens",
+      ),
+      total_completion_tokens: tokenTotal(CompletionsTable.completionTokens).as(
+        "total_completion_tokens",
+      ),
+    })
+    .from(CompletionsTable)
+    .where(eq(CompletionsTable.apiKeyId, ApiKeysTable.id))
+    .as("generation");
+  const embeddings = db
+    .select({
+      total_input_tokens: tokenTotal(EmbeddingsTable.inputTokens).as(
+        "total_input_tokens",
+      ),
+    })
+    .from(EmbeddingsTable)
+    .where(eq(EmbeddingsTable.apiKeyId, ApiKeysTable.id))
+    .as("embeddings");
+
+  const [history] = await db
+    .select({
+      id: ApiKeysTable.id,
+      generation: {
+        total_prompt_tokens: generation.total_prompt_tokens,
+        total_completion_tokens: generation.total_completion_tokens,
+      },
+      embeddings: { total_input_tokens: embeddings.total_input_tokens },
+    })
+    .from(ApiKeysTable)
+    .crossJoinLateral(generation)
+    .crossJoinLateral(embeddings)
+    .where(eq(ApiKeysTable.id, id));
+  return history ?? null;
 }
 
 // Type for completion with provider info

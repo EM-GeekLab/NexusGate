@@ -53,9 +53,7 @@ export const rateLimitPlugin = new Elysia({
           return status(429, "Rate limit exceeded");
         }
 
-        logger.debug(
-          `Rate limit (${identifier}:${bearer}): ${newTokens}/${limit}`,
-        );
+        logger.debug(`Rate limit (${identifier}): ${newTokens}/${limit}`);
 
         set.headers["X-RateLimit-Limit"] = limit.toString();
         set.headers["X-RateLimit-Remaining"] = newTokens.toString();

@@ -114,7 +114,7 @@ export const embeddingsApi = new Elysia({
       };
 
       logger.debug("proxying embeddings request to upstream", {
-        bearer,
+        apiKeyId: apiKeyRecord?.id,
         upstreamEndpoint,
         model: body.model,
       });

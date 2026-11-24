@@ -2,7 +2,12 @@ import { memo } from 'react'
 import { format } from 'date-fns'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
-import { tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from '@/pages/overview/charts/chart-styles'
+import {
+  formatTooltipTimestamp,
+  tooltipContentStyle,
+  tooltipItemStyle,
+  tooltipLabelStyle,
+} from '@/pages/overview/charts/chart-styles'
 
 interface HistogramBucket {
   bucket: string | Date
@@ -39,7 +44,7 @@ export const SearchHistogram = memo(function SearchHistogram({ data }: SearchHis
           />
           <YAxis className="text-xs" width={40} tickLine={false} axisLine={false} />
           <Tooltip
-            labelFormatter={(value) => format(new Date(value), 'yyyy-MM-dd HH:mm:ss')}
+            labelFormatter={formatTooltipTimestamp}
             contentStyle={tooltipContentStyle}
             labelStyle={tooltipLabelStyle}
             itemStyle={tooltipItemStyle}

@@ -19,6 +19,7 @@ import {
   consumeTokens,
 } from "@/plugins/apiKeyRateLimitPlugin";
 import { rateLimitPlugin } from "@/plugins/rateLimitPlugin";
+import { countAnthropicTokens } from "@/services/countTokens";
 import {
   executeWithFailover,
   selectMultipleCandidates,
@@ -140,6 +141,22 @@ const tAnthropicMessageCreate = tLooseObject({
   tools: t.Optional(t.Array(tAnthropicTool)),
   tool_choice: t.Optional(tAnthropicToolChoice),
   metadata: t.Optional(tAnthropicMetadata),
+});
+
+// Anthropic count_tokens API request schema. Keep this route intentionally loose
+// so we can transparently forward newer content block shapes upstream.
+const tAnthropicMessageCountTokens = tLooseObject({
+  model: t.String(),
+  messages: t.Array(
+    tLooseObject({
+      role: t.String(),
+      content: t.Union([t.String(), t.Array(t.Unknown())]),
+    }),
+  ),
+  system: t.Optional(t.Union([t.String(), t.Array(t.Unknown())])),
+  tools: t.Optional(t.Array(t.Unknown())),
+  tool_choice: t.Optional(t.Unknown()),
+  thinking: t.Optional(t.Unknown()),
 });
 
 /**
@@ -288,53 +305,53 @@ async function* processStreamingResponse(
   // Build streaming ReqId context if provided
   const streamingReqIdContext = reqIdContext
     ? {
-        reqId: reqIdContext.reqId,
-        apiKeyId: reqIdContext.apiKeyId,
-        preCreatedCompletionId: reqIdContext.preCreatedCompletionId,
-        apiFormat: reqIdContext.apiFormat,
-        buildCachedResponse: (comp: Completion): CachedResponseType => {
-          // For streaming, build a complete non-streaming Anthropic response for cache
-          // Build content blocks including both text and tool_use
-          const contentBlocks: Array<Record<string, unknown>> = [];
-          for (const c of comp.completion) {
-            // Add text content if present
-            if (c.content) {
-              contentBlocks.push({ type: "text", text: c.content });
-            }
-            // Add tool_use blocks if present
-            if (c.tool_calls) {
-              for (const tc of c.tool_calls) {
-                contentBlocks.push({
-                  type: "tool_use",
-                  id: tc.id,
-                  name: tc.function.name,
-                  input: safeParseToolArgs(tc.function.arguments || "{}"),
-                });
-              }
+      reqId: reqIdContext.reqId,
+      apiKeyId: reqIdContext.apiKeyId,
+      preCreatedCompletionId: reqIdContext.preCreatedCompletionId,
+      apiFormat: reqIdContext.apiFormat,
+      buildCachedResponse: (comp: Completion): CachedResponseType => {
+        // For streaming, build a complete non-streaming Anthropic response for cache
+        // Build content blocks including both text and tool_use
+        const contentBlocks: Array<Record<string, unknown>> = [];
+        for (const c of comp.completion) {
+          // Add text content if present
+          if (c.content) {
+            contentBlocks.push({ type: "text", text: c.content });
+          }
+          // Add tool_use blocks if present
+          if (c.tool_calls) {
+            for (const tc of c.tool_calls) {
+              contentBlocks.push({
+                type: "tool_use",
+                id: tc.id,
+                name: tc.function.name,
+                input: safeParseToolArgs(tc.function.arguments || "{}"),
+              });
             }
           }
-          // Determine stop_reason based on content
-          const hasToolUse = contentBlocks.some((b) => b.type === "tool_use");
-          return {
-            body: {
-              id: `msg-cache-${reqIdContext.preCreatedCompletionId}`,
-              type: "message",
-              role: "assistant",
-              content:
-                contentBlocks.length > 0
-                  ? contentBlocks
-                  : [{ type: "text", text: "" }],
-              model: comp.model,
-              stop_reason: hasToolUse ? "tool_use" : "end_turn",
-              usage: {
-                input_tokens: comp.promptTokens,
-                output_tokens: comp.completionTokens,
-              },
+        }
+        // Determine stop_reason based on content
+        const hasToolUse = contentBlocks.some((b) => b.type === "tool_use");
+        return {
+          body: {
+            id: `msg-cache-${reqIdContext.preCreatedCompletionId}`,
+            type: "message",
+            role: "assistant",
+            content:
+              contentBlocks.length > 0
+                ? contentBlocks
+                : [{ type: "text", text: "" }],
+            model: comp.model,
+            stop_reason: hasToolUse ? "tool_use" : "end_turn",
+            usage: {
+              input_tokens: comp.promptTokens,
+              output_tokens: comp.completionTokens,
             },
-            format: "anthropic",
-          };
-        },
-      }
+          },
+          format: "anthropic",
+        };
+      },
+    }
     : undefined;
 
   // Create streaming context with abort handling
@@ -499,8 +516,76 @@ export const messagesApi = new Elysia({
   .use(apiKeyRateLimitPlugin)
   .use(rateLimitPlugin)
   .post(
+    "/messages/count_tokens",
+    async function({ body, set, request }) {
+      if (request.signal.aborted) {
+        return;
+      }
+
+      try {
+        const { systemName, targetProvider } = parseModelProvider(
+          body.model,
+          request.headers.get(PROVIDER_HEADER),
+        );
+
+        const modelsWithProviders = await getModelsWithProviderBySystemName(
+          systemName,
+          "chat",
+        );
+        if (request.signal.aborted) {
+          return;
+        }
+
+        if (modelsWithProviders.length === 0) {
+          set.status = 404;
+          return {
+            type: "error",
+            error: {
+              type: "not_found_error",
+              message: `Model '${systemName}' not found`,
+            },
+          };
+        }
+
+        const result = await countAnthropicTokens({
+          body,
+          request,
+          modelsWithProviders,
+          targetProvider,
+        });
+        if (!result || request.signal.aborted) {
+          return;
+        }
+
+        set.status = result.status;
+        return result.body;
+      } catch {
+        if (request.signal.aborted) {
+          return;
+        }
+        logger.error("count_tokens handler failed");
+        set.status = 502;
+        return {
+          type: "error",
+          error: {
+            type: "api_error",
+            message: "Upstream token counting failed",
+          },
+        };
+      }
+    },
+    {
+      body: tAnthropicMessageCountTokens,
+      checkApiKey: true,
+      apiKeyRateLimit: true,
+      rateLimit: {
+        identifier: (body: unknown) => (body as { model: string }).model,
+      },
+    },
+  )
+  .post(
     "/messages",
-    async function ({ body, set, bearer, request, apiKeyRecord }) {
+    async function({ body, set, bearer, request, apiKeyRecord }) {
       if (bearer === undefined) {
         set.status = 500;
         return {

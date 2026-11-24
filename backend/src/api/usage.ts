@@ -13,7 +13,7 @@ export const usageQueryApi = new Elysia({
   .use(apiKeyPlugin)
   .get(
     "/usage",
-    ({ status, apiKeyRecord }) => {
+    async ({ status, apiKeyRecord }) => {
       if (apiKeyRecord === null) {
         return status(500);
       }

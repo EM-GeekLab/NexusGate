@@ -159,7 +159,9 @@ export const adminApiKey = new Elysia()
     "/apiKey/by-id/:id",
     async ({ params, status }) => {
       const id = Number(params.id);
-      if (id > maxApiKeyId) return status(422, "Invalid key ID");
+      if (id > maxApiKeyId) {
+        return status(422, "Invalid key ID");
+      }
       const result = await revokeApiKeyById(id);
       return result ?? status(404, "Key not found");
     },
@@ -176,7 +178,9 @@ export const adminApiKey = new Elysia()
     "/apiKey/by-id/:id/usage",
     async ({ params, status }) => {
       const id = Number(params.id);
-      if (id > maxApiKeyId) return status(422, "Invalid key ID");
+      if (id > maxApiKeyId) {
+        return status(422, "Invalid key ID");
+      }
       const history = await getApiKeyUsageHistory(id);
       return history ?? status(404, "Key not found");
     },

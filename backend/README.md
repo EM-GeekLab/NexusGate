@@ -79,6 +79,25 @@ Gateway access logs record the method, matched route template and status, not th
 raw URL or credentials. Use the ID endpoints to keep keys out of URLs sent to
 clients, proxies and other infrastructure as well.
 
+## Anthropic token counting
+
+`POST /v1/messages/count_tokens` uses the same gateway API key and request rate
+limits as `POST /v1/messages`. It forwards the request to providers configured
+with the `anthropic` protocol and rewrites `model` to the provider's model name.
+If `X-NexusGate-Provider` or `model@provider` names an eligible provider, only
+that provider is used. If the named provider is ineligible or unavailable for
+the model, the gateway falls back to the other eligible providers.
+
+The gateway tries up to three eligible providers, with a 30-second deadline per
+attempt that includes reading the response body. A successful response contains
+`input_tokens` as a nonnegative integer. HTTP `404`, `405`, `429`, `500`, `502`,
+`503`, or `504`, timeouts, transient network failures, and malformed successful
+responses can advance to another provider. If no attempt succeeds and there is
+no nonretryable HTTP response, the gateway returns a generic `502`. It preserves
+nonretryable upstream HTTP statuses but never returns their raw error bodies.
+If no eligible Anthropic provider offers the requested model, the gateway
+returns `404` without contacting an upstream.
+
 ## Initialization Configuration
 
 NexusGate supports automatic initialization of upstreams through configuration files. This is especially useful for Docker deployments where you want to pre-configure the system.

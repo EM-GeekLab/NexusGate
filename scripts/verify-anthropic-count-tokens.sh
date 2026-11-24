@@ -54,11 +54,6 @@ call_api() {
   printf "%s" "$status"
 }
 
-json_snippet() {
-  local file="$1"
-  tr '\n' ' ' < "$file" | sed -E 's/[[:space:]]+/ /g' | cut -c1-280
-}
-
 discover_models() {
   local base_url="$1"
   local api_key="$2"
@@ -171,7 +166,6 @@ validate_provider() {
     local auth_status
     auth_status="$(call_api "$base_url" "$api_key" "POST" "/v1/messages" "$auth_probe_payload" "$out_messages")"
     echo "/v1/messages HTTP: ${auth_status}"
-    echo "messages body: $(json_snippet "$out_messages")"
     echo "Verdict: INCONCLUSIVE"
     return 0
   fi
@@ -184,7 +178,6 @@ validate_provider() {
   local msg_status
   msg_status="$(call_api "$base_url" "$api_key" "POST" "/v1/messages" "$msg_payload" "$out_messages")"
   echo "/v1/messages HTTP: ${msg_status}"
-  echo "messages body: $(json_snippet "$out_messages")"
 
   local count_payload
   count_payload="$(jq -cn --arg model "$model" '{model:$model,messages:[{role:"user",content:"Return one short word."}]}')"
@@ -192,11 +185,11 @@ validate_provider() {
   local count_status
   count_status="$(call_api "$base_url" "$api_key" "POST" "/v1/messages/count_tokens" "$count_payload" "$out_count")"
   echo "/v1/messages/count_tokens HTTP: ${count_status}"
-  echo "count_tokens body: $(json_snippet "$out_count")"
 
   local verdict="INCONCLUSIVE"
 
-  if [[ "$count_status" == "200" ]] && jq -e '.input_tokens | numbers' "$out_count" >/dev/null 2>&1; then
+  if [[ "$count_status" == 2[0-9][0-9] ]] &&
+    jq -es 'length == 1 and (.[0] | objects | .input_tokens | numbers | . >= 0 and . == floor)' "$out_count" >/dev/null 2>&1; then
     verdict="SUPPORTED"
   elif [[ "$count_status" == "404" || "$count_status" == "405" ]]; then
     verdict="NOT_SUPPORTED"
@@ -204,14 +197,8 @@ validate_provider() {
     if [[ "$msg_status" == "200" || "$msg_status" == "400" || "$msg_status" == "422" || "$msg_status" == "429" ]]; then
       verdict="AUTH_OR_PERMISSION_ISSUE_ON_COUNT_TOKENS"
     fi
-  elif [[ "$count_status" == "400" || "$count_status" == "422" ]]; then
-    if jq -e '.error.message? // .error?.message? // .error?.code? // "" | tostring | test("not found|No such|resource|path"; "i")' "$out_count" >/dev/null 2>&1; then
-      verdict="NOT_SUPPORTED"
-    elif [[ "$msg_status" == "200" ]]; then
-      verdict="LIKELY_SUPPORTED_BUT_REQUEST_SCHEMA_DIFF"
-    else
-      verdict="INCONCLUSIVE"
-    fi
+  elif [[ "$msg_status" == "200" && ( "$count_status" == "400" || "$count_status" == "422" ) ]]; then
+    verdict="LIKELY_SUPPORTED_BUT_REQUEST_SCHEMA_DIFF"
   fi
 
   echo "Verdict: ${verdict}"

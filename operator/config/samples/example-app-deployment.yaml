@@ -1,0 +1,104 @@
+# Complete example: NexusGateApp + Application Deployment
+# This shows how to provision an API key and use it in your application
+
+---
+# Step 1: Create a NexusGateApp to provision the API key
+apiVersion: gateway.nexusgate.io/v1alpha1
+kind: NexusGateApp
+metadata:
+  name: my-chatbot
+  namespace: production
+spec:
+  appName: "my-chatbot"
+  secretRef:
+    name: my-chatbot-credentials
+    key: OPENAI_API_KEY
+  deletionPolicy: Revoke
+
+---
+# Step 2: Deploy your application using the provisioned Secret
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-chatbot
+  namespace: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-chatbot
+  template:
+    metadata:
+      labels:
+        app: my-chatbot
+    spec:
+      containers:
+        - name: chatbot
+          image: my-chatbot:latest
+          env:
+            # API key from NexusGateApp-managed Secret
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: my-chatbot-credentials
+                  key: OPENAI_API_KEY
+
+            # NexusGate URL using K8s DNS (in-cluster)
+            # Format: http://<service>.<namespace>.svc.cluster.local:<port>
+            - name: OPENAI_API_BASE
+              value: "http://nexusgate.nexusgate.svc.cluster.local:3000/v1"
+
+            # Alternative: Short DNS format (also works within cluster)
+            # value: "http://nexusgate.nexusgate.svc:3000/v1"
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+
+---
+# Optional: ConfigMap for centralized NexusGate URL configuration
+# Applications can reference this instead of hardcoding the URL
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexusgate-config
+  namespace: production
+data:
+  # In-cluster K8s DNS URL
+  api-base-url: "http://nexusgate.nexusgate.svc.cluster.local:3000/v1"
+
+---
+# Example using ConfigMap for NexusGate URL
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-chatbot-v2
+  namespace: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-chatbot-v2
+  template:
+    metadata:
+      labels:
+        app: my-chatbot-v2
+    spec:
+      containers:
+        - name: chatbot
+          image: my-chatbot:latest
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: my-chatbot-credentials
+                  key: OPENAI_API_KEY
+            - name: OPENAI_API_BASE
+              valueFrom:
+                configMapKeyRef:
+                  name: nexusgate-config
+                  key: api-base-url

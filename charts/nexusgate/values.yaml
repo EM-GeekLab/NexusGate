@@ -1,0 +1,317 @@
+# Default values for NexusGate
+# This is a YAML-formatted file.
+
+# -- Number of NexusGate replicas (supports horizontal scaling)
+replicaCount: 1
+
+image:
+  # -- Container image repository
+  repository: ghcr.io/em-geeklab/nexusgate
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+# -- Image pull secrets for private registries
+imagePullSecrets: []
+# -- Override the name of the chart
+nameOverride: ""
+# -- Override the full name of the chart
+fullnameOverride: ""
+
+# NexusGate configuration
+nexusgate:
+  # -- Log level (debug, info, warn, error)
+  logLevel: "info"
+
+  # -- Initial admin API key (auto-generated if empty)
+  # This key is used for admin operations like managing API keys
+  adminKey: ""
+
+  # -- Secret name containing the admin key (alternative to adminKey)
+  # If set, adminKey is ignored and the key is read from this secret
+  existingSecret: ""
+  # -- Key in the existing secret containing the admin key
+  existingSecretKey: "admin-key"
+
+  # Database configuration (when using external database)
+  database:
+    # -- Use external database instead of bundled PostgreSQL
+    external: false
+    # -- External database host
+    host: ""
+    # -- External database port
+    port: 5432
+    # -- External database name
+    name: "nexusgate"
+    # -- External database user
+    user: "nexusgate"
+    # -- External database password
+    password: ""
+    # -- Secret containing database credentials
+    existingSecret: ""
+    existingSecretPasswordKey: "password"
+
+  # Redis configuration (when using external Redis)
+  redis:
+    # -- Use external Redis instead of bundled Redis
+    external: false
+    # -- External Redis host
+    host: ""
+    # -- External Redis port
+    port: 6379
+    # -- External Redis password
+    password: ""
+    # -- Secret containing Redis password
+    existingSecret: ""
+    existingSecretPasswordKey: "password"
+
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use
+  name: ""
+
+# -- Pod annotations
+podAnnotations: {}
+
+# -- Pod security context
+podSecurityContext:
+  fsGroup: 1000
+
+# -- Container security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  # -- Kubernetes service type
+  type: ClusterIP
+  # -- Service port
+  port: 3000
+  # -- Node port (only used when type is NodePort)
+  nodePort: ""
+  # -- Annotations for the service
+  annotations: {}
+
+ingress:
+  # -- Enable ingress
+  enabled: false
+  # -- Ingress class name
+  className: ""
+  # -- Ingress annotations
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  # -- Ingress hosts configuration
+  hosts:
+    - host: nexusgate.local
+      paths:
+        - path: /
+          pathType: Prefix
+  # -- Ingress TLS configuration
+  tls: []
+  #  - secretName: nexusgate-tls
+  #    hosts:
+  #      - nexusgate.local
+
+# -- Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Autoscaling configuration
+autoscaling:
+  # -- Enable horizontal pod autoscaling
+  enabled: false
+  # -- Minimum number of replicas
+  minReplicas: 1
+  # -- Maximum number of replicas
+  maxReplicas: 10
+  # -- Target CPU utilization percentage
+  targetCPUUtilizationPercentage: 80
+  # -- Target memory utilization percentage
+  targetMemoryUtilizationPercentage: ""
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity rules
+affinity: {}
+
+# -- Topology spread constraints
+topologySpreadConstraints: []
+
+# Liveness probe configuration
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  # -- Enable PodDisruptionBudget
+  enabled: false
+  # -- Minimum available pods
+  minAvailable: 1
+  # -- Maximum unavailable pods (alternative to minAvailable)
+  maxUnavailable: ""
+
+# -- Extra environment variables
+extraEnv: []
+#  - name: MY_VAR
+#    value: "my-value"
+
+# -- Extra environment variables from secrets/configmaps
+extraEnvFrom: []
+#  - secretRef:
+#      name: my-secret
+
+# -- Extra volumes
+extraVolumes: []
+
+# -- Extra volume mounts
+extraVolumeMounts: []
+
+# -- Init containers
+initContainers: []
+
+# -- Sidecar containers
+sidecars: []
+
+# ============================================================================
+# PostgreSQL Configuration (Bitnami subchart)
+# https://github.com/bitnami/charts/tree/main/bitnami/postgresql
+# ============================================================================
+postgresql:
+  # -- Enable bundled PostgreSQL
+  enabled: true
+
+  auth:
+    # -- PostgreSQL database name
+    database: nexusgate
+    # -- PostgreSQL username
+    username: nexusgate
+    # -- PostgreSQL password (auto-generated if empty)
+    password: ""
+    # -- Name of existing secret containing PostgreSQL credentials
+    existingSecret: ""
+
+  primary:
+    persistence:
+      # -- Enable PostgreSQL persistence
+      enabled: true
+      # -- PostgreSQL PVC size
+      size: 10Gi
+      # -- PostgreSQL storage class
+      storageClass: ""
+
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+# ============================================================================
+# Redis Configuration (Bitnami subchart)
+# https://github.com/bitnami/charts/tree/main/bitnami/redis
+# ============================================================================
+redis:
+  # -- Enable bundled Redis
+  enabled: true
+
+  # -- Redis architecture (standalone or replication)
+  architecture: standalone
+
+  auth:
+    # -- Enable Redis authentication
+    enabled: true
+    # -- Redis password (auto-generated if empty)
+    password: ""
+    # -- Name of existing secret containing Redis password
+    existingSecret: ""
+
+  master:
+    persistence:
+      # -- Enable Redis persistence
+      enabled: true
+      # -- Redis PVC size
+      size: 2Gi
+      # -- Redis storage class
+      storageClass: ""
+
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+# ============================================================================
+# NexusGate Operator Configuration (optional)
+# ============================================================================
+operator:
+  # -- Enable NexusGate Operator for automated API key management
+  enabled: false
+
+  image:
+    # -- Operator image repository
+    repository: ghcr.io/em-geeklab/nexusgate-operator
+    # -- Operator image tag
+    tag: "latest"
+    # -- Operator image pull policy
+    pullPolicy: IfNotPresent
+
+  # -- Cluster name for external ID generation
+  clusterName: "default"
+
+  # -- Number of operator replicas (usually 1 with leader election)
+  replicaCount: 1
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+
+  # -- Leader election for HA
+  leaderElect: true
+
+  serviceAccount:
+    # -- Create operator service account
+    create: true
+    # -- Operator service account name
+    name: ""
